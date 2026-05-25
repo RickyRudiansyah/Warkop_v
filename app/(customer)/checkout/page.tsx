@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { PaymentMethod } from '@/types';
-import { Trash2, ArrowLeft, ShoppingCart } from 'lucide-react';
+import { Trash2, ArrowLeft, AlertTriangle, Check } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [tableId, setTableId] = useState<string | null>(null);
   const [loadingTable, setLoadingTable] = useState(true);
+  const [agreed, setAgreed] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async () => {
     if (!tableNumber) { toast.error('Nomor meja tidak ditemukan'); return; }
+    if (!agreed) { toast.error('Silakan setujui ketentuan terlebih dahulu'); return; }
     setSubmitting(true);
     try {
       const res = await fetch('/api/orders', {
@@ -103,6 +105,7 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
+
             <div className="card p-4">
               <h2 className="font-semibold mb-3">Metode Pembayaran</h2>
               <div className="space-y-2">
@@ -114,11 +117,56 @@ export default function CheckoutPage() {
                 ))}
               </div>
             </div>
-            <div className="card p-4"><div className="flex justify-between text-lg font-bold"><span>Total</span><span className="text-primary">{formatCurrency(totalPrice)}</span></div></div>
-            <Button size="lg" className="w-full" loading={submitting} onClick={handleSubmit}>Pesan Sekarang</Button>
+
+            <div className="card p-4">
+              <div className="flex justify-between text-lg font-bold">
+                <span>Total</span>
+                <span className="text-primary">{formatCurrency(totalPrice)}</span>
+              </div>
+            </div>
+
+            <div className="card p-4 bg-warning/5 border-warning/20">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="p-1.5 rounded-full bg-warning/10 shrink-0 mt-0.5">
+                  <AlertTriangle className="w-4 h-4 text-warning" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Perhatian</p>
+                  <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+                    Setelah pesanan dikirim ke kasir, <strong>pesanan tidak dapat dibatalkan</strong> secara langsung oleh Anda. Jika ada perubahan, silakan hubungi staff kami.
+                  </p>
+                </div>
+              </div>
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className={'mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ' + (agreed ? 'bg-primary border-primary' : 'border-text-secondary/40 group-hover:border-primary')}>
+                  {agreed && <Check className="w-3.5 h-3.5 text-white" />}
+                </div>
+                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
+                  Saya setuju, pesanan saya akan segera diproses dan <strong>tidak dapat dibatalkan setelah checkout</strong>.
+                </span>
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={e => setAgreed(e.target.checked)}
+                  className="sr-only"
+                  aria-label="Saya setuju pesanan tidak dapat dibatalkan"
+                />
+              </label>
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full"
+              loading={submitting}
+              disabled={!agreed}
+              onClick={handleSubmit}
+            >
+              {agreed ? 'Pesan Sekarang' : 'Setujui Ketentuan untuk Checkout'}
+            </Button>
           </>
         )}
       </div>
     </div>
   );
 }
+

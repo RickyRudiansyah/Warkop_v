@@ -1,4 +1,4 @@
-﻿# Warkop QR Ordering System v2.2
+﻿# Warkop QR Ordering System v2.3
 
 > Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pesan, bayar tanpa antri ke kasir.
 
@@ -26,7 +26,7 @@
 - [Deployment ke Vercel](#deployment-ke-vercel)
 - [Environment Variables](#environment-variables)
 - [Struktur Project](#struktur-project)
-- [Changelog v2.2](#changelog-v22)
+- [Changelog v2.3](#changelog-v23)
 - [Developer](#developer)
 - [License](#license)
 
@@ -790,6 +790,35 @@ git push -u origin main
 | New dependencies | 0 |
 | Breaking changes | 0 |
 
+
+---
+
+## Changelog v2.3
+
+### Checkout Agreement Confirmation (1 file)
+
+- **Warning card before checkout** — Customer sees a styled warning card with an `AlertTriangle` icon explaining that orders cannot be canceled after being sent to the cashier
+- **Custom checkbox agreement** — Styled checkbox with purple check animation, customer must actively agree before the order button is enabled
+- **Disabled button until agreement** — "Pesan Sekarang" button is disabled until checkbox is checked, preventing accidental or misclicked orders
+- **Clear, concise Indonesian wording** — Simplified agreement text: _"Saya setuju, setelah dipesan, pesanan tidak dapat dibatalkan."_
+
+### Flow Comparison
+
+| Before (v2.2) | After (v2.3) |
+|---|---|
+| Click "Pesan Sekarang" -> instant submit | Warning -> centang agreement -> "Pesan Sekarang" |
+| No confirmation step | Customer actively confirms they understand |
+| Possible accidental orders | Guarded against mistaken submissions |
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 1 (`app/(customer)/checkout/page.tsx`) |
+| TypeScript errors | 0 |
+| Build | Passed |
+| Breaking changes | None |
+
 ---
 
 ## Developer
@@ -801,6 +830,9 @@ git push -u origin main
 ## License
 
 MIT License — bebas digunakan dan dimodifikasi.
+
+
+
 
 
 
