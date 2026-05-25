@@ -1,4 +1,4 @@
-﻿# Warkop QR Ordering System v2.1
+﻿# Warkop QR Ordering System v2.2
 
 > Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pesan, bayar tanpa antri ke kasir.
 
@@ -26,7 +26,7 @@
 - [Deployment ke Vercel](#deployment-ke-vercel)
 - [Environment Variables](#environment-variables)
 - [Struktur Project](#struktur-project)
-- [Changelog v2.1](#changelog-v21)
+- [Changelog v2.2](#changelog-v22)
 - [Developer](#developer)
 - [License](#license)
 
@@ -36,11 +36,12 @@
 
 Warkop QR Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil-menengah. Customer cukup scan QR di meja, pilih menu, dan bayar tanpa perlu antri ke kasir. Staff (kasir, koki, owner) mengelola pesanan melalui dashboard masing-masing.
 
-Versi 2.1 merupakan rebuild total dari versi pertama (React + FastAPI), dengan seluruh stack diganti menjadi **full Next.js 16** menggunakan App Router dan API Routes sebagai backend — sehingga hanya 1 project, 1 repo, 1 deploy.
+Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan seluruh stack diganti menjadi **full Next.js 16** menggunakan App Router dan API Routes sebagai backend — sehingga hanya 1 project, 1 repo, 1 deploy.
 
-### Perbedaan v1 vs v2.1
+### Perbedaan v1 vs v2.x
 
-| Aspek | v1 (React + FastAPI) | v2.1 (Next.js Full) |
+| Aspek | v1 (React + FastAPI) | v2.1/v2.2 (Next.js Full) |
+|---|---|---|
 |---|---|---|
 | Repo | 2 repo terpisah | 1 repo |
 | Backend | Python FastAPI | Next.js API Routes (TypeScript) |
@@ -49,6 +50,7 @@ Versi 2.1 merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 | Language | Python + TypeScript | TypeScript saja |
 | Maintenance | 2 environment | 1 environment |
 | Cart persistence | sessionStorage | sessionStorage + merge duplicates |
+| clearCart() clears table | N/A | Fixed in v2.2: only clears cart |
 | Kitchen ETA | Tidak ada | Set time, countdown, update ETA, overdue warning |
 | Customer tracking | Tidak ada | Realtime order tracking + ETA countdown |
 | Cashier view | Grid list | Kanban 4 kolom |
@@ -723,6 +725,71 @@ git push -u origin main
 - **Cashier page** — Kanban layout, toast, activity log
 - **Owner page** — Comprehensive dashboard dengan stats, rekap, top menu, recent orders
 
+
+---
+
+## Changelog v2.2
+
+### UI/UX & Code Quality Overhaul (26 improvements across 20 files)
+
+#### Critical Fixes
+
+- **Hardcoded credentials removed** — Activity logs now use actual logged-in user identity from `useAuth()`, not hardcoded strings
+- **Error handling added** — All Supabase queries now properly catch and handle errors (`useMenu`, `useOrders`, `AuthContext`, `checkout`)
+- **Fixed broken Update ETA button** — Kitchen ETA select dropdown is now controlled; button sends the actual selected value, not hardcoded `5`
+- **Cancel modal replaces `prompt()`** — Proper styled modal dialog with textarea input, confirm/cancel buttons, Escape key support, and focus management
+- **MenuItemSheet state now resets** — Opening a new menu item clears quantity, variations, and notes from the previous item
+- **Login page redesigned** — Now uses theme tokens (`bg-surface-2`, `bg-surface`, `text-primary`) instead of hardcoded Tailwind classes; auto-redirects based on user role without double-hop
+
+#### UX Improvements
+
+- **`clearCart()` no longer clears table number** — Customer can clear cart to start fresh without losing table assignment
+- **Theme consistency across all components** — `MenuItemCard`, `CategoryPills`, `EmptyState`, `Badge`, `DashboardLayout` all now use CSS theme variables instead of hardcoded `bg-white`, `text-gray-*` classes
+- **OrderCard animations** — Frameworks Motion enter/exit animations (`motion.div` with `opacity`/`y` transitions) for smooth card appearance
+- **Skeleton loading everywhere** — Added skeleton placeholders in checkout page and order tracking page (was blank spinner only)
+- **Loading state prop** — `OrderCard` now has `isLoading` prop; buttons show spinner + disabled state during API calls
+- **Persistent customer headers** — All customer pages (checkout, order-success, order-tracking) now have consistent sticky header with "Warkop QR" + back button + "Meja X" indicator
+- **Duplicated `cn` utility removed** — `DashboardLayout` now imports `cn` from `@/lib/utils` instead of redefining it
+- **History nav link added** — Both cashier and owner navigation now include "History" link to `/dashboard/history`
+- **DRY refactoring** — `useMenu` hook deduplicates fetch logic into shared function; `useOrders` fixes `.not()` filter syntax
+
+#### Accessibility (WCAG Compliance)
+
+- **ARIA labels** — All icon-only buttons now have descriptive `aria-label` attributes (close, plus, minus, delete, edit, search, cart)
+- **Focus trapping** — Modals (MenuItemSheet, CartDrawer, CancelDialog) trap focus inside when open
+- **Escape key support** — All modals close on Escape key press
+- **Modal roles** — `role="dialog"` + `aria-modal="true"` + `aria-labelledby` on all modal components
+- **`aria-current="page"`** — Active navigation link in DashboardLayout is announced as current page
+- **`aria-live="polite"`** — Real-time update regions (kanban, kitchen, order-tracking) use `aria-live` for screen reader announcements
+- **Skip-to-content link** — Root layout includes skip navigation link for keyboard users
+- **`scope="col"`** — All table header cells have proper scope attributes
+- **`aria-hidden="true"`** — Modal backdrop divs marked as hidden from screen readers
+
+#### Visual Polish
+
+- **Table status indicator** — QR Generator page now shows occupied/vacant status per table (green "Kosong" / yellow "Diisi" badges + border)
+- **Professional icon fallback** — `MenuItemCard` uses `Utensils` icon (Lucide) instead of food emoji 🍽️
+- **Responsive history table** — History page table has `overflow-x-auto` and hides "Items" column on mobile (`hidden md:table-cell`)
+- **CartFAB sizing** — Now centers with `max-w-md mx-auto` instead of stretching full-width on desktop
+- **EmptyState action prop** — `EmptyState` component now supports optional `action` button for contextual CTAs
+
+#### Bonus
+
+- **Toast config** — Sonner toasts now have `duration={3000}`, `closeButton`, and `richColors`
+- **Order page** — Search input has `aria-label`; menu grid has `aria-live="polite"`
+- **API: status route** — Now properly handles `estimated_minutes` param for ETA setting
+- **QR page: btoa fix** — UTF-8 characters in SVG no longer cause download failure (fallback to `encodeURIComponent`)
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 20 |
+| TypeScript errors | 0 |
+| Build | Passed |
+| New dependencies | 0 |
+| Breaking changes | 0 |
+
 ---
 
 ## Developer
@@ -734,3 +801,7 @@ git push -u origin main
 ## License
 
 MIT License — bebas digunakan dan dimodifikasi.
+
+
+
+

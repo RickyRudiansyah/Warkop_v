@@ -1,12 +1,14 @@
 ﻿'use client';
 
 import { useOrders } from '@/hooks/useOrders';
+import { useAuth } from '@/context/AuthContext';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { OrderCard } from '@/components/dashboard/OrderCard';
+import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ClipboardList } from 'lucide-react';
-import { useState } from 'react';
+import { ClipboardList, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 const columns = [
@@ -18,13 +20,25 @@ const columns = [
 
 export default function CashierPage() {
   const { orders, loading } = useOrders();
+  const { staffProfile } = useAuth();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [cancelModal, setCancelModal] = useState<{ open: boolean; orderId: string }>({ open: false, orderId: '' });
+  const [cancelReason, setCancelReason] = useState('');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && cancelModal.open) setCancelModal({ open: false, orderId: '' });
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [cancelModal.open]);
 
   const logActivity = async (action: string, target_type: string, target_id: string, detail: Record<string, unknown>) => {
+    if (!staffProfile) return;
     await fetch('/api/activity-logs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ actor_email: 'cashier@warkop.com', actor_role: 'cashier', action, target_type, target_id, detail }),
+      body: JSON.stringify({ actor_email: staffProfile.email, actor_role: staffProfile.role, action, target_type, target_id, detail }),
     });
   };
 
@@ -48,18 +62,23 @@ export default function CashierPage() {
     setProcessingId(null);
   };
 
-  const handleCancel = async (id: string) => {
-    const reason = prompt('Alasan pembatalan:');
-    if (!reason) return;
-    const res = await fetch('/api/orders/' + id + '/cancel', {
+  const openCancelModal = (id: string) => {
+    setCancelModal({ open: true, orderId: id });
+    setCancelReason('');
+  };
+
+  const handleCancel = async () => {
+    if (!cancelReason.trim()) return;
+    const res = await fetch('/api/orders/' + cancelModal.orderId + '/cancel', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify({ reason: cancelReason }),
     });
     if (res.ok) {
       toast.error('Pesanan dibatalkan');
-      await logActivity('cancel_order', 'order', id, { reason });
+      await logActivity('cancel_order', 'order', cancelModal.orderId, { reason: cancelReason });
     }
+    setCancelModal({ open: false, orderId: '' });
   };
 
   if (loading) return <DashboardLayout><Spinner size="lg" /></DashboardLayout>;
@@ -70,31 +89,56 @@ export default function CashierPage() {
       {orders.length === 0 ? (
         <EmptyState icon={<ClipboardList className="w-12 h-12" />} title="Belum ada order" description="Order baru akan muncul di sini" />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {columns.map(col => {
-            const colOrders = orders.filter(o => o.status === col.key);
-            return (
-              <div key={col.key} className="space-y-3">
-                <h3 className={'font-semibold text-sm uppercase tracking-wide border-l-4 pl-3 ' + col.color}>
-                  {col.label} ({colOrders.length})
-                </h3>
-                {colOrders.length === 0 ? (
-                  <div className="text-center py-8 text-text-secondary text-sm">Tidak ada order</div>
-                ) : (
-                  colOrders.map(order => (
-                    <OrderCard
-                      key={order.id}
-                      order={order}
-                      onConfirmCash={() => handleConfirmCash(order.id)}
-                      onConfirmPayment={() => handleConfirmPayment(order.id)}
-                      onCancel={() => handleCancel(order.id)}
-                    />
-                  ))
-                )}
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" aria-live="polite">
+            {columns.map(col => {
+              const colOrders = orders.filter(o => o.status === col.key);
+              return (
+                <div key={col.key} className="space-y-3">
+                  <h3 className={'font-semibold text-sm uppercase tracking-wide border-l-4 pl-3 ' + col.color}>
+                    {col.label} ({colOrders.length})
+                  </h3>
+                  {colOrders.length === 0 ? (
+                    <div className="text-center py-8 text-text-secondary text-sm">Tidak ada order</div>
+                  ) : (
+                    colOrders.map(order => (
+                      <OrderCard
+                        key={order.id}
+                        order={order}
+                        isLoading={processingId === order.id}
+                        onConfirmCash={() => handleConfirmCash(order.id)}
+                        onConfirmPayment={() => handleConfirmPayment(order.id)}
+                        onCancel={() => openCancelModal(order.id)}
+                      />
+                    ))
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {cancelModal.open && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/50" onClick={() => setCancelModal({ open: false, orderId: '' })} />
+              <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-sm p-6" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title">
+                <h3 id="cancel-dialog-title" className="text-lg font-bold mb-3">Batalkan Pesanan</h3>
+                <textarea
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                  placeholder="Alasan pembatalan..."
+                  className="w-full p-3 border rounded-lg resize-none bg-surface mb-4"
+                  rows={3}
+                  autoFocus
+                  aria-label="Alasan pembatalan"
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button variant="ghost" onClick={() => setCancelModal({ open: false, orderId: '' })}>Batal</Button>
+                  <Button variant="danger" onClick={handleCancel} disabled={!cancelReason.trim()}>Konfirmasi Cancel</Button>
+                </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          )}
+        </>
       )}
     </DashboardLayout>
   );

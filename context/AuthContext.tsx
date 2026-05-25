@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
@@ -22,17 +22,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
 
   const fetchStaffProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('staff_users')
       .select('*')
       .eq('id', userId)
       .single();
+    if (error) { console.error('Failed to fetch staff profile:', error.message); return null; }
     return data as StaffUser | null;
   }, [supabase]);
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) { console.error('Failed to get session:', sessionError.message); }
       if (session?.user) {
         setUser(session.user);
         const profile = await fetchStaffProfile(session.user.id);

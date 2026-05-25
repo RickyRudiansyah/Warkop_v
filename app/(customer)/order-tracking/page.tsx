@@ -5,8 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { useCountdown } from '@/hooks/useCountdown';
 import { formatCurrency } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle, Clock, AlertCircle, ChefHat, ShoppingCart } from 'lucide-react';
+import { CheckCircle, AlertCircle, ChefHat, ShoppingCart, ArrowLeft, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
 const statusSteps = [
@@ -23,16 +24,13 @@ export default function OrderTrackingPage() {
   const orderId = searchParams.get('orderId');
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { formatted: etaFormatted, isOverdue, isWarning, remaining } = useCountdown(order?.estimated_ready_at || null);
+  const { formatted: etaFormatted, isOverdue, isWarning } = useCountdown(order?.estimated_ready_at || null);
 
   useEffect(() => {
     if (!orderId) return;
     const fetchOrder = async () => {
       const res = await fetch('/api/orders/' + orderId + '/track');
-      if (res.ok) {
-        const data = await res.json();
-        setOrder(data);
-      }
+      if (res.ok) setOrder(await res.json());
       setLoading(false);
     };
     fetchOrder();
@@ -40,18 +38,41 @@ export default function OrderTrackingPage() {
     return () => clearInterval(interval);
   }, [orderId]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Spinner size="lg" /></div>;
-  if (!order) return <div className="min-h-screen flex items-center justify-center"><p>Pesanan tidak ditemukan</p></div>;
+  if (loading) return (
+    <div className="min-h-screen bg-surface-2">
+      <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
+        <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
+        <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+      </header>
+      <div className="max-w-md mx-auto p-4 space-y-6">
+        <div className="card p-6 space-y-3"><Skeleton width="60%" height="24px" /><Skeleton width="40%" /><Skeleton width="30%" /></div>
+        <div className="card p-6 space-y-3">{Array.from({ length: 3 }).map((_, i) => (<Skeleton key={i} variant="rectangular" height="36px" />))}</div>
+      </div>
+    </div>
+  );
+  if (!order) return (
+    <div className="min-h-screen bg-surface-2">
+      <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
+        <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
+        <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+      </header>
+      <div className="flex items-center justify-center p-12"><p className="text-text-secondary">Pesanan tidak ditemukan</p></div>
+    </div>
+  );
 
   const currentStatusIndex = statusSteps.findIndex(s => s.key === order.status);
   const isCancelled = order.status === 'CANCELLED';
 
   return (
     <div className="min-h-screen bg-surface-2">
+      <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
+        <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
+        <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+        {order.table && <p className="text-sm text-text-secondary ml-auto">Meja {order.table.table_number}</p>}
+      </header>
       <div className="max-w-md mx-auto p-4 space-y-6">
         <div className="card p-6 text-center">
           <h1 className="text-xl font-bold mb-1">Pesanan #{order.id.slice(0, 8)}</h1>
-          {order.table && <p className="text-text-secondary">Meja {order.table.table_number}</p>}
           <p className="text-2xl font-bold text-primary mt-2">{formatCurrency(order.total_amount)}</p>
         </div>
 
@@ -62,10 +83,10 @@ export default function OrderTrackingPage() {
             {order.cancel_reason && <p className="text-text-secondary mt-2">{order.cancel_reason}</p>}
           </div>
         ) : (
-          <div className="card p-6">
+          <div className="card p-6" aria-live="polite">
             <h2 className="font-semibold mb-4">Status Pesanan</h2>
             <div className="space-y-4">
-              {statusSteps.filter(s => !['PENDING_CASH', 'PENDING_PAYMENT'].includes(s.key) || order.status === s.key).map((step, i) => {
+              {statusSteps.filter(s => s.key === order.status || (s.key !== 'PENDING_CASH' && s.key !== 'PENDING_PAYMENT')).map((step) => {
                 const stepIndex = statusSteps.findIndex(s => s.key === step.key);
                 const isCompleted = stepIndex < currentStatusIndex || (order.status === 'SERVED' && stepIndex <= currentStatusIndex);
                 const isCurrent = stepIndex === currentStatusIndex;
@@ -82,9 +103,7 @@ export default function OrderTrackingPage() {
                     <div className="flex-1">
                       <p className={'font-medium ' + textClass}>{step.label}</p>
                       {isCurrent && order.status === 'PROCESSING' && order.estimated_ready_at && (
-                        <p className={'text-sm ' + etaClass}>
-                          {isOverdue ? 'Terlambat ' + etaFormatted : 'Estimasi: ' + etaFormatted}
-                        </p>
+                        <p className={'text-sm ' + etaClass}>{isOverdue ? 'Terlambat ' + etaFormatted : 'Estimasi: ' + etaFormatted}</p>
                       )}
                     </div>
                   </div>
@@ -98,7 +117,7 @@ export default function OrderTrackingPage() {
           <div className="card p-4">
             <h2 className="font-semibold mb-3">Detail Pesanan</h2>
             {order.items.map((item: any, i: number) => (
-              <div key={i} className="flex justify-between py-2 border-b last:border-0">
+              <div key={item.id || i} className="flex justify-between py-2 border-b last:border-0">
                 <span>{item.quantity}x {item.menu_item_name}</span>
                 <span>{formatCurrency(item.quantity * (item.menu_item_price || 0))}</span>
               </div>
@@ -106,9 +125,7 @@ export default function OrderTrackingPage() {
           </div>
         )}
 
-        <Link href="/order">
-          <Button variant="primary" size="lg" className="w-full">Kembali ke Menu</Button>
-        </Link>
+        <Link href="/order"><Button variant="primary" size="lg" className="w-full">Kembali ke Menu</Button></Link>
       </div>
     </div>
   );

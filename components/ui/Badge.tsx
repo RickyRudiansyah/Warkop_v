@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+﻿import { cn } from '@/lib/utils';
 
 interface BadgeProps {
   variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
@@ -8,11 +8,11 @@ interface BadgeProps {
 
 export function Badge({ variant = 'default', children, className }: BadgeProps) {
   const variants = {
-    default: 'bg-gray-100 text-gray-800',
-    success: 'bg-green-100 text-green-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    danger: 'bg-red-100 text-red-800',
-    info: 'bg-blue-100 text-blue-800',
+    default: 'bg-surface-3 text-text',
+    success: 'bg-success/10 text-success',
+    warning: 'bg-warning/10 text-warning',
+    danger: 'bg-danger/10 text-danger',
+    info: 'bg-info/10 text-info',
   };
 
   return (

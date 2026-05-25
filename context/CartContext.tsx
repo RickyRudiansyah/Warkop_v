@@ -18,21 +18,10 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 function getStoredCart(): CartItem[] {
-  try {
-    const stored = sessionStorage.getItem('warkop_cart');
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
+  try { const stored = sessionStorage.getItem('warkop_cart'); return stored ? JSON.parse(stored) : []; } catch { return []; }
 }
-
 function getStoredTable(): number | null {
-  try {
-    const stored = sessionStorage.getItem('warkop_table');
-    return stored ? parseInt(stored) : null;
-  } catch {
-    return null;
-  }
+  try { const stored = sessionStorage.getItem('warkop_table'); return stored ? parseInt(stored) : null; } catch { return null; }
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -40,56 +29,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [tableNumber, setTableNumber] = useState<number | null>(getStoredTable);
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem('warkop_cart', JSON.stringify(items));
-    } catch {
-      // sessionStorage might be full or disabled
-    }
+    try { sessionStorage.setItem('warkop_cart', JSON.stringify(items)); } catch {}
   }, [items]);
 
   useEffect(() => {
     try {
-      if (tableNumber !== null) {
-        sessionStorage.setItem('warkop_table', String(tableNumber));
-      } else {
-        sessionStorage.removeItem('warkop_table');
-      }
-    } catch {
-      // ignore
-    }
+      if (tableNumber !== null) sessionStorage.setItem('warkop_table', String(tableNumber));
+      else sessionStorage.removeItem('warkop_table');
+    } catch {}
   }, [tableNumber]);
 
   const addItem = useCallback((menu_item: MenuItem, quantity: number, selectedVariations: VariationSelection[], notes: string) => {
     const variationKey = JSON.stringify(selectedVariations.sort((a, b) => a.group_name.localeCompare(b.group_name)));
     const variationExtra = selectedVariations.reduce((sum, v) => sum + v.extra_price, 0);
     const subtotal = (menu_item.price + variationExtra) * quantity;
-
     setItems(prev => {
-      const existingIndex = prev.findIndex(
-        item => item.menu_item.id === menu_item.id && JSON.stringify(item.selectedVariations) === variationKey
-      );
+      const existingIndex = prev.findIndex(item => item.menu_item.id === menu_item.id && JSON.stringify(item.selectedVariations) === variationKey);
       if (existingIndex >= 0) {
         const updated = [...prev];
         const existing = updated[existingIndex];
-        const newQty = existing.quantity + quantity;
-        const newSubtotal = (menu_item.price + variationExtra) * newQty;
-        updated[existingIndex] = { ...existing, quantity: newQty, subtotal: newSubtotal };
+        updated[existingIndex] = { ...existing, quantity: existing.quantity + quantity, subtotal: (menu_item.price + variationExtra) * (existing.quantity + quantity) };
         return updated;
       }
       return [...prev, { menu_item, quantity, selectedVariations, notes, subtotal }];
     });
   }, []);
 
-  const removeItem = useCallback((index: number) => {
-    setItems(prev => prev.filter((_, i) => i !== index));
-  }, []);
-
+  const removeItem = useCallback((index: number) => { setItems(prev => prev.filter((_, i) => i !== index)); }, []);
   const updateQuantity = useCallback((index: number, quantity: number) => {
     setItems(prev => prev.map((item, i) => {
       if (i === index) {
         const variationExtra = item.selectedVariations.reduce((sum, v) => sum + v.extra_price, 0);
-        const subtotal = (item.menu_item.price + variationExtra) * quantity;
-        return { ...item, quantity, subtotal };
+        return { ...item, quantity, subtotal: (item.menu_item.price + variationExtra) * quantity };
       }
       return item;
     }));
@@ -97,13 +68,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = useCallback(() => {
     setItems([]);
-    setTableNumber(null);
-    try {
-      sessionStorage.removeItem('warkop_cart');
-      sessionStorage.removeItem('warkop_table');
-    } catch {
-      // ignore
-    }
+    try { sessionStorage.removeItem('warkop_cart'); } catch {}
   }, []);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);

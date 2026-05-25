@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useState } from 'react';
 import { Order, OrderStatus } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -7,6 +8,7 @@ import { formatCurrency, getElapsedMinutes } from '@/lib/utils';
 import { useCountdown } from '@/hooks/useCountdown';
 import { Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const statusConfig: Record<OrderStatus, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' | 'info' }> = {
   PENDING_CASH: { label: 'Menunggu Cash', variant: 'warning' },
@@ -28,16 +30,24 @@ interface OrderCardProps {
   onSetEta?: (minutes: number) => void;
   onUpdateEta?: (minutes: number) => void;
   etaMinutes?: number;
+  isLoading?: boolean;
 }
 
-export function OrderCard({ order, onConfirmCash, onConfirmPayment, onStartProcess, onServed, onCancel, showEtaSelector, onSetEta, onUpdateEta, etaMinutes }: OrderCardProps) {
+export function OrderCard({ order, onConfirmCash, onConfirmPayment, onStartProcess, onServed, onCancel, showEtaSelector, onSetEta, onUpdateEta, etaMinutes, isLoading }: OrderCardProps) {
   const elapsed = getElapsedMinutes(order.created_at);
   const config = statusConfig[order.status];
   const { formatted: etaFormatted, isOverdue, isWarning } = useCountdown(order.estimated_ready_at || null);
   const isProcessing = order.status === 'PROCESSING';
+  const [etaExtension, setEtaExtension] = useState(5);
 
   return (
-    <div className={cn('card p-4', isOverdue && 'border-danger shadow-danger/20', isWarning && !isOverdue && 'border-warning')}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className={cn('card p-4', isOverdue && 'border-danger shadow-danger/20', isWarning && !isOverdue && 'border-warning')}
+    >
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-semibold">Meja {order.table?.table_number || '-'}</h3>
@@ -50,7 +60,7 @@ export function OrderCard({ order, onConfirmCash, onConfirmPayment, onStartProce
         <div className={cn('flex items-center gap-2 mb-3 p-2 rounded-lg', isOverdue ? 'bg-danger/10' : isWarning ? 'bg-warning/10' : 'bg-surface-3')}>
           <Clock className={cn('w-4 h-4', isOverdue ? 'text-danger' : isWarning ? 'text-warning' : 'text-success')} />
           <span className={cn('text-sm font-mono font-bold', isOverdue ? 'text-danger' : isWarning ? 'text-warning' : 'text-success')}>
-            {isOverdue ? "OVERDUE -" + etaFormatted : etaFormatted}
+            {isOverdue ? "OVERDUE " + etaFormatted : etaFormatted}
           </span>
           {isOverdue && <AlertCircle className="w-4 h-4 text-danger animate-pulse" />}
         </div>
@@ -77,16 +87,20 @@ export function OrderCard({ order, onConfirmCash, onConfirmPayment, onStartProce
           <span className="font-bold text-primary">{formatCurrency(order.total_amount)}</span>
           <div className="flex gap-2 flex-wrap">
             {onCancel && (order.status === 'PENDING_CASH' || order.status === 'PENDING_PAYMENT' || order.status === 'CONFIRMED') && (
-              <Button variant="danger" size="sm" onClick={onCancel}>Cancel</Button>
+              <Button variant="danger" size="sm" onClick={onCancel} aria-label="Batalkan pesanan">Cancel</Button>
             )}
-            {onConfirmCash && order.status === 'PENDING_CASH' && <Button variant="success" size="sm" onClick={onConfirmCash}>Konfirmasi Cash</Button>}
-            {onConfirmPayment && order.status === 'PENDING_PAYMENT' && <Button variant="primary" size="sm" onClick={onConfirmPayment}>Konfirmasi Bayar</Button>}
+            {onConfirmCash && order.status === 'PENDING_CASH' && (
+              <Button variant="success" size="sm" onClick={onConfirmCash} disabled={isLoading} loading={isLoading}>Konfirmasi Cash</Button>
+            )}
+            {onConfirmPayment && order.status === 'PENDING_PAYMENT' && (
+              <Button variant="primary" size="sm" onClick={onConfirmPayment} disabled={isLoading} loading={isLoading}>Konfirmasi Bayar</Button>
+            )}
           </div>
         </div>
 
         {showEtaSelector && order.status === 'CONFIRMED' && onSetEta && (
           <div className="flex items-center gap-2 mt-2">
-            <select defaultValue={etaMinutes || 10} onChange={e => onSetEta(parseInt(e.target.value))} className="flex-1 px-3 py-2 border rounded-lg text-sm bg-surface">
+            <select value={etaMinutes || 10} onChange={e => onSetEta(parseInt(e.target.value))} className="flex-1 px-3 py-2 border rounded-lg text-sm bg-surface" aria-label="Estimasi waktu">
               <option value={5}>5 menit</option>
               <option value={10}>10 menit</option>
               <option value={15}>15 menit</option>
@@ -94,26 +108,25 @@ export function OrderCard({ order, onConfirmCash, onConfirmPayment, onStartProce
               <option value={25}>25 menit</option>
               <option value={30}>30 menit</option>
             </select>
-            <Button variant="primary" size="sm" onClick={onStartProcess}>Mulai Proses</Button>
+            <Button variant="primary" size="sm" onClick={onStartProcess} disabled={isLoading} loading={isLoading}>Mulai Proses</Button>
           </div>
         )}
 
         {isProcessing && onUpdateEta && (
           <div className="flex items-center gap-2 mt-2">
-            <select defaultValue={5} className="flex-1 px-3 py-2 border rounded-lg text-sm bg-surface">
+            <select value={etaExtension} onChange={e => setEtaExtension(parseInt(e.target.value))} className="flex-1 px-3 py-2 border rounded-lg text-sm bg-surface" aria-label="Tambah estimasi waktu">
               <option value={5}>+5 menit</option>
               <option value={10}>+10 menit</option>
               <option value={15}>+15 menit</option>
             </select>
-            <Button variant="secondary" size="sm" onClick={() => onUpdateEta(5)}>Update</Button>
+            <Button variant="secondary" size="sm" onClick={() => onUpdateEta(etaExtension)} disabled={isLoading} loading={isLoading}>Update</Button>
           </div>
         )}
 
         {onServed && order.status === 'PROCESSING' && (
-          <Button variant="success" size="sm" className="w-full mt-2" onClick={onServed}>Sudah Diantar</Button>
+          <Button variant="success" size="sm" className="w-full mt-2" onClick={onServed} disabled={isLoading} loading={isLoading}>Sudah Diantar</Button>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
-

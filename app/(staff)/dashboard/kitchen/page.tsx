@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useOrders } from '@/hooks/useOrders';
+import { useAuth } from '@/context/AuthContext';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { OrderCard } from '@/components/dashboard/OrderCard';
 import { Spinner } from '@/components/ui/Spinner';
@@ -11,14 +12,16 @@ import { toast } from 'sonner';
 
 export default function KitchenPage() {
   const { orders, loading } = useOrders();
+  const { staffProfile } = useAuth();
   const [etaMap, setEtaMap] = useState<Record<string, number>>({});
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const logActivity = async (action: string, target_type: string, target_id: string, detail: Record<string, unknown>) => {
+    if (!staffProfile) return;
     await fetch('/api/activity-logs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ actor_email: 'koki@warkop.com', actor_role: 'koki', action, target_type, target_id, detail }),
+      body: JSON.stringify({ actor_email: staffProfile.email, actor_role: staffProfile.role, action, target_type, target_id, detail }),
     });
   };
 
@@ -75,7 +78,7 @@ export default function KitchenPage() {
   return (
     <DashboardLayout>
       <h2 className="text-xl font-bold mb-4">Kitchen Display</h2>
-      <div className="mb-6">
+      <div className="mb-6" aria-live="polite">
         <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <ChefHat className="w-5 h-5" />
           Antrian ({queue.length})
@@ -88,6 +91,7 @@ export default function KitchenPage() {
               <OrderCard
                 key={order.id}
                 order={order}
+                isLoading={processingId === order.id}
                 showEtaSelector
                 etaMinutes={etaMap[order.id] || 10}
                 onSetEta={(minutes) => handleSetEta(order.id, minutes)}
@@ -97,7 +101,7 @@ export default function KitchenPage() {
           </div>
         )}
       </div>
-      <div>
+      <div aria-live="polite">
         <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
           Sedang Diproses ({processing.length})
         </h3>
@@ -109,6 +113,7 @@ export default function KitchenPage() {
               <OrderCard
                 key={order.id}
                 order={order}
+                isLoading={processingId === order.id}
                 onUpdateEta={(minutes) => handleUpdateEta(order.id, minutes)}
                 onServed={() => handleServed(order.id)}
               />

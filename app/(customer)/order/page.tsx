@@ -63,14 +63,14 @@ export default function OrderPage() {
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
-          <input type="text" placeholder="Cari menu..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg bg-surface" />
+          <input type="text" placeholder="Cari menu..." aria-label="Cari menu" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg bg-surface" />
         </div>
       </header>
       <div className="px-4 py-3">
         <CategoryPills categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} />
       </div>
       {loading ? (
-        <div className="px-4 grid grid-cols-2 gap-3">
+        <div className="px-4 grid grid-cols-2 gap-3" aria-live="polite">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="bg-surface rounded-xl border overflow-hidden">
               <Skeleton variant="rectangular" height="160px" />
@@ -86,7 +86,7 @@ export default function OrderPage() {
           ))}
         </div>
       ) : (
-        <div className="px-4 grid grid-cols-2 gap-3">
+        <div className="px-4 grid grid-cols-2 gap-3" aria-live="polite">
           {filteredItems.map(item => (
             <MenuItemCard key={item.id} item={item} onAddToCart={() => setSelectedItem(item)} />
           ))}
@@ -99,3 +99,4 @@ export default function OrderPage() {
     </div>
   );
 }
+
