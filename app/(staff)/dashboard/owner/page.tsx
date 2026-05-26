@@ -1,13 +1,14 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { VariationManager } from '@/components/dashboard/VariationManager';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatCurrency } from '@/lib/utils';
 import { MenuItem as MenuItemType, Order } from '@/types';
-import { Plus, Edit2, Save, X, ToggleRight, ToggleLeft, TrendingUp, DollarSign, ShoppingCart, AlertTriangle, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Save, X, ToggleRight, ToggleLeft, TrendingUp, DollarSign, ShoppingCart, AlertTriangle, Image as ImageIcon, List } from 'lucide-react';
 import { toast } from 'sonner';
 
 type TimeFilter = 'today' | '7days' | 'all';
@@ -24,6 +25,7 @@ export default function OwnerPage() {
   const [uploadingAddImage, setUploadingAddImage] = useState(false);
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [uploadingEditImage, setUploadingEditImage] = useState(false);
+  const [variationMenuId, setVariationMenuId] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
 
   useEffect(() => {
@@ -352,12 +354,14 @@ export default function OwnerPage() {
             </thead>
             <tbody>
               {menuItems.map(item => (
-                <tr key={item.id} className="border-b last:border-0 hover:bg-surface-2">
+                <React.Fragment key={item.id}>
+                <tr className="border-b last:border-0 hover:bg-surface-2">
                   <td className="px-4 py-3">{item.name}</td>
                   <td className="px-4 py-3">{formatCurrency(item.price)}</td>
                   <td className="px-4 py-3">{item.is_sold_out ? <Badge variant="danger">Sold Out</Badge> : <Badge variant="success">Tersedia</Badge>}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => setVariationMenuId(variationMenuId === item.id ? null : item.id)} aria-label="Kelola variasi"><List className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => { setEditingItem(item); setEditForm({ name: item.name, price: String(item.price), description: item.description || '', image_url: item.image_url || '' }); setEditImagePreview(item.image_url || null); }}><Edit2 className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => toggleSoldOut(item.id)}>
                         {item.is_sold_out ? <ToggleRight className="w-4 h-4 text-success" /> : <ToggleLeft className="w-4 h-4" />}
@@ -365,6 +369,14 @@ export default function OwnerPage() {
                     </div>
                   </td>
                 </tr>
+                {variationMenuId === item.id && (
+                  <tr key={'var-' + item.id}>
+                    <td colSpan={4} className="px-4 py-0">
+                      <VariationManager menuItemId={item.id} menuName={item.name} onClose={() => setVariationMenuId(null)} />
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
