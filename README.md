@@ -1,4 +1,4 @@
-﻿# Warkop QR Ordering System v2.3
+﻿# Warkop QR Ordering System v2.4
 
 > Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pesan, bayar tanpa antri ke kasir.
 
@@ -113,7 +113,7 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 | Top menu terlaris | Ranking menu dengan badge emas/perak/perunggu |
 | Order terbaru | List 10 order terakhir dengan status dan total |
 | Rekap penjualan | Filter: Hari Ini / 7 Hari / Semua |
-| Kelola menu | Tambah menu baru, edit menu (nama, harga, deskripsi), toggle sold out |
+| Kelola menu | Tambah menu baru, edit menu (nama, harga, deskripsi, gambar), upload gambar via Supabase Storage, toggle sold out |
 | Statistik menu | Total menu, tersedia, sold out |
 | Order history | Lihat semua order yang sudah selesai atau dibatalkan |
 | Toast notifications | Notifikasi untuk setiap aksi CRUD |
@@ -138,7 +138,7 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 |
-| Database | Supabase (PostgreSQL) |
+| Database | Supabase (PostgreSQL + Storage) |
 | Auth | Supabase Auth |
 | Realtime | Supabase Realtime |
 | Animation | Framer Motion |
@@ -186,7 +186,8 @@ warkop-app/
 │   │   ├── orders/[id]/track/route.ts   # GET order status (customer)
 │   │   ├── orders/[id]/update-eta/route.ts      # PATCH update ETA
 │   │   ├── tables/route.ts              # GET all tables
-│   │   └── tables/[number]/route.ts     # GET table by number
+│   │   ├── tables/[number]/route.ts     # GET table by number
+│   │   └── upload/route.ts              # POST upload gambar ke Storage
 │   ├── layout.tsx                       # Root layout + providers
 │   └── page.tsx                         # Redirect ke /order
 ├── components/
@@ -372,6 +373,12 @@ activity_logs (
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
 | GET | `/api/health` | Public | Health check |
+
+### Upload
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| POST | `/api/upload` | owner | Upload gambar menu ke Supabase Storage (max 5MB, image only) |
 
 ---
 
@@ -636,7 +643,7 @@ git push -u origin main
 | QR Generator | `/dashboard/qr` | Cashier, Owner | Generate QR per meja |
 | Order History | `/dashboard/history` | Staff | Riwayat order |
 
-### API Routes (17 endpoints)
+### API Routes (18 endpoints)
 
 | Resource | Endpoints | Deskripsi |
 |---|---|---|
@@ -656,6 +663,7 @@ git push -u origin main
 | Tables | GET | List meja |
 | Tables/[number] | GET | Meja by nomor |
 | Activity-logs | GET, POST | Activity logging |
+| Upload | POST | Upload gambar ke Storage |
 | Health | GET | Health check |
 
 ### Components (10 komponen)
@@ -815,6 +823,34 @@ git push -u origin main
 | Metric | Value |
 |---|---|
 | Files modified | 1 (`app/(customer)/checkout/page.tsx`) |
+| TypeScript errors | 0 |
+| Build | Passed |
+| Breaking changes | None |
+
+---
+
+## Changelog v2.4
+
+### Supabase Storage — Upload Gambar Menu (4 files)
+
+- **Image upload API** — `POST /api/upload` menerima multipart form-data, validasi tipe & ukuran file (max 5MB), upload ke Supabase Storage bucket `menu-images`
+- **Owner dashboard upload** — Form tambah & edit menu sekarang punya area upload gambar dengan preview, tombol hapus, dan loading spinner saat upload
+- **Storage bucket SQL** — `supabase-schema.sql` sudah include setup bucket `menu-images` + RLS policies (public read, staff full access)
+- **Auto URL binding** — Setelah upload, URL gambar otomatis tersimpan di `menu_items.image_url` dan tampil di `MenuItemCard`
+
+### Owner Dashboard Changes
+
+| Before (v2.3) | After (v2.4) |
+|---|---|
+| Tambah/edit menu hanya: nama, harga, deskripsi | Tambah: upload gambar + preview + hapus gambar |
+| Menu items tanpa gambar | Menu items bisa punya gambar dari Supabase Storage |
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 2 (`owner/page.tsx`, `supabase-schema.sql`) |
+| Files created | 1 (`app/api/upload/route.ts`) |
 | TypeScript errors | 0 |
 | Build | Passed |
 | Breaking changes | None |

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatCurrency } from '@/lib/utils';
 import { MenuItem as MenuItemType, Order } from '@/types';
-import { Plus, Edit2, Save, X, ToggleRight, ToggleLeft, TrendingUp, DollarSign, ShoppingCart, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Save, X, ToggleRight, ToggleLeft, TrendingUp, DollarSign, ShoppingCart, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 type TimeFilter = 'today' | '7days' | 'all';
@@ -17,9 +17,13 @@ export default function OwnerPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<MenuItemType | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', price: '', description: '' });
+  const [editForm, setEditForm] = useState({ name: '', price: '', description: '', image_url: '' });
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm] = useState({ name: '', price: '', description: '' });
+  const [addForm, setAddForm] = useState({ name: '', price: '', description: '', image_url: '' });
+  const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
+  const [uploadingAddImage, setUploadingAddImage] = useState(false);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [uploadingEditImage, setUploadingEditImage] = useState(false);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
 
   useEffect(() => {
@@ -66,6 +70,41 @@ export default function OwnerPage() {
   });
   topMenu.sort((a, b) => b.count - a.count);
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        return data.url;
+      }
+      const err = await res.json();
+      toast.error(err.error || 'Gagal upload gambar');
+    } catch {
+      toast.error('Gagal upload gambar');
+    }
+    return null;
+  };
+
+  const handleAddImage = async (file: File) => {
+    setUploadingAddImage(true);
+    const url = await uploadImage(file);
+    if (url) {
+      setAddForm(p => ({ ...p, image_url: url }));
+    }
+    setUploadingAddImage(false);
+  };
+
+  const handleEditImage = async (file: File) => {
+    setUploadingEditImage(true);
+    const url = await uploadImage(file);
+    if (url) {
+      setEditForm(p => ({ ...p, image_url: url }));
+    }
+    setUploadingEditImage(false);
+  };
+
   const toggleSoldOut = async (id: string) => {
     const res = await fetch('/api/menu/' + id + '/sold-out', { method: 'PATCH' });
     if (res.ok) {
@@ -79,13 +118,14 @@ export default function OwnerPage() {
     const res = await fetch('/api/menu', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: addForm.name, price: parseInt(addForm.price), description: addForm.description || null }),
+      body: JSON.stringify({ name: addForm.name, price: parseInt(addForm.price), description: addForm.description || null, image_url: addForm.image_url || null }),
     });
     if (res.ok) {
       const newItem = await res.json();
       setMenuItems(prev => [...prev, newItem]);
       setShowAddForm(false);
-      setAddForm({ name: '', price: '', description: '' });
+      setAddForm({ name: '', price: '', description: '', image_url: '' });
+      setAddImagePreview(null);
       toast.success('Menu berhasil ditambahkan');
     }
   };
@@ -95,12 +135,13 @@ export default function OwnerPage() {
     const res = await fetch('/api/menu/' + editingItem.id, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editForm.name, price: parseInt(editForm.price), description: editForm.description || null }),
+      body: JSON.stringify({ name: editForm.name, price: parseInt(editForm.price), description: editForm.description || null, image_url: editForm.image_url || null }),
     });
     if (res.ok) {
       const updated = await res.json();
       setMenuItems(prev => prev.map(item => item.id === editingItem.id ? updated : item));
       setEditingItem(null);
+      setEditImagePreview(null);
       toast.success('Menu berhasil diperbarui');
     }
   };
@@ -208,6 +249,42 @@ export default function OwnerPage() {
             <input placeholder="Nama menu" value={addForm.name} onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
             <input placeholder="Harga" type="number" value={addForm.price} onChange={e => setAddForm(p => ({ ...p, price: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
             <input placeholder="Deskripsi (opsional)" value={addForm.description} onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
+            <div>
+              <label className="block text-sm font-medium mb-1">Gambar Menu</label>
+              {addImagePreview ? (
+                <div className="relative w-full h-40 rounded-lg overflow-hidden border">
+                  <img src={addImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => { setAddImagePreview(null); setAddForm(p => ({ ...p, image_url: '' })); }}
+                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
+                    aria-label="Hapus gambar"
+                  ><X className="w-4 h-4" /></button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-surface-2">
+                  {uploadingAddImage ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <>
+                      <ImageIcon className="w-8 h-8 text-text-secondary mb-1" />
+                      <span className="text-sm text-text-secondary">Klik untuk upload gambar</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setAddImagePreview(URL.createObjectURL(file));
+                        handleAddImage(file);
+                      }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button onClick={handleAdd}>Simpan</Button>
               <Button variant="ghost" onClick={() => setShowAddForm(false)}>Batal</Button>
@@ -220,6 +297,42 @@ export default function OwnerPage() {
             <input placeholder="Nama menu" value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
             <input placeholder="Harga" type="number" value={editForm.price} onChange={e => setEditForm(p => ({ ...p, price: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
             <input placeholder="Deskripsi (opsional)" value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
+            <div>
+              <label className="block text-sm font-medium mb-1">Gambar Menu</label>
+              {editImagePreview ? (
+                <div className="relative w-full h-40 rounded-lg overflow-hidden border">
+                  <img src={editImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => { setEditImagePreview(null); setEditForm(p => ({ ...p, image_url: '' })); }}
+                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
+                    aria-label="Hapus gambar"
+                  ><X className="w-4 h-4" /></button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-surface-2">
+                  {uploadingEditImage ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <>
+                      <ImageIcon className="w-8 h-8 text-text-secondary mb-1" />
+                      <span className="text-sm text-text-secondary">Klik untuk upload gambar</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setEditImagePreview(URL.createObjectURL(file));
+                        handleEditImage(file);
+                      }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button onClick={handleEdit}><Save className="w-4 h-4 mr-1" /> Update</Button>
               <Button variant="ghost" onClick={() => setEditingItem(null)}><X className="w-4 h-4 mr-1" /> Batal</Button>
@@ -245,7 +358,7 @@ export default function OwnerPage() {
                   <td className="px-4 py-3">{item.is_sold_out ? <Badge variant="danger">Sold Out</Badge> : <Badge variant="success">Tersedia</Badge>}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => { setEditingItem(item); setEditForm({ name: item.name, price: String(item.price), description: item.description || '' }); }}><Edit2 className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => { setEditingItem(item); setEditForm({ name: item.name, price: String(item.price), description: item.description || '', image_url: item.image_url || '' }); setEditImagePreview(item.image_url || null); }}><Edit2 className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => toggleSoldOut(item.id)}>
                         {item.is_sold_out ? <ToggleRight className="w-4 h-4 text-success" /> : <ToggleLeft className="w-4 h-4" />}
                       </Button>

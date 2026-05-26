@@ -153,3 +153,21 @@ INSERT INTO tables (table_number, label) VALUES
   (5, 'Meja 5')
 ON CONFLICT DO NOTHING;
 
+-- Storage bucket untuk gambar menu
+INSERT INTO storage.buckets (id, name, public) VALUES ('menu-images', 'menu-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Public read untuk gambar menu
+CREATE POLICY "Public can view menu images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'menu-images');
+
+-- Staff can upload/update/delete
+CREATE POLICY "Staff can insert menu images" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'menu-images');
+
+CREATE POLICY "Staff can update menu images" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'menu-images');
+
+CREATE POLICY "Staff can delete menu images" ON storage.objects
+  FOR DELETE USING (bucket_id = 'menu-images');
+
