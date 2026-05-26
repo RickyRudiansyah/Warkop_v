@@ -1,4 +1,4 @@
-﻿# Warkop QR Ordering System v2.4
+﻿# Warkop QR Ordering System v2.5
 
 > Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pesan, bayar tanpa antri ke kasir.
 
@@ -113,7 +113,8 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 | Top menu terlaris | Ranking menu dengan badge emas/perak/perunggu |
 | Order terbaru | List 10 order terakhir dengan status dan total |
 | Rekap penjualan | Filter: Hari Ini / 7 Hari / Semua |
-| Kelola menu | Tambah menu baru, edit menu (nama, harga, deskripsi, gambar), upload gambar via Supabase Storage, toggle sold out |
+| Kelola menu | Tambah, edit (nama, harga, deskripsi, gambar), upload gambar via Supabase Storage, toggle sold out |
+| Kelola variasi | Tambah, edit, hapus variasi per menu (level pedas, ukuran, topping, dll) — grup + label + extra price |
 | Statistik menu | Total menu, tersedia, sold out |
 | Order history | Lihat semua order yang sudah selesai atau dibatalkan |
 | Toast notifications | Notifikasi untuk setiap aksi CRUD |
@@ -176,6 +177,8 @@ warkop-app/
 │   │   ├── menu/categories/route.ts     # GET categories
 │   │   ├── menu/[id]/route.ts           # PUT update, DELETE
 │   │   ├── menu/[id]/sold-out/route.ts  # PATCH toggle sold out
+│   │   ├── menu/variations/route.ts      # GET/POST variasi menu
+│   │   ├── menu/variations/[id]/route.ts # PUT/DELETE variasi
 │   │   ├── orders/route.ts              # GET active/history, POST create
 │   │   ├── orders/history/route.ts      # GET history (SERVED/CANCELLED)
 │   │   ├── orders/[id]/route.ts         # GET detail
@@ -337,6 +340,10 @@ activity_logs (
 | PUT | `/api/menu/[id]` | owner | Update menu |
 | DELETE | `/api/menu/[id]` | owner | Hapus menu |
 | PATCH | `/api/menu/[id]/sold-out` | owner/cashier | Toggle sold out |
+| GET | `/api/menu/variations` | Public | Ambil semua variasi / filter by menu_item_id |
+| POST | `/api/menu/variations` | owner | Tambah variasi baru |
+| PUT | `/api/menu/variations/[id]` | owner | Update variasi |
+| DELETE | `/api/menu/variations/[id]` | owner | Hapus variasi |
 
 ### Orders
 
@@ -643,7 +650,7 @@ git push -u origin main
 | QR Generator | `/dashboard/qr` | Cashier, Owner | Generate QR per meja |
 | Order History | `/dashboard/history` | Staff | Riwayat order |
 
-### API Routes (18 endpoints)
+### API Routes (22 endpoints)
 
 | Resource | Endpoints | Deskripsi |
 |---|---|---|
@@ -663,6 +670,7 @@ git push -u origin main
 | Tables | GET | List meja |
 | Tables/[number] | GET | Meja by nomor |
 | Activity-logs | GET, POST | Activity logging |
+| Variations | GET, POST, PUT, DELETE | CRUD variasi menu |
 | Upload | POST | Upload gambar ke Storage |
 | Health | GET | Health check |
 
@@ -681,6 +689,7 @@ git push -u origin main
 | CartFAB | `components/cart/` | Floating cart button |
 | CartDrawer | `components/cart/` | Bottom sheet cart |
 | DashboardLayout | `components/dashboard/` | Dashboard shell |
+| VariationManager | `components/dashboard/` | Kelola variasi menu (CRUD) |
 | OrderCard | `components/dashboard/` | Order card + ETA |
 | ProtectedRoute | `components/auth/` | Route guard |
 
@@ -823,6 +832,35 @@ git push -u origin main
 | Metric | Value |
 |---|---|
 | Files modified | 1 (`app/(customer)/checkout/page.tsx`) |
+| TypeScript errors | 0 |
+| Build | Passed |
+| Breaking changes | None |
+
+---
+
+## Changelog v2.5
+
+### Menu Variations — Kelola Variasi per Menu (6 files)
+
+- **VariationManager component** — Komponen baru untuk kelola variasi menu: tambah, edit, hapus variasi per menu item
+- **Variations API** — `GET/POST /api/menu/variations` dan `PUT/DELETE /api/menu/variations/[id]` untuk CRUD variasi
+- **Owner dashboard** — Tombol kelola variasi di setiap baris menu, panel inline untuk tambah variasi (grup, label, extra price)
+- **Group-based selection** — Customer pilih satu opsi per grup via radio button (misal: Level Pedas, Tambahan, Ukuran)
+- **Extra price support** — Setiap opsi variasi bisa punya tambahan harga (Rp0 kalau gratis)
+
+### Owner Dashboard Changes
+
+| Before (v2.4) | After (v2.5) |
+|---|---|
+| Hanya tambah/edit/hapus menu | Tambah: kelola variasi per menu (tambah/edit/hapus) |
+| Menu tanpa variasi | Customer bisa pilih level pedas, ukuran, topping, dll |
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files created | 3 (`VariationManager.tsx`, `variations/route.ts`, `variations/[id]/route.ts`) |
+| Files modified | 1 (`owner/page.tsx`) |
 | TypeScript errors | 0 |
 | Build | Passed |
 | Breaking changes | None |
