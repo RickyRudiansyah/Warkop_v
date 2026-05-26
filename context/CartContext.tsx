@@ -18,9 +18,11 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 function getStoredCart(): CartItem[] {
+  if (typeof window === 'undefined') return [];
   try { const stored = sessionStorage.getItem('warkop_cart'); return stored ? JSON.parse(stored) : []; } catch { return []; }
 }
 function getStoredTable(): number | null {
+  if (typeof window === 'undefined') return null;
   try { const stored = sessionStorage.getItem('warkop_table'); return stored ? parseInt(stored) : null; } catch { return null; }
 }
 

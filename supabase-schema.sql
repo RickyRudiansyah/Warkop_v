@@ -46,8 +46,8 @@ CREATE TABLE IF NOT EXISTS menu_variations (
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   table_id UUID REFERENCES tables(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'PENDING_CASH',
-  payment_method TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'PENDING_CASH' CHECK (status IN ('PENDING_CASH','PENDING_PAYMENT','CONFIRMED','PROCESSING','SERVED','CANCELLED')),
+  payment_method TEXT NOT NULL CHECK (payment_method IN ('CASH','QRIS','TRANSFER_BCA')),
   total_amount INT NOT NULL,
   notes TEXT,
   cancel_reason TEXT,
@@ -111,15 +111,15 @@ CREATE POLICY "Anyone can view menu categories" ON menu_categories FOR SELECT US
 CREATE POLICY "Anyone can view menu items" ON menu_items FOR SELECT USING (true);
 CREATE POLICY "Anyone can view menu variations" ON menu_variations FOR SELECT USING (true);
 
--- Staff full access
-CREATE POLICY "Staff full access tables" ON tables FOR ALL USING (true);
-CREATE POLICY "Staff full access categories" ON menu_categories FOR ALL USING (true);
-CREATE POLICY "Staff full access menu_items" ON menu_items FOR ALL USING (true);
-CREATE POLICY "Staff full access menu_variations" ON menu_variations FOR ALL USING (true);
-CREATE POLICY "Staff full access orders" ON orders FOR ALL USING (true);
-CREATE POLICY "Staff full access order_items" ON order_items FOR ALL USING (true);
-CREATE POLICY "Staff full access staff_users" ON staff_users FOR ALL USING (true);
-CREATE POLICY "Staff full access activity_logs" ON activity_logs FOR ALL USING (true);
+-- Staff full access (authenticated users only)
+CREATE POLICY "Staff full access tables" ON tables FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Staff full access categories" ON menu_categories FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Staff full access menu_items" ON menu_items FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Staff full access menu_variations" ON menu_variations FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Staff full access orders" ON orders FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Staff full access order_items" ON order_items FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Staff full access staff_users" ON staff_users FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Staff full access activity_logs" ON activity_logs FOR ALL USING (auth.role() = 'authenticated');
 
 -- Seed data
 INSERT INTO menu_categories (name, sort_order) VALUES
@@ -161,13 +161,13 @@ ON CONFLICT (id) DO NOTHING;
 CREATE POLICY "Public can view menu images" ON storage.objects
   FOR SELECT USING (bucket_id = 'menu-images');
 
--- Staff can upload/update/delete
+-- Staff can upload/update/delete (authenticated users only)
 CREATE POLICY "Staff can insert menu images" ON storage.objects
-  FOR INSERT WITH CHECK (bucket_id = 'menu-images');
+  FOR INSERT WITH CHECK (bucket_id = 'menu-images' AND auth.role() = 'authenticated');
 
 CREATE POLICY "Staff can update menu images" ON storage.objects
-  FOR UPDATE USING (bucket_id = 'menu-images');
+  FOR UPDATE USING (bucket_id = 'menu-images' AND auth.role() = 'authenticated');
 
 CREATE POLICY "Staff can delete menu images" ON storage.objects
-  FOR DELETE USING (bucket_id = 'menu-images');
+  FOR DELETE USING (bucket_id = 'menu-images' AND auth.role() = 'authenticated');
 

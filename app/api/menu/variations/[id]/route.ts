@@ -1,7 +1,16 @@
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
+async function requireAuth() {
+  const supabaseAuth = await createClient();
+  const { data: { session } } = await supabaseAuth.auth.getSession();
+  if (!session) return null;
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).single();
+  return staff || null;
+}
+
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!await requireAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
   const supabase = createAdminClient();
   const body = await request.json();
@@ -13,6 +22,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!await requireAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
   const supabase = createAdminClient();
 

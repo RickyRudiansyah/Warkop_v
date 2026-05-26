@@ -1,5 +1,13 @@
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+
+async function requireAuth() {
+  const supabaseAuth = await createClient();
+  const { data: { session } } = await supabaseAuth.auth.getSession();
+  if (!session) return null;
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).single();
+  return staff || null;
+}
 
 export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
@@ -19,6 +27,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!await requireAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const supabase = createAdminClient();
   const body = await request.json();
 

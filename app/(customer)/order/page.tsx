@@ -28,7 +28,10 @@ export default function OrderPage() {
   const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
-    if (tableNumber) setTableNumber(parseInt(tableNumber));
+    if (tableNumber) {
+      const num = parseInt(tableNumber);
+      if (!isNaN(num)) setTableNumber(num);
+    }
   }, [tableNumber, setTableNumber]);
 
   useEffect(() => {

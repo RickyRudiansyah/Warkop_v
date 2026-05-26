@@ -35,7 +35,7 @@ interface OrderCardProps {
 
 export function OrderCard({ order, onConfirmCash, onConfirmPayment, onStartProcess, onServed, onCancel, showEtaSelector, onSetEta, onUpdateEta, etaMinutes, isLoading }: OrderCardProps) {
   const elapsed = getElapsedMinutes(order.created_at);
-  const config = statusConfig[order.status];
+  const config = statusConfig[order.status] || { label: order.status, variant: 'default' as const };
   const { formatted: etaFormatted, isOverdue, isWarning } = useCountdown(order.estimated_ready_at || null);
   const isProcessing = order.status === 'PROCESSING';
   const [etaExtension, setEtaExtension] = useState(5);

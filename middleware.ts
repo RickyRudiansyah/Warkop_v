@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request: { headers: request.headers } });
+  const response = NextResponse.next({ request: { headers: request.headers } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
     if (staff.role === 'koki' && !pathname.startsWith('/dashboard/kitchen')) {
       return NextResponse.redirect(new URL('/dashboard/kitchen', request.url));
     }
-    if (staff.role === 'cashier' && (pathname.startsWith('/dashboard/owner'))) {
+    if (staff.role === 'cashier' && (pathname.startsWith('/dashboard/owner') || pathname.startsWith('/dashboard/kitchen'))) {
       return NextResponse.redirect(new URL('/dashboard/cashier', request.url));
     }
     if (staff.role === 'owner' && pathname.startsWith('/dashboard/kitchen')) {

@@ -1,4 +1,4 @@
-﻿# Warkop QR Ordering System v2.5
+﻿# Warkop QR Ordering System v2.6
 
 > Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pesan, bayar tanpa antri ke kasir.
 
@@ -27,6 +27,7 @@
 - [Environment Variables](#environment-variables)
 - [Struktur Project](#struktur-project)
 - [Changelog v2.3](#changelog-v23)
+- [Changelog v2.6](#changelog-v26)
 - [Developer](#developer)
 - [License](#license)
 
@@ -891,6 +892,78 @@ git push -u origin main
 | Files created | 1 (`app/api/upload/route.ts`) |
 | TypeScript errors | 0 |
 | Build | Passed |
+| Breaking changes | None |
+
+---
+
+## Changelog v2.6
+
+### Security Hardening & Bug Fixes (25 files)
+
+#### Critical Security Fixes
+
+- **RLS Policies** — Semua "Staff full access" policy diubah dari `USING (true)` ke `USING (auth.role() = 'authenticated')`. Sebelumnya anonymous user bisa INSERT/UPDATE/DELETE di semua tabel termasuk `orders`, `staff_users`, `activity_logs`.
+- **Storage RLS** — Policy upload/update/delete di bucket `menu-images` ditambah `AND auth.role() = 'authenticated'`.
+- **Auth on Upload API** — `POST /api/upload` sekarang cek session + staff_users sebelum menerima upload.
+- **Order Rollback** — Jika insert `order_items` gagal, `orders` yang sudah dibuat dihapus (cleanup orphaned order). Plus validasi input (`items`, `payment_method`, `total_amount`).
+
+#### Auth Guards — 14 API Endpoints Protected
+
+| Endpoint | Before | After |
+|---|---|---|
+| `POST /api/upload` | No auth | Cek session + staff role |
+| `POST/GET /api/activity-logs` | No auth | Staff only |
+| `POST /api/menu` | No auth | Staff only |
+| `PUT/DELETE /api/menu/[id]` | No auth | Staff only |
+| `PATCH /api/menu/[id]/sold-out` | No auth | Staff only |
+| `POST /api/menu/variations` | No auth | Staff only |
+| `PUT/DELETE /api/menu/variations/[id]` | No auth | Staff only |
+| `GET /api/orders` | No auth | Staff only |
+| `GET /api/orders/[id]` | No auth | Staff only |
+| `GET /api/orders/history` | No auth | Staff only |
+| `PATCH /api/orders/[id]/status` | No auth | Staff only |
+| `PATCH /api/orders/[id]/cancel` | No auth | Staff only |
+| `PATCH /api/orders/[id]/confirm-cash` | No auth | Staff only |
+| `PATCH /api/orders/[id]/confirm-payment` | No auth | Staff only |
+
+#### State Machine Guards
+
+| Endpoint | Fix |
+|---|---|
+| `PATCH /api/orders/[id]/confirm-cash` | Hanya bisa dari status `PENDING_CASH` |
+| `PATCH /api/orders/[id]/confirm-payment` | Hanya bisa dari status `PENDING_PAYMENT` |
+| `PATCH /api/orders/[id]/cancel` | Tidak bisa cancel order `SERVED`/`CANCELLED` |
+| `PATCH /api/orders/[id]/status` | Auth guard ditambahkan |
+| DB Schema | CHECK constraints pada `orders.status` dan `orders.payment_method` |
+
+#### Bug Fixes — Frontend & API
+
+| File | Fix |
+|---|---|
+| `middleware.ts` | Cashier diblok dari `/dashboard/kitchen` (sebelumnya bisa akses) |
+| `kitchen/page.tsx` | Kitchen queue hanya tampil order `CONFIRMED` (sebelumnya termasuk `PENDING_CASH`/`PENDING_PAYMENT`) |
+| `update-eta/route.ts` | Update ETA sekarang **extend** dari existing `estimated_ready_at`, bukan overwrite dari `Date.now()` |
+| `menu/route.ts` | Input validation: name wajib, price >= 0, whitelist field (anti injection) |
+| `menu/[id]/route.ts` | Input validation + whitelist field pada PUT |
+| `CartContext.tsx` | SSR-safe: `typeof window === 'undefined'` guard untuk `sessionStorage` |
+| `useOrders.ts` | Supabase client di-memoize dengan `useMemo` (sebelumnya recreate tiap render) |
+| `useMenu.ts` | Supabase client di-memoize dengan `useMemo` |
+| `tables/[number]/route.ts` | Handle `parseInt(NaN)` — return 400 alih-alih error 500 ambigu |
+| `order/page.tsx` | Validasi table number bukan NaN sebelum set state |
+| `sold-out/route.ts` | Pisahkan `fetchError` dari `!current` (sebelumnya error terswallow) |
+| `OrderCard.tsx` | Fallback untuk status tidak dikenal (anti TypeError crash) |
+| `history/page.tsx` | `.catch()` handler pada fetch (sebelumnya infinite spinner) |
+| `orders/route.ts` GET | Konsisten pakai `.not('status', 'in', '(SERVED,CANCELLED)')` |
+
+#### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 25 |
+| Lines added | 275 |
+| Lines removed | 51 |
+| TypeScript errors | 0 |
+| Lint errors (new) | 0 |
 | Breaking changes | None |
 
 ---

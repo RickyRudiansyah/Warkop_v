@@ -14,7 +14,10 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/orders/history').then(r => r.json()).then(d => { setOrders(d); setLoading(false); });
+    fetch('/api/orders/history')
+      .then(r => { if (!r.ok) throw new Error('Network error'); return r.json(); })
+      .then(d => { setOrders(d); setLoading(false); })
+      .catch(() => { setOrders([]); setLoading(false); });
   }, []);
 
   if (loading) return <DashboardLayout><Spinner size="lg" /></DashboardLayout>;

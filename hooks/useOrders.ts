@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Order } from '@/types';
 
@@ -8,14 +8,14 @@ export function useOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchOrders = useCallback(async () => {
     try {
       const { data, error: fetchError } = await supabase
         .from('orders')
         .select('*, table:tables(*), items:order_items(*)')
-        .not('status', 'in', '("SERVED","CANCELLED")')
+        .not('status', 'in', '(SERVED,CANCELLED)')
         .order('created_at', { ascending: true });
       if (fetchError) { setError(fetchError.message); } else { setOrders((data as Order[]) || []); setError(null); }
     } catch (err) {

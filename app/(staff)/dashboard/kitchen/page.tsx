@@ -72,7 +72,7 @@ export default function KitchenPage() {
 
   if (loading) return <DashboardLayout><Spinner size="lg" /></DashboardLayout>;
 
-  const queue = orders.filter(o => o.status === 'CONFIRMED' || o.status === 'PENDING_CASH' || o.status === 'PENDING_PAYMENT');
+  const queue = orders.filter(o => o.status === 'CONFIRMED');
   const processing = orders.filter(o => o.status === 'PROCESSING');
 
   return (

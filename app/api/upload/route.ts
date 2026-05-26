@@ -1,7 +1,17 @@
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  const supabaseAuth = await createClient();
+  const { data: { session } } = await supabaseAuth.auth.getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).single();
+  if (!staff) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
 
