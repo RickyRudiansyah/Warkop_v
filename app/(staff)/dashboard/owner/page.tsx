@@ -33,8 +33,12 @@ export default function OwnerPage() {
       fetch('/api/menu').then(r => r.json()),
       fetch('/api/orders?history=1').then(r => r.json()),
     ]).then(([menu, orders]) => {
-      setMenuItems(menu);
-      setOrders(orders);
+      setMenuItems(Array.isArray(menu) ? menu : []);
+      setOrders(Array.isArray(orders) ? orders : []);
+      setLoading(false);
+    }).catch(() => {
+      setMenuItems([]);
+      setOrders([]);
       setLoading(false);
     });
   }, []);
