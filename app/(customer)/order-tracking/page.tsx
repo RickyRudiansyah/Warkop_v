@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { CheckCircle, AlertCircle, ChefHat, ShoppingCart, ArrowLeft, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
@@ -43,6 +44,7 @@ export default function OrderTrackingPage() {
       <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
         <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
         <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+        <ThemeToggle className="ml-auto" />
       </header>
       <div className="max-w-md mx-auto p-4 space-y-6">
         <div className="card p-6 space-y-3"><Skeleton width="60%" height="24px" /><Skeleton width="40%" /><Skeleton width="30%" /></div>
@@ -55,6 +57,7 @@ export default function OrderTrackingPage() {
       <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
         <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
         <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+        <ThemeToggle className="ml-auto" />
       </header>
       <div className="flex items-center justify-center p-12"><p className="text-text-secondary">Pesanan tidak ditemukan</p></div>
     </div>
@@ -69,6 +72,7 @@ export default function OrderTrackingPage() {
         <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
         <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
         {order.table && <p className="text-sm text-text-secondary ml-auto">Meja {order.table.table_number}</p>}
+        <ThemeToggle />
       </header>
       <div className="max-w-md mx-auto p-4 space-y-6">
         <div className="card p-6 text-center">

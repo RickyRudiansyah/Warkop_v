@@ -42,7 +42,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
               ) : (
                 <>
                   {items.map((item, i) => (
-                    <div key={i} className="flex items-start justify-between py-3 border-b last:border-0">
+                    <div key={item.menu_item.id + '-' + i} className="flex items-start justify-between py-3 border-b last:border-0">
                       <div className="flex-1">
                         <p className="font-medium">{item.menu_item.name}</p>
                         <p className="text-sm text-text-secondary">{formatCurrency(item.menu_item.price)}</p>

@@ -8,7 +8,18 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ChefHat } from 'lucide-react';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+};
+
+const itemAnim = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+};
 
 export default function KitchenPage() {
   const { orders, loading } = useOrders();
@@ -32,41 +43,56 @@ export default function KitchenPage() {
   const handleStartProcess = async (id: string) => {
     const minutes = etaMap[id] || 10;
     setProcessingId(id);
-    const res = await fetch('/api/orders/' + id + '/status', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'PROCESSING', estimated_minutes: minutes }),
-    });
-    if (res.ok) {
-      toast.success('Pesanan mulai diproses', { description: 'Estimasi: ' + minutes + ' menit' });
-      await logActivity('start_process', 'order', id, { estimated_minutes: minutes });
-    }
+    try {
+      const res = await fetch('/api/orders/' + id + '/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PROCESSING', estimated_minutes: minutes }),
+      });
+      if (res.ok) {
+        toast.success('Pesanan mulai diproses', { description: 'Estimasi: ' + minutes + ' menit' });
+        await logActivity('start_process', 'order', id, { estimated_minutes: minutes });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal memproses pesanan');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
     setProcessingId(null);
   };
 
   const handleUpdateEta = async (id: string, addMinutes: number) => {
-    const res = await fetch('/api/orders/' + id + '/update-eta', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ estimated_minutes: addMinutes }),
-    });
-    if (res.ok) {
-      toast.info('Estimasi waktu diperpanjang', { description: '+' + addMinutes + ' menit' });
-      await logActivity('update_eta', 'order', id, { add_minutes: addMinutes });
-    }
+    try {
+      const res = await fetch('/api/orders/' + id + '/update-eta', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estimated_minutes: addMinutes }),
+      });
+      if (res.ok) {
+        toast.info('Estimasi waktu diperpanjang', { description: '+' + addMinutes + ' menit' });
+        await logActivity('update_eta', 'order', id, { add_minutes: addMinutes });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal update estimasi');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
   };
 
   const handleServed = async (id: string) => {
     setProcessingId(id);
-    const res = await fetch('/api/orders/' + id + '/status', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'SERVED' }),
-    });
-    if (res.ok) {
-      toast.success('Pesanan sudah diantar');
-      await logActivity('served', 'order', id, {});
-    }
+    try {
+      const res = await fetch('/api/orders/' + id + '/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'SERVED' }),
+      });
+      if (res.ok) {
+        toast.success('Pesanan sudah diantar');
+        await logActivity('served', 'order', id, {});
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal menyelesaikan pesanan');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
     setProcessingId(null);
   };
 
@@ -86,19 +112,20 @@ export default function KitchenPage() {
         {queue.length === 0 ? (
           <EmptyState title="Tidak ada antrian" />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" variants={container} initial="hidden" animate="show">
             {queue.map(order => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                isLoading={processingId === order.id}
-                showEtaSelector
-                etaMinutes={etaMap[order.id] || 10}
-                onSetEta={(minutes) => handleSetEta(order.id, minutes)}
-                onStartProcess={() => handleStartProcess(order.id)}
-              />
+              <motion.div key={order.id} variants={itemAnim}>
+                <OrderCard
+                  order={order}
+                  isLoading={processingId === order.id}
+                  showEtaSelector
+                  etaMinutes={etaMap[order.id] || 10}
+                  onSetEta={(minutes) => handleSetEta(order.id, minutes)}
+                  onStartProcess={() => handleStartProcess(order.id)}
+                />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
       <div aria-live="polite">
@@ -108,17 +135,18 @@ export default function KitchenPage() {
         {processing.length === 0 ? (
           <EmptyState title="Tidak ada pesanan diproses" />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" variants={container} initial="hidden" animate="show">
             {processing.map(order => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                isLoading={processingId === order.id}
-                onUpdateEta={(minutes) => handleUpdateEta(order.id, minutes)}
-                onServed={() => handleServed(order.id)}
-              />
+              <motion.div key={order.id} variants={itemAnim}>
+                <OrderCard
+                  order={order}
+                  isLoading={processingId === order.id}
+                  onUpdateEta={(minutes) => handleUpdateEta(order.id, minutes)}
+                  onServed={() => handleServed(order.id)}
+                />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     </DashboardLayout>

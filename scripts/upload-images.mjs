@@ -19,16 +19,16 @@ const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE
 const IMAGE_MAPPING = {
   'kopi': 'Kopi Hitam',
   'Es_Jeruk': 'Es Jeruk',
-  'Es_Kopi_Susu': 'Kopi Susu',
+  'Es_Kopi_Susu': 'Es Kopi Susu',
   'Es_Teh': 'Es Teh Manis',
-  'Indomie_Goreng': 'Mie Goreng',
-  'Indomie_Goreng_Spesial': 'Mie Goreng',
-  'Indomie_Kuah': 'Indomie Rebus',
-  'Kentang': null,
+  'Indomie_Goreng': 'Indomie Goreng Original',
+  'Indomie_Goreng_Spesial': 'Indomie Goreng Spesial',
+  'Indomie_Kuah': 'Indomie Kuah',
+  'Kentang': 'Kentang Goreng',
   'Pisang_Goreng': 'Pisang Goreng',
-  'Ropang': 'Roti Bakar',
-  'Ropang_Keju': 'Roti Bakar',
-  'Ropang_Coklat_Keju': 'Roti Bakar',
+  'Ropang': 'Ropang Coklat',
+  'Ropang_Keju': 'Ropang Keju',
+  'Ropang_Coklat_Keju': 'Ropang Coklat Keju',
 };
 
 async function main() {

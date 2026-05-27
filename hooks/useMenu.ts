@@ -14,8 +14,8 @@ export function useMenu() {
   const fetchData = useCallback(async () => {
     try {
       const [menuRes, catRes, varRes] = await Promise.all([
-        supabase.from('menu_items').select('*, category:menu_categories(*)').order('name'),
-        supabase.from('menu_categories').select('*').order('sort_order'),
+        supabase.from('menu_items').select('*, category:categories(*)').order('name'),
+        supabase.from('categories').select('*').order('sort_order'),
         supabase.from('menu_variations').select('*'),
       ]);
 

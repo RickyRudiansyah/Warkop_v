@@ -7,7 +7,7 @@ async function requireAuth() {
   const supabaseAuth = await createClient();
   const { data: { session } } = await supabaseAuth.auth.getSession();
   if (!session) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).single();
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).maybeSingle();
   return staff || null;
 }
 

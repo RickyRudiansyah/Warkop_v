@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ClipboardList, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 const columns = [
@@ -17,6 +18,11 @@ const columns = [
   { key: 'CONFIRMED', label: 'Dikonfirmasi', color: 'border-info' },
   { key: 'PROCESSING', label: 'Diproses', color: 'border-primary' },
 ];
+
+const itemAnim = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+};
 
 export default function CashierPage() {
   const { orders, loading } = useOrders();
@@ -44,21 +50,31 @@ export default function CashierPage() {
 
   const handleConfirmCash = async (id: string) => {
     setProcessingId(id);
-    const res = await fetch('/api/orders/' + id + '/confirm-cash', { method: 'PATCH' });
-    if (res.ok) {
-      toast.success('Pembayaran cash dikonfirmasi');
-      await logActivity('confirm_cash', 'order', id, {});
-    }
+    try {
+      const res = await fetch('/api/orders/' + id + '/confirm-cash', { method: 'PATCH' });
+      if (res.ok) {
+        toast.success('Pembayaran cash dikonfirmasi');
+        await logActivity('confirm_cash', 'order', id, {});
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal konfirmasi');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
     setProcessingId(null);
   };
 
   const handleConfirmPayment = async (id: string) => {
     setProcessingId(id);
-    const res = await fetch('/api/orders/' + id + '/confirm-payment', { method: 'PATCH' });
-    if (res.ok) {
-      toast.success('Pembayaran dikonfirmasi');
-      await logActivity('confirm_payment', 'order', id, {});
-    }
+    try {
+      const res = await fetch('/api/orders/' + id + '/confirm-payment', { method: 'PATCH' });
+      if (res.ok) {
+        toast.success('Pembayaran dikonfirmasi');
+        await logActivity('confirm_payment', 'order', id, {});
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal konfirmasi');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
     setProcessingId(null);
   };
 
@@ -69,15 +85,20 @@ export default function CashierPage() {
 
   const handleCancel = async () => {
     if (!cancelReason.trim()) return;
-    const res = await fetch('/api/orders/' + cancelModal.orderId + '/cancel', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason: cancelReason }),
-    });
-    if (res.ok) {
-      toast.error('Pesanan dibatalkan');
-      await logActivity('cancel_order', 'order', cancelModal.orderId, { reason: cancelReason });
-    }
+    try {
+      const res = await fetch('/api/orders/' + cancelModal.orderId + '/cancel', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: cancelReason }),
+      });
+      if (res.ok) {
+        toast.error('Pesanan dibatalkan');
+        await logActivity('cancel_order', 'order', cancelModal.orderId, { reason: cancelReason });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal membatalkan');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
     setCancelModal({ open: false, orderId: '' });
   };
 
@@ -102,14 +123,15 @@ export default function CashierPage() {
                     <div className="text-center py-8 text-text-secondary text-sm">Tidak ada order</div>
                   ) : (
                     colOrders.map(order => (
-                      <OrderCard
-                        key={order.id}
-                        order={order}
-                        isLoading={processingId === order.id}
-                        onConfirmCash={() => handleConfirmCash(order.id)}
-                        onConfirmPayment={() => handleConfirmPayment(order.id)}
-                        onCancel={() => openCancelModal(order.id)}
-                      />
+                      <motion.div key={order.id} variants={itemAnim} initial="hidden" animate="show">
+                        <OrderCard
+                          order={order}
+                          isLoading={processingId === order.id}
+                          onConfirmCash={() => handleConfirmCash(order.id)}
+                          onConfirmPayment={() => handleConfirmPayment(order.id)}
+                          onCancel={() => openCancelModal(order.id)}
+                        />
+                      </motion.div>
                     ))
                   )}
                 </div>

@@ -9,23 +9,23 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Download } from 'lucide-react';
 
 export default function QRPage() {
-  const [tables, setTables] = useState<{ id: string; table_number: number; label: string | null; occupied?: boolean }[]>([]);
+  const [tables, setTables] = useState<{ id: string; table_number: number; label: string | null; occupied: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/tables').then(r => r.json()),
-      fetch('/api/orders').then(r => r.json()),
+      fetch('/api/tables').then(r => r.ok ? r.json() : []),
+      fetch('/api/orders').then(r => r.ok ? r.json() : []),
     ]).then(([tablesData, ordersData]) => {
-      const activeOrders = ordersData as any[];
-      const occupiedTableIds = new Set(activeOrders.map((o: any) => o.table_id));
-      const tablesWithStatus = (tablesData as any[]).map((t: any) => ({
+      const activeOrders = ordersData as { table_id?: string }[];
+      const occupiedTableIds = new Set(activeOrders.map((o) => o?.table_id).filter(Boolean));
+      const tablesWithStatus = (Array.isArray(tablesData) ? tablesData : []).map((t: { id: string; table_number: number; label: string | null }) => ({
         ...t,
         occupied: occupiedTableIds.has(t.id),
       }));
       setTables(tablesWithStatus);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   const downloadQR = (tableNumber: number) => {
@@ -44,7 +44,9 @@ export default function QRPage() {
       link.click();
     };
     try {
-      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+      const bytes = new TextEncoder().encode(svgData);
+      const binary = String.fromCharCode(...bytes);
+      img.src = 'data:image/svg+xml;base64,' + btoa(binary);
     } catch {
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
     }

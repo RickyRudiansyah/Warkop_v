@@ -16,15 +16,36 @@
   --color-danger: #EF4444;
   --color-info: #3B82F6;
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-playfair), Georgia, serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
 body {
-  background: var(--color-surface-2);
+  background-color: var(--color-surface-2);
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 30px,
+      rgba(107, 63, 160, 0.025) 30px,
+      rgba(107, 63, 160, 0.025) 31px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 30px,
+      rgba(107, 63, 160, 0.015) 30px,
+      rgba(107, 63, 160, 0.015) 31px
+    );
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 
 @layer utilities {
@@ -32,14 +53,19 @@ body {
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid rgba(107, 63, 160, 0.1);
   }
 
   .card {
     background: var(--color-surface);
     border-radius: 0.75rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     border: 1px solid var(--color-border);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
   }
 
   .scrollbar-hide {
@@ -89,9 +115,82 @@ body {
   100% { background-position: 200% 0; }
 }
 
+@keyframes fab-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(107, 63, 160, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(107, 63, 160, 0); }
+}
+
 .animate-shimmer {
   animation: shimmer 2s infinite;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--color-surface-3) 25%, var(--color-surface-2) 50%, var(--color-surface-3) 75%);
   background-size: 200% 100%;
 }
 
+.animate-fab-pulse {
+  animation: fab-pulse 2s infinite;
+}
+
+[data-theme="dark"] {
+  --color-primary: #8B5FC0;
+  --color-primary-light: #A78BFA;
+  --color-primary-dark: #6B3FA0;
+  --color-accent: #FBBF24;
+  --color-surface: #1E1E2E;
+  --color-surface-2: #16161E;
+  --color-surface-3: #2A2A3C;
+  --color-text: #E5E7EB;
+  --color-text-secondary: #9CA3AF;
+  --color-border: #374151;
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-danger: #F87171;
+  --color-info: #60A5FA;
+}
+
+[data-theme="dark"] body {
+  background-color: var(--color-surface-2);
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 30px,
+      rgba(139, 95, 192, 0.03) 30px,
+      rgba(139, 95, 192, 0.03) 31px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 30px,
+      rgba(139, 95, 192, 0.02) 30px,
+      rgba(139, 95, 192, 0.02) 31px
+    );
+}
+
+[data-theme="dark"] .glass {
+  background: rgba(30, 30, 46, 0.85);
+  border-bottom: 1px solid rgba(139, 95, 192, 0.15);
+}
+
+[data-theme="dark"] .card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .animate-shimmer {
+  background: linear-gradient(90deg, var(--color-surface-3) 25%, var(--color-surface-2) 50%, var(--color-surface-3) 75%);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--color-surface-3);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #4A3A68;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #5A4A78;
+}

@@ -8,11 +8,11 @@ interface SkeletonProps {
   animation?: 'pulse' | 'wave' | 'none';
 }
 
-export function Skeleton({ variant = 'text', width, height, className, animation = 'pulse' }: SkeletonProps) {
-  const base = 'inline-block bg-gray-200';
+export function Skeleton({ variant = 'text', width, height, className, animation = 'wave' }: SkeletonProps) {
+  const base = 'inline-block bg-surface-3';
   const animations = {
     pulse: 'animate-pulse',
-    wave: '',
+    wave: 'animate-shimmer',
     none: '',
   };
 

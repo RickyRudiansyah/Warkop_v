@@ -7,13 +7,13 @@ async function requireAuth() {
   const supabaseAuth = await createClient();
   const { data: { session } } = await supabaseAuth.auth.getSession();
   if (!session) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).single();
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).maybeSingle();
   return staff || null;
 }
 
 export async function GET() {
   const supabase = createAdminClient();
-  const { data, error } = await supabase.from('menu_items').select('*, category:menu_categories(*)').order('name');
+  const { data, error } = await supabase.from('menu_items').select('*, category:categories(*)').order('name');
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }

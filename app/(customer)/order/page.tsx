@@ -12,15 +12,30 @@ import { CartFAB } from '@/components/cart/CartFAB';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Search } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.04 },
+  },
+};
+
+const itemAnim = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
+};
 
 export default function OrderPage() {
   const searchParams = useSearchParams();
   const tableNumber = searchParams.get('table');
   const { menuItems, categories, loading } = useMenu();
-  const { setTableNumber, addItem, totalItems } = useCart();
+  const { setTableNumber, addItem } = useCart();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -63,6 +78,7 @@ export default function OrderPage() {
             <h1 className="text-xl font-bold text-primary">Warkop QR</h1>
             {tableNumber && <p className="text-sm text-text-secondary">Meja {tableNumber}</p>}
           </div>
+          <ThemeToggle />
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
@@ -89,11 +105,13 @@ export default function OrderPage() {
           ))}
         </div>
       ) : (
-        <div className="px-4 grid grid-cols-2 gap-3" aria-live="polite">
+        <motion.div className="px-4 grid grid-cols-2 gap-3" aria-live="polite" variants={container} initial="hidden" animate="show" key={selectedCategory + '-' + searchQuery}>
           {filteredItems.map(item => (
-            <MenuItemCard key={item.id} item={item} onAddToCart={() => setSelectedItem(item)} />
+            <motion.div key={item.id} variants={itemAnim}>
+              <MenuItemCard item={item} onAddToCart={() => setSelectedItem(item)} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
       {!loading && filteredItems.length === 0 && <EmptyState title="Menu tidak ditemukan" description="Coba kata kunci lain" />}
       <MenuItemSheet item={selectedItem} variations={variations} onClose={() => setSelectedItem(null)} onAdd={handleAddToCart} />
@@ -102,4 +120,3 @@ export default function OrderPage() {
     </div>
   );
 }
-

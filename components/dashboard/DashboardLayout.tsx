@@ -2,10 +2,13 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LogOut, LayoutDashboard, ChefHat, ShoppingCart, QrCode, BarChart3, History } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 const navItems = {
   cashier: [
@@ -28,16 +31,30 @@ const navItems = {
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { staffProfile, signOut } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const role = staffProfile?.role || 'cashier';
   const items = navItems[role as keyof typeof navItems] || navItems.cashier;
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await signOut();
+      router.push('/login');
+    } catch {
+      toast.error('Gagal logout');
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-surface-2">
       <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center justify-between">
         <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <span className="text-sm text-text-secondary">{staffProfile?.name} ({role})</span>
-          <Button variant="ghost" size="sm" onClick={signOut} aria-label="Logout"><LogOut className="w-4 h-4" /></Button>
+          <Button variant="ghost" size="sm" onClick={handleLogout} disabled={loggingOut} loading={loggingOut} aria-label="Logout"><LogOut className="w-4 h-4" /></Button>
         </div>
       </header>
       <nav className="glass border-b px-4 py-2 flex gap-2 overflow-x-auto" aria-label="Navigasi dashboard">

@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { VariationManager } from '@/components/dashboard/VariationManager';
 import { Button } from '@/components/ui/Button';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatCurrency } from '@/lib/utils';
 import { MenuItem as MenuItemType, Order } from '@/types';
-import { Plus, Edit2, Save, X, ToggleRight, ToggleLeft, TrendingUp, DollarSign, ShoppingCart, AlertTriangle, Image as ImageIcon, List } from 'lucide-react';
+import { Plus, Edit2, Save, X, ToggleRight, ToggleLeft, TrendingUp, DollarSign, ShoppingCart, AlertTriangle, Image as ImageIcon, List, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type TimeFilter = 'today' | '7days' | 'all';
@@ -27,8 +27,12 @@ export default function OwnerPage() {
   const [uploadingEditImage, setUploadingEditImage] = useState(false);
   const [variationMenuId, setVariationMenuId] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
+  const [deletingMenuId, setDeletingMenuId] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; type: 'delete-menu' | 'reset-all'; menuId?: string; menuName?: string }>({ open: false, type: 'delete-menu' });
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
+    setLoading(true);
     Promise.all([
       fetch('/api/menu').then(r => r.json()),
       fetch('/api/orders?history=1').then(r => r.json()),
@@ -42,6 +46,8 @@ export default function OwnerPage() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const filteredOrders = orders.filter(o => {
     if (timeFilter === 'today') {
@@ -152,6 +158,42 @@ export default function OwnerPage() {
     }
   };
 
+  const openDeleteMenuModal = (id: string, name: string) => {
+    setConfirmModal({ open: true, type: 'delete-menu', menuId: id, menuName: name });
+  };
+
+  const handleDeleteMenu = async () => {
+    if (!confirmModal.menuId) return;
+    setDeletingMenuId(confirmModal.menuId);
+    try {
+      const res = await fetch('/api/menu/' + confirmModal.menuId, { method: 'DELETE' });
+      if (res.ok) {
+        setMenuItems(prev => prev.filter(item => item.id !== confirmModal.menuId));
+        toast.success(confirmModal.menuName + ' berhasil dihapus');
+      } else {
+        toast.error('Gagal menghapus menu');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
+    setDeletingMenuId(null);
+    setConfirmModal({ open: false, type: 'delete-menu' });
+  };
+
+  const handleResetData = async () => {
+    setResetting(true);
+    try {
+      const res = await fetch('/api/orders/reset', { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Semua data berhasil direset');
+        setOrders([]);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal mereset data');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
+    setResetting(false);
+    setConfirmModal({ open: false, type: 'reset-all' });
+  };
+
   if (loading) return <DashboardLayout><Spinner size="lg" /></DashboardLayout>;
 
   const available = menuItems.filter(i => i.is_available && !i.is_sold_out).length;
@@ -241,6 +283,12 @@ export default function OwnerPage() {
           <div><p className="text-sm text-text-secondary">Pendapatan</p><p className="text-lg font-bold text-primary">{formatCurrency(totalRevenue)}</p></div>
           <div><p className="text-sm text-text-secondary">Order</p><p className="text-lg font-bold">{totalOrders}</p></div>
           <div><p className="text-sm text-text-secondary">Dibatalkan</p><p className="text-lg font-bold text-danger">{cancelCount}</p></div>
+        </div>
+        <div className="mt-4 pt-4 border-t">
+          <Button variant="danger" size="sm" onClick={() => setConfirmModal({ open: true, type: 'reset-all' })} disabled={resetting} loading={resetting}>
+            <Trash2 className="w-4 h-4 mr-1" />Reset Semua Data
+          </Button>
+          <p className="text-xs text-text-secondary mt-1">Hapus semua order & activity log. Menu, meja, dan staff tetap aman.</p>
         </div>
       </div>
 
@@ -370,6 +418,15 @@ export default function OwnerPage() {
                       <Button variant="ghost" size="sm" onClick={() => toggleSoldOut(item.id)}>
                         {item.is_sold_out ? <ToggleRight className="w-4 h-4 text-success" /> : <ToggleLeft className="w-4 h-4" />}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openDeleteMenuModal(item.id, item.name)}
+                        disabled={deletingMenuId === item.id}
+                        aria-label={'Hapus ' + item.name}
+                      >
+                        {deletingMenuId === item.id ? <Spinner size="sm" /> : <Trash2 className="w-4 h-4 text-danger" />}
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -391,6 +448,28 @@ export default function OwnerPage() {
           <div><p className="text-sm text-text-secondary">Sold Out</p><p className="text-lg font-bold text-danger">{soldOut}</p></div>
         </div>
       </div>
+
+      {confirmModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmModal({ open: false, type: 'delete-menu' })} />
+          <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-sm p-6" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+            <h3 id="confirm-dialog-title" className="text-lg font-bold mb-2">
+              {confirmModal.type === 'reset-all' ? 'Reset Semua Data?' : 'Hapus Menu?'}
+            </h3>
+            <p className="text-sm text-text-secondary mb-4">
+              {confirmModal.type === 'reset-all'
+                ? 'Semua order (aktif & riwayat) dan activity log akan dihapus permanen. Menu, meja, kategori, dan staff tetap aman. Tindakan ini TIDAK BISA dibatalkan!'
+                : `"${confirmModal.menuName}" akan dihapus permanen. Variasi akan ikut terhapus. Order lama tetap ada tapi tanpa nama menu. Lanjutkan?`}
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" onClick={() => setConfirmModal({ open: false, type: 'delete-menu' })}>Batal</Button>
+              <Button variant="danger" onClick={confirmModal.type === 'reset-all' ? handleResetData : handleDeleteMenu}>
+                {confirmModal.type === 'reset-all' ? 'Reset Semua' : 'Hapus'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

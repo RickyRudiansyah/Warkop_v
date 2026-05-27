@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { StaffUser } from '@/types';
@@ -19,14 +19,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [staffProfile, setStaffProfile] = useState<StaffUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchStaffProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('staff_users')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     if (error) { console.error('Failed to fetch staff profile:', error.message); return null; }
     return data as StaffUser | null;
   }, [supabase]);
@@ -65,7 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Logout failed:', err);
+      throw err;
+    }
   };
 
   return (

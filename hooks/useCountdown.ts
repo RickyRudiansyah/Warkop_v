@@ -21,6 +21,7 @@ export function useCountdown(estimatedReadyAt: string | null): UseCountdownRetur
 
     const update = () => {
       const target = new Date(estimatedReadyAt).getTime();
+      if (isNaN(target)) { setRemaining(0); return; }
       const now = Date.now();
       setRemaining(Math.floor((target - now) / 1000));
     };

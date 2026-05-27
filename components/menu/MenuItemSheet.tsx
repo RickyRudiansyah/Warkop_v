@@ -39,8 +39,8 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
   const total = (item.price + variationExtra) * quantity;
 
   const groupedVariations = variations.reduce<Record<string, MenuVariation[]>>((acc, v) => {
-    if (!acc[v.group_name]) acc[v.group_name] = [];
-    acc[v.group_name].push(v);
+    if (!acc[v.variation_type]) acc[v.variation_type] = [];
+    acc[v.variation_type].push(v);
     return acc;
   }, {});
 
@@ -72,7 +72,7 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
                     {vars.map(v => (
                       <label key={v.id} className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-surface-3">
                         <div className="flex items-center gap-2">
-                          <input type="radio" name={group} checked={selectedVariations[group]?.label === v.label} onChange={() => setSelectedVariations(prev => ({ ...prev, [group]: { group_name: v.group_name, label: v.label, extra_price: v.extra_price } }))} />
+                          <input type="radio" name={group} checked={selectedVariations[group]?.label === v.label} onChange={() => setSelectedVariations(prev => ({ ...prev, [group]: { variation_type: v.variation_type, label: v.label, extra_price: v.extra_price } }))} />
                           <span>{v.label}</span>
                         </div>
                         {v.extra_price > 0 && <span className="text-sm text-primary">+{formatCurrency(v.extra_price)}</span>}

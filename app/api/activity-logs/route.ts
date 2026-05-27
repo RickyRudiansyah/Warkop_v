@@ -1,11 +1,11 @@
-﻿import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 async function requireAuth() {
   const supabaseAuth = await createClient();
   const { data: { session } } = await supabaseAuth.auth.getSession();
   if (!session) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).single();
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).maybeSingle();
   return staff || null;
 }
 

@@ -19,7 +19,7 @@ export function VariationManager({ menuItemId, menuName, onClose }: VariationMan
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ group_name: '', label: '', extra_price: '0' });
+  const [form, setForm] = useState({ variation_type: '', label: '', extra_price: '0' });
   const [saving, setSaving] = useState(false);
 
   const fetchVariations = useCallback(async () => {
@@ -34,18 +34,18 @@ export function VariationManager({ menuItemId, menuName, onClose }: VariationMan
   }, [fetchVariations]);
 
   const resetForm = () => {
-    setForm({ group_name: '', label: '', extra_price: '0' });
+    setForm({ variation_type: '', label: '', extra_price: '0' });
     setAdding(false);
     setEditingId(null);
   };
 
   const handleSave = async () => {
-    if (!form.group_name || !form.label) return;
+    if (!form.variation_type || !form.label) return;
     setSaving(true);
 
     const payload = {
       menu_item_id: menuItemId,
-      group_name: form.group_name,
+      variation_type: form.variation_type,
       label: form.label,
       extra_price: parseInt(form.extra_price) || 0,
     };
@@ -89,13 +89,13 @@ export function VariationManager({ menuItemId, menuName, onClose }: VariationMan
 
   const handleEdit = (v: MenuVariation) => {
     setEditingId(v.id);
-    setForm({ group_name: v.group_name, label: v.label, extra_price: String(v.extra_price) });
+    setForm({ variation_type: v.variation_type, label: v.label, extra_price: String(v.extra_price) });
     setAdding(true);
   };
 
   const grouped = variations.reduce<Record<string, MenuVariation[]>>((acc, v) => {
-    if (!acc[v.group_name]) acc[v.group_name] = [];
-    acc[v.group_name].push(v);
+    if (!acc[v.variation_type]) acc[v.variation_type] = [];
+    acc[v.variation_type].push(v);
     return acc;
   }, {});
 
@@ -134,7 +134,7 @@ export function VariationManager({ menuItemId, menuName, onClose }: VariationMan
 
           {adding ? (
             <div className="border-t pt-3 space-y-2">
-              <input placeholder="Grup (contoh: Level Pedas)" value={form.group_name} onChange={e => setForm(p => ({ ...p, group_name: e.target.value }))} className="w-full px-3 py-2 border rounded-lg text-sm bg-surface" />
+              <input placeholder="Grup (contoh: Level Pedas)" value={form.variation_type} onChange={e => setForm(p => ({ ...p, variation_type: e.target.value }))} className="w-full px-3 py-2 border rounded-lg text-sm bg-surface" />
               <div className="flex gap-2">
                 <input placeholder="Label (contoh: Pedas Level 3)" value={form.label} onChange={e => setForm(p => ({ ...p, label: e.target.value }))} className="flex-1 px-3 py-2 border rounded-lg text-sm bg-surface" />
                 <input placeholder="+Harga" type="number" value={form.extra_price} onChange={e => setForm(p => ({ ...p, extra_price: e.target.value }))} className="w-28 px-3 py-2 border rounded-lg text-sm bg-surface" />

@@ -19,6 +19,7 @@ export function formatDate(date: string | Date): string {
 export function getElapsedMinutes(date: string | Date): number {
   const now = new Date();
   const then = new Date(date);
+  if (isNaN(then.getTime())) return 0;
   return Math.floor((now.getTime() - then.getTime()) / 60000);
 }
 

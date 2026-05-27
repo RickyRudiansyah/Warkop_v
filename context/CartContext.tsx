@@ -42,7 +42,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [tableNumber]);
 
   const addItem = useCallback((menu_item: MenuItem, quantity: number, selectedVariations: VariationSelection[], notes: string) => {
-    const variationKey = JSON.stringify(selectedVariations.sort((a, b) => a.group_name.localeCompare(b.group_name)));
+    const variationKey = JSON.stringify(selectedVariations.sort((a, b) => a.variation_type.localeCompare(b.variation_type)));
     const variationExtra = selectedVariations.reduce((sum, v) => sum + v.extra_price, 0);
     const subtotal = (menu_item.price + variationExtra) * quantity;
     setItems(prev => {

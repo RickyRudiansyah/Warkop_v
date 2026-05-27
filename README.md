@@ -1,4 +1,4 @@
-﻿# Warkop QR Ordering System v2.8
+﻿# Warkop QR Ordering System v2.9
 
 > Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pesan, bayar tanpa antri ke kasir.
 
@@ -30,6 +30,7 @@
 - [Changelog v2.6](#changelog-v26)
 - [Changelog v2.7](#changelog-v27)
 - [Changelog v2.8](#changelog-v28)
+- [Changelog v2.9](#changelog-v29)
 - [Developer](#developer)
 
 ---
@@ -88,6 +89,7 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 | Cancel order | Batalkan order dengan input alasan |
 | Manual order | Input order manual (POS-style) untuk pelanggan yang tidak scan QR |
 | QR Generator | Generate + download QR Code per meja (PNG) |
+| Order history | Lihat + hapus riwayat order yang sudah selesai atau dibatalkan |
 | Toast notifications | Notifikasi untuk setiap aksi (konfirmasi, cancel, dll) |
 | Activity logging | Log aktivitas kasir tercatat di database |
 
@@ -115,10 +117,11 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 | Top menu terlaris | Ranking menu dengan badge emas/perak/perunggu |
 | Order terbaru | List 10 order terakhir dengan status dan total |
 | Rekap penjualan | Filter: Hari Ini / 7 Hari / Semua |
-| Kelola menu | Tambah, edit (nama, harga, deskripsi, gambar), upload gambar via Supabase Storage, toggle sold out |
+| Kelola menu | Tambah, edit, **hapus** (nama, harga, deskripsi, gambar), upload gambar via Supabase Storage, toggle sold out |
 | Kelola variasi | Tambah, edit, hapus variasi per menu (level pedas, ukuran, topping, dll) — grup + label + extra price |
 | Statistik menu | Total menu, tersedia, sold out |
-| Order history | Lihat semua order yang sudah selesai atau dibatalkan |
+| Order history | Lihat + **hapus** semua order yang sudah selesai atau dibatalkan, dengan hapus satu per satu atau hapus semua |
+| Reset data | Hapus semua order (aktif + riwayat) & activity log dengan satu klik — menu, meja, staff tetap aman |
 | Toast notifications | Notifikasi untuk setiap aksi CRUD |
 
 ### Auth & Session
@@ -1041,6 +1044,44 @@ git push -u origin main
 | Metric | Value |
 |---|---|
 | Files modified | 1 (`app/(customer)/checkout/page.tsx`) |
+| TypeScript errors | 0 |
+| Build | Passed |
+| Breaking changes | None |
+
+---
+
+## Changelog v2.9
+
+### Owner: Hapus Menu, Reset Data & Hapus Riwayat (5 files)
+
+#### Hapus Menu — Owner Dashboard
+- **Tombol hapus per menu** — Icon `Trash2` di action bar Kelola Menu, dengan konfirmasi modal sebelum hapus
+- **`DELETE /api/menu/[id]`** — API sudah ada, tombol UI yang sebelumnya hilang sekarang tersedia
+- Variasi ikut terhapus (CASCADE), order lama tetap ada (menu_item_id jadi NULL)
+
+#### Hapus Riwayat — History Page
+- **Hapus satu order** — Tombol `Trash2` per baris di tabel riwayat, dengan konfirmasi modal
+- **Hapus semua riwayat** — Tombol "Hapus Semua" di header, hapus semua order SERVED + CANCELLED
+- **`DELETE /api/orders/[id]`** — API baru: hanya bisa hapus order SERVED/CANCELLED (tolak order aktif)
+- **`DELETE /api/orders/history`** — API baru: bulk hapus semua SERVED + CANCELLED
+
+#### Reset Semua Data — Owner Dashboard
+- **Tombol "Reset Semua Data"** — Di section Rekap Penjualan, dengan double-confirmation modal
+- **`DELETE /api/orders/reset`** — API baru: hapus semua order (aktif + riwayat) + activity log. Menu, meja, kategori, variasi, dan staff **tidak** ikut terhapus
+- Hanya owner yang bisa akses (role guard di API)
+
+#### UI Safety
+- Semua aksi hapus pakai **modal konfirmasi** (bukan `window.confirm`)
+- Loading state + disable button saat proses berjalan
+- Toast success/error untuk setiap aksi
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files created | 1 (`app/api/orders/reset/route.ts`) |
+| Files modified | 4 (`owner/page.tsx`, `history/page.tsx`, `orders/[id]/route.ts`, `orders/history/route.ts`) |
+| New API endpoints | 3 (`DELETE /api/orders/[id]`, `DELETE /api/orders/history`, `DELETE /api/orders/reset`) |
 | TypeScript errors | 0 |
 | Build | Passed |
 | Breaking changes | None |

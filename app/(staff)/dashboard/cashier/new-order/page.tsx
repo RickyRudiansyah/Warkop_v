@@ -15,7 +15,7 @@ interface CartItem {
   menu_item_name: string;
   menu_item_price: number;
   quantity: number;
-  variations: [];
+  variations: never[];
   subtotal: number;
   notes: string | null;
 }
@@ -48,17 +48,20 @@ export default function NewOrderPage() {
 
   const handleSubmit = async () => {
     if (cart.length === 0) return;
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ table_id: null, payment_method: paymentMethod, total_amount: total, notes: 'Manual order', items: cart }),
-    });
-    if (res.ok) {
-      toast.success('Order manual berhasil dibuat');
-      router.push('/dashboard/cashier');
-    } else {
-      toast.error('Gagal membuat order');
-    }
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_id: null, payment_method: paymentMethod, total_amount: total, notes: 'Manual order', items: cart }),
+      });
+      if (res.ok) {
+        toast.success('Order manual berhasil dibuat');
+        router.push('/dashboard/cashier');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal membuat order');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
   };
 
   return (

@@ -32,7 +32,7 @@ export interface Database {
           created_at?: string
         }
       }
-      menu_categories: {
+      categories: {
         Row: {
           id: string
           name: string
@@ -88,14 +88,14 @@ export interface Database {
         Row: {
           id: string
           menu_item_id: string
-          group_name: string
+          variation_type: string
           label: string
           extra_price: number
         }
         Insert: {
           id?: string
           menu_item_id: string
-          group_name: string
+          variation_type: string
           label: string
           extra_price?: number
         }

@@ -29,7 +29,7 @@ export interface MenuItem {
 export interface MenuVariation {
   id: string;
   menu_item_id: string;
-  group_name: string;
+  variation_type: string;
   label: string;
   extra_price: number;
 }
@@ -72,7 +72,7 @@ export interface OrderItem {
 }
 
 export interface VariationSelection {
-  group_name: string;
+  variation_type: string;
   label: string;
   extra_price: number;
 }

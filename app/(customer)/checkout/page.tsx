@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { PaymentMethod } from '@/types';
 import { Trash2, ArrowLeft, AlertTriangle, Check } from 'lucide-react';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -67,6 +68,7 @@ export default function CheckoutPage() {
         <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
           <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
           <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+          <ThemeToggle className="ml-auto" />
         </header>
         <div className="p-4 space-y-4 max-w-md mx-auto">
           <div className="card p-4 space-y-3">
@@ -84,6 +86,7 @@ export default function CheckoutPage() {
           <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
           <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
           {tableNumber && <p className="text-sm text-text-secondary ml-auto">Meja {tableNumber}</p>}
+          <ThemeToggle />
         </header>
         <div className="flex flex-col items-center justify-center p-12">
           <h2 className="text-xl font-bold mb-2">Keranjang Kosong</h2>
@@ -99,6 +102,7 @@ export default function CheckoutPage() {
         <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
         <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
         {tableNumber && <p className="text-sm text-text-secondary ml-auto">Meja {tableNumber}</p>}
+        <ThemeToggle />
       </header>
       <div className="p-4 space-y-4 max-w-md mx-auto">
         {loadingTable ? (
