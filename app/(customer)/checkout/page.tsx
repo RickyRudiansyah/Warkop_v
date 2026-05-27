@@ -19,7 +19,10 @@ export default function CheckoutPage() {
   const [tableId, setTableId] = useState<string | null>(null);
   const [loadingTable, setLoadingTable] = useState(true);
   const [agreed, setAgreed] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!tableNumber) { setLoadingTable(false); return; }
@@ -57,6 +60,22 @@ export default function CheckoutPage() {
     } catch { toast.error('Gagal membuat pesanan'); }
     setSubmitting(false);
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-surface-2">
+        <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
+          <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
+          <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+        </header>
+        <div className="p-4 space-y-4 max-w-md mx-auto">
+          <div className="card p-4 space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (<Skeleton key={i} variant="rectangular" height="48px" />))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0 && !submitting) {
     return (

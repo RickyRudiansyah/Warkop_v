@@ -1,4 +1,4 @@
-﻿# Warkop QR Ordering System v2.6
+﻿# Warkop QR Ordering System v2.8
 
 > Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pesan, bayar tanpa antri ke kasir.
 
@@ -28,8 +28,9 @@
 - [Struktur Project](#struktur-project)
 - [Changelog v2.3](#changelog-v23)
 - [Changelog v2.6](#changelog-v26)
+- [Changelog v2.7](#changelog-v27)
+- [Changelog v2.8](#changelog-v28)
 - [Developer](#developer)
-- [License](#license)
 
 ---
 
@@ -964,6 +965,84 @@ git push -u origin main
 | Lines removed | 51 |
 | TypeScript errors | 0 |
 | Lint errors (new) | 0 |
+| Breaking changes | None |
+
+---
+
+## Changelog v2.7
+
+### Schema Compatibility & Error Handling (22 files)
+
+#### Database Schema Alignment
+- **Tabel `categories`** — App diupdate dari `menu_categories` ke `categories` untuk kompatibilitas dengan skema database existing
+- **Kolom `variation_type`** — Semua kode diupdate dari `group_name` ke `variation_type` (4 file: types, API, VariationManager, MenuItemSheet, CartContext)
+- **Complete schema SQL** — File `scripts/complete-schema.sql` berisi full DDL + seed + auth users untuk setup dari nol
+
+#### Error Handling Hardening
+
+| File | Fix |
+|---|---|
+| `cashier/page.tsx` | try/catch di `handleConfirmCash`, `handleConfirmPayment`, `handleCancel` + toast error |
+| `cashier/new-order/page.tsx` | try/catch di `handleSubmit` + CartItem type fix (`variations: never[]`) |
+| `qr/page.tsx` | Error handling pada fetch + remove `any` types + modern base64 encoding (replace deprecated `unescape`) |
+| `login/page.tsx` | `loading` state di-reset dengan `finally` block (sebelumnya stuck forever setelah login sukses) |
+| `owner/page.tsx` | (pre-existing) `Date.now()` in render identified |
+
+#### Stability & Performance
+
+| File | Fix |
+|---|---|
+| `AuthContext.tsx` | Supabase client di-memoize dengan `useMemo` (sebelumnya recreate tiap render → potensi infinite loop) |
+| `ProtectedRoute.tsx` | `allowedRoles` di-reference via `useRef` string key (sebelumnya array baru tiap render → redirect loop) |
+| `useCountdown.ts` | Guard `isNaN(target)` untuk mencegah NaN countdown di UI |
+| `utils.ts` | `getElapsedMinutes` guard `isNaN(then.getTime())` return 0 |
+| `checkout/page.tsx` | Hydration fix: `mounted` state untuk `tableNumber` dari sessionStorage |
+| `CartDrawer.tsx` | Stable key `menu_item.id + '-' + index` (sebelumnya index-only) |
+
+#### Logout Fix
+- **`DashboardLayout.tsx`** — `handleLogout` dengan loading state + redirect `router.push('/login')` setelah signOut (sebelumnya tidak ada redirect → user stuck di dashboard setelah logout)
+- **`AuthContext.tsx`** — `signOut` dengan try/catch error handling
+
+#### Kitchen Fix — `.single()` → `.maybeSingle()` + Error Handling
+- **14 API route files** — `requireAuth()` diganti `.maybeSingle()` (sebelumnya crash "Cannot coerce to single JSON object" jika staff_user tidak ditemukan → kitchen gagal proses order + loading stuck forever)
+- **`kitchen/page.tsx`** — `handleStartProcess`, `handleUpdateEta`, `handleServed` + try/catch + error toast (sebelumnya silent failure → loading spinner stuck tanpa pesan error)
+
+#### Test Results
+
+| Category | Passed |
+|---|---|
+| API Endpoints (public) | 11/11 |
+| Auth Guards (no cookie = 401) | 14/14 |
+| Login (kasir/koki/owner) | 3/3 |
+| Order Creation | OK |
+| TypeScript | 0 errors |
+
+#### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 24 |
+| Schema SQL | `scripts/complete-schema.sql` |
+| TypeScript errors | 0 |
+| Breaking changes | None |
+
+---
+
+## Changelog v2.8
+
+### Hydration Fix — Checkout Page (1 file)
+
+- **SSR hydration mismatch pada checkout** — Server merender empty cart state (`items.length === 0` karena `sessionStorage` tidak tersedia di server), sementara client merender checkout UI (items dari `sessionStorage`). Akibat: error `Hydration failed because the server rendered HTML didn't match the client`.
+- **`!mounted` guard** — Guard tambahan di awal render: jika `!mounted`, tampilkan skeleton loading yang identik di server dan client. Setelah `useEffect` mount, baru render content sesungguhnya berdasarkan `items.length`.
+- **Redundant check removal** — Hapus `{mounted &&` di header main return karena di titik tersebut `mounted` sudah pasti `true`.
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 1 (`app/(customer)/checkout/page.tsx`) |
+| TypeScript errors | 0 |
+| Build | Passed |
 | Breaking changes | None |
 
 ---
