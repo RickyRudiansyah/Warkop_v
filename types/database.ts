@@ -111,38 +111,47 @@ export interface Database {
         Row: {
           id: string
           table_id: string | null
+          session_id: string | null
           status: string
           payment_method: string
+          payment_status: string
           total_amount: number
           notes: string | null
           cancel_reason: string | null
-          confirmed_at: string | null
-          estimated_ready_at: string | null
+          payment_ref: string | null
+          receipt_printed: boolean
           created_at: string
+          paid_at: string | null
         }
         Insert: {
           id?: string
           table_id?: string | null
-          status: string
+          session_id?: string | null
+          status?: string
           payment_method: string
+          payment_status?: string
           total_amount: number
           notes?: string | null
           cancel_reason?: string | null
-          confirmed_at?: string | null
-          estimated_ready_at?: string | null
+          payment_ref?: string | null
+          receipt_printed?: boolean
           created_at?: string
+          paid_at?: string | null
         }
         Update: {
           id?: string
           table_id?: string | null
+          session_id?: string | null
           status?: string
           payment_method?: string
+          payment_status?: string
           total_amount?: number
           notes?: string | null
           cancel_reason?: string | null
-          confirmed_at?: string | null
-          estimated_ready_at?: string | null
+          payment_ref?: string | null
+          receipt_printed?: boolean
           created_at?: string
+          paid_at?: string | null
         }
       }
       order_items: {
@@ -178,6 +187,32 @@ export interface Database {
           variations?: Json
           subtotal?: number
           notes?: string | null
+        }
+      }
+      table_sessions: {
+        Row: {
+          id: string
+          table_number: number
+          status: string
+          total_amount: number
+          created_at: string
+          closed_at: string | null
+        }
+        Insert: {
+          id?: string
+          table_number: number
+          status?: string
+          total_amount?: number
+          created_at?: string
+          closed_at?: string | null
+        }
+        Update: {
+          id?: string
+          table_number?: number
+          status?: string
+          total_amount?: number
+          created_at?: string
+          closed_at?: string | null
         }
       }
       staff_users: {
@@ -241,5 +276,3 @@ export interface Database {
     }
   }
 }
-
-

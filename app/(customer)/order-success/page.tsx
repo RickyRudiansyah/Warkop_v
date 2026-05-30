@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { CheckCircle, MapPin, ArrowLeft } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
@@ -30,15 +30,26 @@ export default function OrderSuccessPage() {
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <h1 className="text-2xl font-bold mb-2">Pesanan Berhasil!</h1>
-          <p className="text-text-secondary mb-6">Pesanan Anda sedang diproses. Silakan tunggu di meja.</p>
-        </motion.div>
-        <motion.div className="flex flex-col gap-3 w-full" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <p className="text-text-secondary mb-2">Pesanan Anda sedang diproses di dapur.</p>
           {orderId && (
-            <Link href={'/order-tracking?orderId=' + orderId} className="w-full">
-              <Button variant="primary" size="lg" className="w-full"><MapPin className="w-4 h-4 mr-2" />Lacak Pesanan</Button>
-            </Link>
+            <p className="text-xs text-text-secondary font-mono mb-6">Order #{orderId.slice(0, 8)}</p>
           )}
-          <Link href="/order" className="w-full"><Button variant="secondary" size="lg" className="w-full">Kembali ke Menu</Button></Link>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="flex flex-col gap-3 w-full"
+        >
+          <div className="card p-4 text-left space-y-2">
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
+              <Printer className="w-4 h-4" />
+              <span>Struk akan otomatis tercetak di dapur</span>
+            </div>
+            <p className="text-xs text-text-secondary/70">
+              Pesanan Anda akan segera disiapkan. Silakan tunggu di meja, staff kami akan mengantarkan pesanan Anda.
+            </p>
+          </div>
+          <Link href="/order" className="w-full"><Button variant="primary" size="lg" className="w-full">Pesan Lagi</Button></Link>
         </motion.div>
       </div>
     </div>

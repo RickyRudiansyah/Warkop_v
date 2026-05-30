@@ -18,8 +18,11 @@ export async function DELETE() {
   const { error: logError } = await supabase.from('activity_logs').delete().neq('id', '' as any);
   if (logError) return NextResponse.json({ error: 'Gagal hapus activity logs: ' + logError.message }, { status: 500 });
 
+  const { error: sessionError } = await supabase.from('table_sessions').delete().neq('id', '' as any);
+  if (sessionError) return NextResponse.json({ error: 'Gagal hapus table sessions: ' + sessionError.message }, { status: 500 });
+
   const { error: orderError } = await supabase.from('orders').delete().neq('id', '' as any);
   if (orderError) return NextResponse.json({ error: 'Gagal hapus orders: ' + orderError.message }, { status: 500 });
 
-  return NextResponse.json({ success: true, message: 'Semua order dan activity log berhasil dihapus' });
+  return NextResponse.json({ success: true, message: 'Semua order, table sessions, dan activity log berhasil dihapus' });
 }

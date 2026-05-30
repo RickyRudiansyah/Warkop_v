@@ -37,25 +37,25 @@ export interface MenuVariation {
 export interface Order {
   id: string;
   table_id: string | null;
+  session_id: string | null;
   status: OrderStatus;
   payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
   total_amount: number;
   notes: string | null;
   cancel_reason: string | null;
-  confirmed_at: string | null;
-  estimated_ready_at: string | null;
+  payment_ref: string | null;
+  receipt_printed: boolean;
   created_at: string;
+  paid_at: string | null;
   table?: Table;
   items?: OrderItem[];
+  session?: TableSession;
 }
 
-export type OrderStatus =
-  | 'PENDING_CASH'
-  | 'PENDING_PAYMENT'
-  | 'CONFIRMED'
-  | 'PROCESSING'
-  | 'SERVED'
-  | 'CANCELLED';
+export type OrderStatus = 'PENDING_CASH' | 'PAID' | 'PROCESSING' | 'SERVED' | 'CANCELLED';
+
+export type PaymentStatus = 'UNPAID' | 'PAID';
 
 export type PaymentMethod = 'CASH' | 'QRIS' | 'TRANSFER_BCA';
 
@@ -75,6 +75,16 @@ export interface VariationSelection {
   variation_type: string;
   label: string;
   extra_price: number;
+}
+
+export interface TableSession {
+  id: string;
+  table_number: number;
+  status: 'ACTIVE' | 'CLOSED';
+  total_amount: number;
+  created_at: string;
+  closed_at: string | null;
+  orders?: Order[];
 }
 
 export interface StaffUser {
@@ -104,4 +114,3 @@ export interface CartItem {
   notes: string;
   subtotal: number;
 }
-

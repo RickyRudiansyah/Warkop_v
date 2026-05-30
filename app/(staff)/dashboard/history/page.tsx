@@ -71,6 +71,10 @@ export default function HistoryPage() {
 
   if (loading) return <DashboardLayout><Spinner size="lg" /></DashboardLayout>;
 
+  const statusLabelBg = (status: string) => {
+    return status === 'SERVED' ? 'success' : status === 'CANCELLED' ? 'danger' : 'info';
+  };
+
   return (
     <DashboardLayout>
       <div className="flex items-center justify-between mb-4">
@@ -90,7 +94,7 @@ export default function HistoryPage() {
               <tr>
                 <th scope="col" className="text-left px-4 py-3 text-sm font-medium">Meja</th>
                 <th scope="col" className="text-left px-4 py-3 text-sm font-medium hidden md:table-cell">Items</th>
-                <th scope="col" className="text-left px-4 py-3 text-sm font-medium">Payment</th>
+                <th scope="col" className="text-left px-4 py-3 text-sm font-medium">Bayar</th>
                 <th scope="col" className="text-left px-4 py-3 text-sm font-medium">Total</th>
                 <th scope="col" className="text-left px-4 py-3 text-sm font-medium">Status</th>
                 <th scope="col" className="text-left px-4 py-3 text-sm font-medium">Waktu</th>
@@ -102,16 +106,16 @@ export default function HistoryPage() {
                 <tr key={order.id} className="border-b last:border-0 hover:bg-surface-2">
                   <td className="px-4 py-3 font-medium">Meja {order.table?.table_number || '-'}</td>
                   <td className="px-4 py-3 text-sm hidden md:table-cell">{order.items?.map(i => i.menu_item_name).join(', ') || '-'}</td>
-                  <td className="px-4 py-3 text-sm">{order.payment_method}</td>
+                  <td className="px-4 py-3 text-sm">{order.payment_method} {order.payment_status === 'PAID' ? '\u2705' : '\u274C'}</td>
                   <td className="px-4 py-3 font-bold">{formatCurrency(order.total_amount)}</td>
-                  <td className="px-4 py-3"><Badge variant={order.status === 'SERVED' ? 'success' : 'danger'}>{order.status}</Badge></td>
+                  <td className="px-4 py-3"><Badge variant={statusLabelBg(order.status)}>{order.status}</Badge></td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{new Date(order.created_at).toLocaleString('id-ID')}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => openDeleteModal(order.id)}
                       disabled={deletingId === order.id}
                       className="p-1.5 rounded-lg text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
-                      aria-label={'Hapus order ' + (order.table?.table_number || '')}
+                      aria-label={'Hapus order meja ' + (order.table?.table_number || '')}
                     >
                       {deletingId === order.id ? <Spinner size="sm" /> : <Trash2 className="w-4 h-4" />}
                     </button>

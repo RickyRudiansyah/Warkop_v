@@ -31,20 +31,13 @@ export async function middleware(request: NextRequest) {
     if (!staff) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
-    if (staff.role === 'koki' && !pathname.startsWith('/dashboard/kitchen')) {
-      return NextResponse.redirect(new URL('/dashboard/kitchen', request.url));
-    }
-    if (staff.role === 'cashier' && (pathname.startsWith('/dashboard/owner') || pathname.startsWith('/dashboard/kitchen'))) {
+    if (staff.role === 'cashier' && pathname.startsWith('/dashboard/owner')) {
       return NextResponse.redirect(new URL('/dashboard/cashier', request.url));
-    }
-    if (staff.role === 'owner' && pathname.startsWith('/dashboard/kitchen')) {
-      return NextResponse.redirect(new URL('/dashboard/owner', request.url));
     }
   }
 
   if (pathname === '/login' && session) {
     const { data: staff } = await supabase.from('staff_users').select('role').eq('id', session.user.id).single();
-    if (staff?.role === 'koki') return NextResponse.redirect(new URL('/dashboard/kitchen', request.url));
     if (staff?.role === 'owner') return NextResponse.redirect(new URL('/dashboard/owner', request.url));
     return NextResponse.redirect(new URL('/dashboard/cashier', request.url));
   }

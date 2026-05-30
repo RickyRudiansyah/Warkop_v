@@ -42,17 +42,30 @@ CREATE TABLE IF NOT EXISTS menu_variations (
   extra_price INT DEFAULT 0
 );
 
--- Orders
+-- Table Sessions (v2 — gabung pesanan 1 meja)
+CREATE TABLE IF NOT EXISTS table_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  table_number INT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'CLOSED')),
+  total_amount INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  closed_at TIMESTAMPTZ
+);
+
+-- Orders (v2 — simplified status)
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   table_id UUID REFERENCES tables(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'PENDING_CASH' CHECK (status IN ('PENDING_CASH','PENDING_PAYMENT','CONFIRMED','PROCESSING','SERVED','CANCELLED')),
+  session_id UUID REFERENCES table_sessions(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'PENDING_CASH' CHECK (status IN ('PENDING_CASH','PAID','PROCESSING','SERVED','CANCELLED')),
   payment_method TEXT NOT NULL CHECK (payment_method IN ('CASH','QRIS','TRANSFER_BCA')),
+  payment_status TEXT NOT NULL DEFAULT 'UNPAID' CHECK (payment_status IN ('UNPAID','PAID')),
   total_amount INT NOT NULL,
   notes TEXT,
   cancel_reason TEXT,
-  confirmed_at TIMESTAMPTZ,
-  estimated_ready_at TIMESTAMPTZ,
+  payment_ref TEXT,
+  receipt_printed BOOLEAN DEFAULT false,
+  paid_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -94,12 +107,14 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 -- Enable Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE orders;
 ALTER PUBLICATION supabase_realtime ADD TABLE order_items;
+ALTER PUBLICATION supabase_realtime ADD TABLE table_sessions;
 
 -- RLS Policies
 ALTER TABLE tables ENABLE ROW LEVEL SECURITY;
 ALTER TABLE menu_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE menu_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE menu_variations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE table_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff_users ENABLE ROW LEVEL SECURITY;
@@ -110,12 +125,14 @@ CREATE POLICY "Anyone can view tables" ON tables FOR SELECT USING (true);
 CREATE POLICY "Anyone can view menu categories" ON menu_categories FOR SELECT USING (true);
 CREATE POLICY "Anyone can view menu items" ON menu_items FOR SELECT USING (true);
 CREATE POLICY "Anyone can view menu variations" ON menu_variations FOR SELECT USING (true);
+CREATE POLICY "Anyone can view table sessions" ON table_sessions FOR SELECT USING (true);
 
 -- Staff full access (authenticated users only)
 CREATE POLICY "Staff full access tables" ON tables FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Staff full access categories" ON menu_categories FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Staff full access menu_items" ON menu_items FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Staff full access menu_variations" ON menu_variations FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Staff full access sessions" ON table_sessions FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Staff full access orders" ON orders FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Staff full access order_items" ON order_items FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Staff full access staff_users" ON staff_users FOR ALL USING (auth.role() = 'authenticated');
@@ -170,4 +187,3 @@ CREATE POLICY "Staff can update menu images" ON storage.objects
 
 CREATE POLICY "Staff can delete menu images" ON storage.objects
   FOR DELETE USING (bucket_id = 'menu-images' AND auth.role() = 'authenticated');
-

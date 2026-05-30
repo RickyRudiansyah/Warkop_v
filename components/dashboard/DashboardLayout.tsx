@@ -3,7 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { LogOut, LayoutDashboard, ChefHat, ShoppingCart, QrCode, BarChart3, History } from 'lucide-react';
+import { LogOut, ShoppingCart, QrCode, BarChart3, History } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -13,12 +13,8 @@ import { toast } from 'sonner';
 const navItems = {
   cashier: [
     { href: '/dashboard/cashier', label: 'Orders', icon: ShoppingCart },
-    { href: '/dashboard/cashier/new-order', label: 'New Order', icon: LayoutDashboard },
     { href: '/dashboard/qr', label: 'QR Code', icon: QrCode },
     { href: '/dashboard/history', label: 'History', icon: History },
-  ],
-  koki: [
-    { href: '/dashboard/kitchen', label: 'Kitchen', icon: ChefHat },
   ],
   owner: [
     { href: '/dashboard/owner', label: 'Dashboard', icon: BarChart3 },

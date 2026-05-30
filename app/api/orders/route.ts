@@ -1,5 +1,9 @@
-import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { getPaymentProvider } from '@/lib/payment';
+import { getPrinter } from '@/lib/printer';
+import { PaymentMethod } from '@/types';
 
 async function requireAuth() {
   const supabaseAuth = await createClient();
@@ -14,10 +18,16 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const { searchParams } = new URL(request.url);
   const history = searchParams.get('history');
-  let query = supabase.from('orders').select('*, table:tables(*), items:order_items(*)').order('created_at', { ascending: false });
+
+  let query = supabase
+    .from('orders')
+    .select('*, table:tables(*), items:order_items(*)')
+    .order('created_at', { ascending: false });
+
   if (!history) {
     query = query.not('status', 'in', '(SERVED,CANCELLED)');
   }
+
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
@@ -26,7 +36,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
   const body = await request.json();
-  const { items, table_id, payment_method, total_amount, notes } = body;
+  const { items, table_id, session_id, payment_method, total_amount, notes } = body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'Items are required' }, { status: 400 });
@@ -38,7 +48,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid total_amount' }, { status: 400 });
   }
 
-  const { data: order, error: orderError } = await supabase.from('orders').insert({ table_id, payment_method, total_amount, notes, status: payment_method === 'CASH' ? 'PENDING_CASH' : 'PENDING_PAYMENT' }).select().single();
+  const orderData: Record<string, unknown> = {
+    table_id,
+    session_id,
+    payment_method,
+    total_amount,
+    notes,
+    status: payment_method === 'CASH' ? 'PENDING_CASH' : 'PENDING_CASH',
+    payment_status: 'UNPAID',
+  };
+
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .insert(orderData)
+    .select()
+    .single();
+
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 });
 
   const orderItems = items.map((item: { menu_item_id: string; menu_item_name: string; menu_item_price: number; quantity: number; variations?: unknown; subtotal: number; notes?: string }) => ({
@@ -58,5 +83,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: itemsError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ...order, items: orderItems }, { status: 201 });
+  if (session_id) {
+    const { data: s } = await supabase
+      .from('table_sessions')
+      .select('total_amount')
+      .eq('id', session_id)
+      .single();
+    await supabase
+      .from('table_sessions')
+      .update({ total_amount: (s?.total_amount || 0) + total_amount })
+      .eq('id', session_id);
+  }
+
+  // For digital payments, create payment transaction
+  let redirectUrl: string | null = null;
+  if (payment_method !== 'CASH') {
+    try {
+      const provider = getPaymentProvider(payment_method as PaymentMethod);
+      const result = await provider.createPayment({
+        order_id: order.id,
+        amount: total_amount,
+        method: payment_method as 'QRIS' | 'TRANSFER_BCA',
+      });
+      if (result.success && result.redirect_url) {
+        redirectUrl = result.redirect_url;
+        await supabase
+          .from('orders')
+          .update({ payment_ref: result.transaction_id })
+          .eq('id', order.id);
+      }
+    } catch {
+      // Payment gateway not configured, continue without redirect
+    }
+  }
+
+  return NextResponse.json({ ...order, items: orderItems, redirect_url: redirectUrl }, { status: 201 });
 }

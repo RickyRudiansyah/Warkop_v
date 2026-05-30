@@ -62,14 +62,14 @@ export default function OwnerPage() {
     return true;
   });
 
-  const totalRevenue = filteredOrders.filter(o => o.status === 'SERVED').reduce((sum, o) => sum + o.total_amount, 0);
+  const totalRevenue = filteredOrders.filter(o => o.status === 'SERVED' && o.payment_status === 'PAID').reduce((sum, o) => sum + o.total_amount, 0);
   const totalOrders = filteredOrders.length;
-  const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+  const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / Math.max(1, filteredOrders.filter(o => o.status === 'SERVED' && o.payment_status === 'PAID').length)) : 0;
   const cancelCount = filteredOrders.filter(o => o.status === 'CANCELLED').length;
   const cancelRate = totalOrders > 0 ? Math.round((cancelCount / totalOrders) * 100) : 0;
 
   const topMenu: { name: string; count: number; revenue: number }[] = [];
-  filteredOrders.filter(o => o.status === 'SERVED').forEach(o => {
+  filteredOrders.filter(o => o.status === 'SERVED' && o.payment_status === 'PAID').forEach(o => {
     o.items?.forEach(item => {
       const existing = topMenu.find(t => t.name === item.menu_item_name);
       if (existing) {
@@ -270,7 +270,10 @@ export default function OwnerPage() {
 
       <div className="card p-4 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Rekap Penjualan</h3>
+          <div>
+            <h3 className="font-semibold">Rekap Penjualan</h3>
+            <p className="text-xs text-text-secondary">Menampilkan order dengan status LUNAS dari kasir</p>
+          </div>
           <div className="flex gap-2">
             {(['today', '7days', 'all'] as TimeFilter[]).map(f => (
               <button key={f} onClick={() => setTimeFilter(f)} className={'px-3 py-1 rounded-lg text-sm font-medium ' + (timeFilter === f ? 'bg-primary text-white' : 'bg-surface-3 text-text-secondary')}>
@@ -288,7 +291,7 @@ export default function OwnerPage() {
           <Button variant="danger" size="sm" onClick={() => setConfirmModal({ open: true, type: 'reset-all' })} disabled={resetting} loading={resetting}>
             <Trash2 className="w-4 h-4 mr-1" />Reset Semua Data
           </Button>
-          <p className="text-xs text-text-secondary mt-1">Hapus semua order & activity log. Menu, meja, dan staff tetap aman.</p>
+          <p className="text-xs text-text-secondary mt-1">Hapus semua order & activity log. Menu, meja, kategori, dan staff tetap aman.</p>
         </div>
       </div>
 
@@ -335,6 +338,7 @@ export default function OwnerPage() {
                         handleAddImage(file);
                       }
                     }}
+                    aria-label="Pilih gambar menu"
                   />
                 </label>
               )}
@@ -383,6 +387,7 @@ export default function OwnerPage() {
                         handleEditImage(file);
                       }
                     }}
+                    aria-label="Pilih gambar menu"
                   />
                 </label>
               )}
