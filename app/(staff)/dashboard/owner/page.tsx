@@ -13,6 +13,13 @@ import { toast } from 'sonner';
 
 type TimeFilter = 'today' | '7days' | 'all';
 
+const STATUS_LABELS: Record<string, string> = {
+  QUEUED: 'Antri',
+  PROCESSING: 'Diproses',
+  SERVED: 'Selesai',
+  CANCELLED: 'Dibatalkan',
+};
+
 export default function OwnerPage() {
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -259,7 +266,7 @@ export default function OwnerPage() {
                   </div>
                   <div className="text-right">
                     <span className="font-bold">{formatCurrency(order.total_amount)}</span>
-                    <Badge variant={order.status === 'SERVED' ? 'success' : order.status === 'CANCELLED' ? 'danger' : 'info'} className="ml-2">{order.status}</Badge>
+                    <Badge variant={order.status === 'SERVED' ? 'success' : order.status === 'CANCELLED' ? 'danger' : 'info'} className="ml-2">{STATUS_LABELS[order.status] || order.status}</Badge>
                   </div>
                 </div>
               ))}

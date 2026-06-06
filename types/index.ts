@@ -39,25 +39,27 @@ export interface Order {
   table_id: string | null;
   status: OrderStatus;
   payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
   total_amount: number;
   notes: string | null;
   cancel_reason: string | null;
   confirmed_at: string | null;
   estimated_ready_at: string | null;
   created_at: string;
+  is_archived: boolean;
   table?: Table;
   items?: OrderItem[];
 }
 
 export type OrderStatus =
-  | 'PENDING_CASH'
-  | 'PENDING_PAYMENT'
-  | 'CONFIRMED'
+  | 'QUEUED'
   | 'PROCESSING'
   | 'SERVED'
   | 'CANCELLED';
 
-export type PaymentMethod = 'CASH' | 'QRIS' | 'TRANSFER_BCA';
+export type PaymentMethod = 'CASH' | 'QRIS';
+
+export type PaymentStatus = 'PAID' | 'UNPAID';
 
 export interface OrderItem {
   id: string;

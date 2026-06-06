@@ -19,15 +19,15 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
 
   if (pathname.startsWith('/dashboard')) {
-    if (!session) {
+    if (!user) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
-    const { data: staff } = await supabase.from('staff_users').select('role').eq('id', session.user.id).single();
+    const { data: staff } = await supabase.from('staff_users').select('role').eq('id', user.id).single();
     if (!staff) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -42,8 +42,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (pathname === '/login' && session) {
-    const { data: staff } = await supabase.from('staff_users').select('role').eq('id', session.user.id).single();
+  if (pathname === '/login' && user) {
+    const { data: staff } = await supabase.from('staff_users').select('role').eq('id', user.id).single();
     if (staff?.role === 'koki') return NextResponse.redirect(new URL('/dashboard/kitchen', request.url));
     if (staff?.role === 'owner') return NextResponse.redirect(new URL('/dashboard/owner', request.url));
     return NextResponse.redirect(new URL('/dashboard/cashier', request.url));

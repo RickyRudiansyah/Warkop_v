@@ -1,10 +1,16 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Order } from '@/types';
 
-export function useOrders() {
+interface UseOrdersOptions {
+  // Cashier view: also keep SERVED orders that are still UNPAID, so no bill is lost
+  // when a cash order is served before the customer pays at the register.
+  includeUnpaidServed?: boolean;
+}
+
+export function useOrders({ includeUnpaidServed = false }: UseOrdersOptions = {}) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,21 +18,26 @@ export function useOrders() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('orders')
-        .select('*, table:tables(*), items:order_items(*)')
-        .not('status', 'in', '(SERVED,CANCELLED)')
-        .order('created_at', { ascending: true });
-      if (fetchError) { setError(fetchError.message); } else { setOrders((data as Order[]) || []); setError(null); }
+      const url = includeUnpaidServed ? '/api/orders?mode=cashier' : '/api/orders';
+      const res = await fetch(url);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || 'Gagal memuat pesanan (status ' + res.status + ')');
+      } else {
+        const data = await res.json();
+        setOrders(Array.isArray(data) ? (data as Order[]) : []);
+        setError(null);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load orders');
+      setError(err instanceof Error ? err.message : 'Gagal memuat pesanan');
     }
     setLoading(false);
-  }, [supabase]);
+  }, [includeUnpaidServed]);
 
   useEffect(() => {
     fetchOrders();
 
+    // Realtime subscription triggers re-fetches via the API route.
     const channel = supabase
       .channel('orders-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { fetchOrders(); })

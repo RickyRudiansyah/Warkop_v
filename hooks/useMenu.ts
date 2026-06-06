@@ -1,7 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState, useCallback } from 'react';
 import { MenuItem, MenuCategory, MenuVariation } from '@/types';
 
 export function useMenu() {
@@ -9,32 +8,45 @@ export function useMenu() {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = useMemo(() => createClient(), []);
 
   const fetchData = useCallback(async () => {
     try {
-      const [menuRes, catRes, varRes] = await Promise.all([
-        supabase.from('menu_items').select('*, category:categories(*)').order('name'),
-        supabase.from('categories').select('*').order('sort_order'),
-        supabase.from('menu_variations').select('*'),
+      const [menuRes, varRes] = await Promise.all([
+        fetch('/api/menu'),
+        fetch('/api/menu/variations'),
       ]);
 
-      if (menuRes.error) { setError(menuRes.error.message); setLoading(false); return; }
-      if (catRes.error) { setError(catRes.error.message); setLoading(false); return; }
+      if (!menuRes.ok) {
+        setError('Gagal memuat menu (status ' + menuRes.status + ')');
+        setLoading(false);
+        return;
+      }
 
-      const variations = (varRes.data as MenuVariation[]) || (varRes.error ? [] : []);
-      const itemsWithVariations = (menuRes.data as MenuItem[]).map(item => ({
+      const menuData: MenuItem[] = await menuRes.json();
+      const varData: MenuVariation[] = varRes.ok ? await varRes.json() : [];
+      const variations = Array.isArray(varData) ? varData : [];
+      const items = Array.isArray(menuData) ? menuData : [];
+
+      const itemsWithVariations = items.map(item => ({
         ...item,
         variations: variations.filter(v => v.menu_item_id === item.id),
       }));
       setMenuItems(itemsWithVariations);
-      setCategories(catRes.data as MenuCategory[]);
+
+      // Derive categories from the joined category field, sorted by sort_order
+      const catMap = new Map<string, MenuCategory>();
+      items.forEach(item => {
+        if (item.category) catMap.set(item.category.id, item.category);
+      });
+      setCategories(
+        Array.from(catMap.values()).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      );
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load menu');
+      setError(err instanceof Error ? err.message : 'Gagal memuat menu');
     }
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

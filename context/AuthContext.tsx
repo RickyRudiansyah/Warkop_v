@@ -33,11 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) { console.error('Failed to get session:', sessionError.message); }
-      if (session?.user) {
-        setUser(session.user);
-        const profile = await fetchStaffProfile(session.user.id);
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+      if (userError && userError.message !== 'Auth session missing!') {
+        console.error('Failed to get user:', userError.message);
+      }
+      if (authUser) {
+        setUser(authUser);
+        const profile = await fetchStaffProfile(authUser.id);
         setStaffProfile(profile);
       }
       setLoading(false);

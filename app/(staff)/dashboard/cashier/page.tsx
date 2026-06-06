@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useOrders } from '@/hooks/useOrders';
 import { useAuth } from '@/context/AuthContext';
@@ -7,17 +7,12 @@ import { OrderCard } from '@/components/dashboard/OrderCard';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ClipboardList, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/Badge';
+import { ClipboardList } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-
-const columns = [
-  { key: 'PENDING_CASH', label: 'Pending Cash', color: 'border-warning' },
-  { key: 'PENDING_PAYMENT', label: 'Pending Bayar', color: 'border-orange-400' },
-  { key: 'CONFIRMED', label: 'Dikonfirmasi', color: 'border-info' },
-  { key: 'PROCESSING', label: 'Diproses', color: 'border-primary' },
-];
+import { Order } from '@/types';
 
 const itemAnim = {
   hidden: { opacity: 0, y: 12 },
@@ -25,7 +20,7 @@ const itemAnim = {
 };
 
 export default function CashierPage() {
-  const { orders, loading } = useOrders();
+  const { orders, loading } = useOrders({ includeUnpaidServed: true });
   const { staffProfile } = useAuth();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [cancelModal, setCancelModal] = useState<{ open: boolean; orderId: string }>({ open: false, orderId: '' });
@@ -39,6 +34,20 @@ export default function CashierPage() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [cancelModal.open]);
 
+  // Group active orders by table number.
+  const groups = useMemo(() => {
+    const map = new Map<string, { tableNumber: number | null; label: string; orders: Order[] }>();
+    for (const order of orders) {
+      const num = order.table?.table_number ?? null;
+      const key = num === null ? 'none' : String(num);
+      if (!map.has(key)) {
+        map.set(key, { tableNumber: num, label: order.table?.label || (num === null ? 'Tanpa Meja' : 'Meja ' + num), orders: [] });
+      }
+      map.get(key)!.orders.push(order);
+    }
+    return Array.from(map.values()).sort((a, b) => (a.tableNumber ?? 9999) - (b.tableNumber ?? 9999));
+  }, [orders]);
+
   const logActivity = async (action: string, target_type: string, target_id: string, detail: Record<string, unknown>) => {
     if (!staffProfile) return;
     await fetch('/api/activity-logs', {
@@ -48,31 +57,30 @@ export default function CashierPage() {
     });
   };
 
-  const handleConfirmCash = async (id: string) => {
-    setProcessingId(id);
+  const handleFinishTable = async (orderIds: string[], tableLabel: string) => {
+    setProcessingId(orderIds[0]);
     try {
-      const res = await fetch('/api/orders/' + id + '/confirm-cash', { method: 'PATCH' });
-      if (res.ok) {
-        toast.success('Pembayaran cash dikonfirmasi');
-        await logActivity('confirm_cash', 'order', id, {});
-      } else {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err.error || 'Gagal konfirmasi');
-      }
-    } catch { toast.error('Gagal menghubungi server'); }
+      await Promise.all(orderIds.map(id =>
+        fetch('/api/orders/' + id + '/archive', { method: 'PATCH' })
+      ));
+      toast.success(tableLabel + ' selesai & dipindah ke history');
+      await Promise.all(orderIds.map(id =>
+        logActivity('finish_order', 'order', id, { tableLabel })
+      ));
+    } catch { toast.error('Gagal menyelesaikan pesanan'); }
     setProcessingId(null);
   };
 
-  const handleConfirmPayment = async (id: string) => {
+  const handleMarkPaid = async (id: string) => {
     setProcessingId(id);
     try {
-      const res = await fetch('/api/orders/' + id + '/confirm-payment', { method: 'PATCH' });
+      const res = await fetch('/api/orders/' + id + '/mark-paid', { method: 'PATCH' });
       if (res.ok) {
-        toast.success('Pembayaran dikonfirmasi');
-        await logActivity('confirm_payment', 'order', id, {});
+        toast.success('Pesanan ditandai lunas');
+        await logActivity('mark_paid', 'order', id, {});
       } else {
         const err = await res.json().catch(() => ({}));
-        toast.error(err.error || 'Gagal konfirmasi');
+        toast.error(err.error || 'Gagal menandai lunas');
       }
     } catch { toast.error('Gagal menghubungi server'); }
     setProcessingId(null);
@@ -111,28 +119,44 @@ export default function CashierPage() {
         <EmptyState icon={<ClipboardList className="w-12 h-12" />} title="Belum ada order" description="Order baru akan muncul di sini" />
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" aria-live="polite">
-            {columns.map(col => {
-              const colOrders = orders.filter(o => o.status === col.key);
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" aria-live="polite">
+            {groups.map(group => {
+              const unpaidCount = group.orders.filter(o => o.payment_status === 'UNPAID').length;
+              const allDone = group.orders.length > 0 && group.orders.every(o => o.status === 'SERVED' && o.payment_status === 'PAID');
+              const isFinishing = group.orders.some(o => processingId === o.id);
               return (
-                <div key={col.key} className="space-y-3">
-                  <h3 className={'font-semibold text-sm uppercase tracking-wide border-l-4 pl-3 ' + col.color}>
-                    {col.label} ({colOrders.length})
-                  </h3>
-                  {colOrders.length === 0 ? (
-                    <div className="text-center py-8 text-text-secondary text-sm">Tidak ada order</div>
-                  ) : (
-                    colOrders.map(order => (
+                <div key={group.label} className="card p-4">
+                  <div className="flex items-center justify-between mb-3 pb-3 border-b">
+                    <h3 className="font-bold text-lg">{group.label}</h3>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">{group.orders.length} order</Badge>
+                      {unpaidCount > 0 && <Badge variant="warning">{unpaidCount} belum bayar</Badge>}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {group.orders.map(order => (
                       <motion.div key={order.id} variants={itemAnim} initial="hidden" animate="show">
                         <OrderCard
                           order={order}
                           isLoading={processingId === order.id}
-                          onConfirmCash={() => handleConfirmCash(order.id)}
-                          onConfirmPayment={() => handleConfirmPayment(order.id)}
+                          onMarkPaid={() => handleMarkPaid(order.id)}
                           onCancel={() => openCancelModal(order.id)}
                         />
                       </motion.div>
-                    ))
+                    ))}
+                  </div>
+                  {allDone && (
+                    <div className="mt-3 pt-3 border-t">
+                      <Button
+                        variant="primary"
+                        className="w-full"
+                        loading={isFinishing}
+                        disabled={isFinishing}
+                        onClick={() => handleFinishTable(group.orders.map(o => o.id), group.label)}
+                      >
+                        Selesai — Pindah ke History
+                      </Button>
+                    </div>
                   )}
                 </div>
               );

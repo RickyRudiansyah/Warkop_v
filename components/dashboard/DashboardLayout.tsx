@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LogOut, LayoutDashboard, ChefHat, ShoppingCart, QrCode, BarChart3, History } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -31,7 +31,6 @@ const navItems = {
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { staffProfile, signOut } = useAuth();
   const pathname = usePathname();
-  const router = useRouter();
   const role = staffProfile?.role || 'cashier';
   const items = navItems[role as keyof typeof navItems] || navItems.cashier;
   const [loggingOut, setLoggingOut] = useState(false);
@@ -40,7 +39,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     setLoggingOut(true);
     try {
       await signOut();
-      router.push('/login');
+      // Hard navigation so client auth state and middleware re-evaluate from scratch.
+      window.location.assign('/login');
     } catch {
       toast.error('Gagal logout');
       setLoggingOut(false);

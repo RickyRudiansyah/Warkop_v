@@ -11,18 +11,16 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 const statusConfig: Record<OrderStatus, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' | 'info' }> = {
-  PENDING_CASH: { label: 'Menunggu Cash', variant: 'warning' },
-  PENDING_PAYMENT: { label: 'Menunggu Bayar', variant: 'warning' },
-  CONFIRMED: { label: 'Dikonfirmasi', variant: 'info' },
+  QUEUED: { label: 'Antri', variant: 'info' },
   PROCESSING: { label: 'Diproses', variant: 'info' },
-  SERVED: { label: 'Sudah Diantar', variant: 'success' },
+  SERVED: { label: 'Selesai', variant: 'success' },
   CANCELLED: { label: 'Dibatalkan', variant: 'danger' },
 };
 
 interface OrderCardProps {
   order: Order;
-  onConfirmCash?: () => void;
-  onConfirmPayment?: () => void;
+  onMarkPaid?: () => void;
+  onFinish?: () => void;
   onStartProcess?: () => void;
   onServed?: () => void;
   onCancel?: () => void;
@@ -33,7 +31,7 @@ interface OrderCardProps {
   isLoading?: boolean;
 }
 
-export function OrderCard({ order, onConfirmCash, onConfirmPayment, onStartProcess, onServed, onCancel, showEtaSelector, onSetEta, onUpdateEta, etaMinutes, isLoading }: OrderCardProps) {
+export function OrderCard({ order, onMarkPaid, onFinish, onStartProcess, onServed, onCancel, showEtaSelector, onSetEta, onUpdateEta, etaMinutes, isLoading }: OrderCardProps) {
   const elapsed = getElapsedMinutes(order.created_at);
   const config = statusConfig[order.status] || { label: order.status, variant: 'default' as const };
   const { formatted: etaFormatted, isOverdue, isWarning } = useCountdown(order.estimated_ready_at || null);
@@ -53,7 +51,12 @@ export function OrderCard({ order, onConfirmCash, onConfirmPayment, onStartProce
           <h3 className="font-semibold">Meja {order.table?.table_number || '-'}</h3>
           <p className="text-sm text-text-secondary">{order.payment_method}</p>
         </div>
-        <Badge variant={config.variant}>{config.label}</Badge>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={config.variant}>{config.label}</Badge>
+          <Badge variant={order.payment_status === 'PAID' ? 'success' : 'warning'}>
+            {order.payment_status === 'PAID' ? 'Lunas' : 'Belum Bayar'}
+          </Badge>
+        </div>
       </div>
 
       {isProcessing && order.estimated_ready_at && (
@@ -86,19 +89,16 @@ export function OrderCard({ order, onConfirmCash, onConfirmPayment, onStartProce
         <div className="flex items-center justify-between mb-3">
           <span className="font-bold text-primary">{formatCurrency(order.total_amount)}</span>
           <div className="flex gap-2 flex-wrap">
-            {onCancel && (order.status === 'PENDING_CASH' || order.status === 'PENDING_PAYMENT' || order.status === 'CONFIRMED') && (
+            {onCancel && order.status === 'QUEUED' && (
               <Button variant="danger" size="sm" onClick={onCancel} aria-label="Batalkan pesanan">Cancel</Button>
             )}
-            {onConfirmCash && order.status === 'PENDING_CASH' && (
-              <Button variant="success" size="sm" onClick={onConfirmCash} disabled={isLoading} loading={isLoading}>Konfirmasi Cash</Button>
-            )}
-            {onConfirmPayment && order.status === 'PENDING_PAYMENT' && (
-              <Button variant="primary" size="sm" onClick={onConfirmPayment} disabled={isLoading} loading={isLoading}>Konfirmasi Bayar</Button>
+            {onMarkPaid && order.payment_status === 'UNPAID' && (
+              <Button variant="success" size="sm" onClick={onMarkPaid} disabled={isLoading} loading={isLoading}>Tandai Lunas</Button>
             )}
           </div>
         </div>
 
-        {showEtaSelector && order.status === 'CONFIRMED' && onSetEta && (
+        {showEtaSelector && order.status === 'QUEUED' && onSetEta && (
           <div className="flex items-center gap-2 mt-2">
             <select value={etaMinutes || 10} onChange={e => onSetEta(parseInt(e.target.value))} className="flex-1 px-3 py-2 border rounded-lg text-sm bg-surface" aria-label="Estimasi waktu">
               <option value={5}>5 menit</option>

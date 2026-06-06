@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   const supabaseAuth = await createClient();
-  const { data: { session } } = await supabaseAuth.auth.getSession();
-  if (!session) {
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).maybeSingle();
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', user.id).maybeSingle();
   if (!staff) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

@@ -1,7 +1,6 @@
 ﻿'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useMenu } from '@/hooks/useMenu';
 import { useCart } from '@/context/CartContext';
 import { MenuItem, MenuVariation, VariationSelection } from '@/types';
@@ -11,6 +10,7 @@ import { CategoryPills } from '@/components/menu/CategoryPills';
 import { CartFAB } from '@/components/cart/CartFAB';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Search } from 'lucide-react';
@@ -32,22 +32,13 @@ const itemAnim = {
 };
 
 export default function OrderPage() {
-  const searchParams = useSearchParams();
-  const tableNumber = searchParams.get('table');
-  const { menuItems, categories, loading } = useMenu();
-  const { setTableNumber, addItem } = useCart();
+  const { menuItems, categories, loading, error, refetch } = useMenu();
+  const { addItem } = useCart();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [variations, setVariations] = useState<MenuVariation[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-
-  useEffect(() => {
-    if (tableNumber) {
-      const num = parseInt(tableNumber);
-      if (!isNaN(num)) setTableNumber(num);
-    }
-  }, [tableNumber, setTableNumber]);
 
   useEffect(() => {
     if (!selectedItem) return;
@@ -76,7 +67,7 @@ export default function OrderPage() {
         <div className="flex items-center justify-between mb-2">
           <div>
             <h1 className="text-xl font-bold text-primary">Warkop QR</h1>
-            {tableNumber && <p className="text-sm text-text-secondary">Meja {tableNumber}</p>}
+            <p className="text-sm text-text-secondary">Pilih menu favoritmu</p>
           </div>
           <ThemeToggle />
         </div>
@@ -103,6 +94,11 @@ export default function OrderPage() {
               </div>
             </div>
           ))}
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center px-4 py-20 gap-4">
+          <p className="text-text-secondary text-center text-sm">{error}</p>
+          <Button variant="primary" onClick={refetch}>Coba Lagi</Button>
         </div>
       ) : (
         <motion.div className="px-4 grid grid-cols-2 gap-3" aria-live="polite" variants={container} initial="hidden" animate="show" key={selectedCategory + '-' + searchQuery}>

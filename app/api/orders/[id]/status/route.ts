@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 async function requireAuth() {
   const supabaseAuth = await createClient();
-  const { data: { session } } = await supabaseAuth.auth.getSession();
-  if (!session) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).maybeSingle();
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) return null;
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', user.id).maybeSingle();
   return staff || null;
 }
 
@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { status, estimated_minutes } = await request.json();
   const supabase = createAdminClient();
   const update: Record<string, unknown> = { status };
-  if (status === 'CONFIRMED' || status === 'PROCESSING') update.confirmed_at = new Date().toISOString();
+  if (status === 'PROCESSING') update.confirmed_at = new Date().toISOString();
   if (estimated_minutes && estimated_minutes > 0) {
     update.estimated_ready_at = new Date(Date.now() + estimated_minutes * 60000).toISOString();
   }

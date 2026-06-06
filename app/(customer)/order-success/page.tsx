@@ -10,6 +10,10 @@ import Link from 'next/link';
 export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
+  const tableId = searchParams.get('tableId');
+  const trackHref = tableId
+    ? '/order-tracking?tableId=' + tableId
+    : orderId ? '/order-tracking?orderId=' + orderId : null;
 
   return (
     <div className="min-h-screen bg-surface-2">
@@ -33,8 +37,8 @@ export default function OrderSuccessPage() {
           <p className="text-text-secondary mb-6">Pesanan Anda sedang diproses. Silakan tunggu di meja.</p>
         </motion.div>
         <motion.div className="flex flex-col gap-3 w-full" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          {orderId && (
-            <Link href={'/order-tracking?orderId=' + orderId} className="w-full">
+          {trackHref && (
+            <Link href={trackHref} className="w-full">
               <Button variant="primary" size="lg" className="w-full"><MapPin className="w-4 h-4 mr-2" />Lacak Pesanan</Button>
             </Link>
           )}

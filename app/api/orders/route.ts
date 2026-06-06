@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 async function requireAuth() {
   const supabaseAuth = await createClient();
-  const { data: { session } } = await supabaseAuth.auth.getSession();
-  if (!session) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).maybeSingle();
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) return null;
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', user.id).maybeSingle();
   return staff || null;
 }
 
@@ -14,9 +14,17 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const { searchParams } = new URL(request.url);
   const history = searchParams.get('history');
+  const mode = searchParams.get('mode');
   let query = supabase.from('orders').select('*, table:tables(*), items:order_items(*)').order('created_at', { ascending: false });
-  if (!history) {
-    query = query.not('status', 'in', '(SERVED,CANCELLED)');
+  if (history) {
+    // history: archived orders OR cancelled orders
+    query = query.or('is_archived.eq.true,status.eq.CANCELLED');
+  } else if (mode === 'cashier') {
+    // cashier board: all non-archived, non-cancelled (includes SERVED until cashier presses Finish)
+    query = query.eq('is_archived', false).neq('status', 'CANCELLED');
+  } else {
+    // kitchen board: non-archived, active kitchen statuses only
+    query = query.eq('is_archived', false).not('status', 'in', '(SERVED,CANCELLED)');
   }
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -26,19 +34,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
   const body = await request.json();
-  const { items, table_id, payment_method, total_amount, notes } = body;
+  const { items, table_id, payment_method, payment_status, total_amount, notes } = body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'Items are required' }, { status: 400 });
   }
-  if (!payment_method || !['CASH', 'QRIS', 'TRANSFER_BCA'].includes(payment_method)) {
+  if (!payment_method || !['CASH', 'QRIS'].includes(payment_method)) {
     return NextResponse.json({ error: 'Invalid payment_method' }, { status: 400 });
+  }
+  if (!payment_status || !['PAID', 'UNPAID'].includes(payment_status)) {
+    return NextResponse.json({ error: 'Invalid payment_status' }, { status: 400 });
   }
   if (!total_amount || total_amount <= 0) {
     return NextResponse.json({ error: 'Invalid total_amount' }, { status: 400 });
   }
 
-  const { data: order, error: orderError } = await supabase.from('orders').insert({ table_id, payment_method, total_amount, notes, status: payment_method === 'CASH' ? 'PENDING_CASH' : 'PENDING_PAYMENT' }).select().single();
+  const { data: order, error: orderError } = await supabase.from('orders').insert({ table_id, payment_method, payment_status, total_amount, notes, status: 'QUEUED' }).select().single();
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 });
 
   const orderItems = items.map((item: { menu_item_id: string; menu_item_name: string; menu_item_price: number; quantity: number; variations?: unknown; subtotal: number; notes?: string }) => ({

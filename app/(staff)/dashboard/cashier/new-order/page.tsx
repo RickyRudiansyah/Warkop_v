@@ -1,12 +1,12 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMenu } from '@/hooks/useMenu';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
-import { PaymentMethod } from '@/types';
+import { PaymentMethod, Table } from '@/types';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,7 +24,17 @@ export default function NewOrderPage() {
   const { menuItems } = useMenu();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
+  const [tables, setTables] = useState<Table[]>([]);
+  const [tableId, setTableId] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/tables')
+      .then(r => (r.ok ? r.json() : []))
+      .then(data => setTables(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   const addToCart = (itemId: string) => {
     const item = menuItems.find(m => m.id === itemId);
@@ -48,11 +58,19 @@ export default function NewOrderPage() {
 
   const handleSubmit = async () => {
     if (cart.length === 0) return;
+    setSubmitting(true);
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table_id: null, payment_method: paymentMethod, total_amount: total, notes: 'Manual order', items: cart }),
+        body: JSON.stringify({
+          table_id: tableId || null,
+          payment_method: paymentMethod,
+          payment_status: paymentMethod === 'QRIS' ? 'PAID' : 'UNPAID',
+          total_amount: total,
+          notes: 'Manual order',
+          items: cart,
+        }),
       });
       if (res.ok) {
         toast.success('Order manual berhasil dibuat');
@@ -60,8 +78,9 @@ export default function NewOrderPage() {
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || 'Gagal membuat order');
+        setSubmitting(false);
       }
-    } catch { toast.error('Gagal menghubungi server'); }
+    } catch { toast.error('Gagal menghubungi server'); setSubmitting(false); }
   };
 
   return (
@@ -107,15 +126,24 @@ export default function NewOrderPage() {
                   <span>Total</span>
                   <span className="text-primary">{formatCurrency(total)}</span>
                 </div>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium mb-1">Nomor Meja (opsional)</label>
+                  <select value={tableId} onChange={e => setTableId(e.target.value)} className="w-full px-3 py-2 border rounded-lg bg-surface" aria-label="Pilih nomor meja">
+                    <option value="">— Tanpa meja —</option>
+                    {tables.map(t => (
+                      <option key={t.id} value={t.id}>{t.label || 'Meja ' + t.table_number}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="space-y-2 mb-3">
-                  {(['CASH', 'QRIS', 'TRANSFER_BCA'] as PaymentMethod[]).map(m => (
+                  {(['CASH', 'QRIS'] as PaymentMethod[]).map(m => (
                     <label key={m} className="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-surface-3">
                       <input type="radio" name="payment" checked={paymentMethod === m} onChange={() => setPaymentMethod(m)} />
-                      <span>{m === 'CASH' ? 'Cash' : m === 'QRIS' ? 'QRIS' : 'Transfer BCA'}</span>
+                      <span>{m === 'CASH' ? 'Cash (Belum Bayar)' : 'QRIS (Lunas)'}</span>
                     </label>
                   ))}
                 </div>
-                <Button size="lg" className="w-full" onClick={handleSubmit}>Submit Order</Button>
+                <Button size="lg" className="w-full" onClick={handleSubmit} loading={submitting} disabled={submitting}>Submit Order</Button>
               </div>
             </>
           )}

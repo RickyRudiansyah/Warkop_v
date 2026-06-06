@@ -5,9 +5,9 @@ const ALLOWED_MENU_FIELDS = ['category_id', 'name', 'description', 'price', 'ima
 
 async function requireAuth() {
   const supabaseAuth = await createClient();
-  const { data: { session } } = await supabaseAuth.auth.getSession();
-  if (!session) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', session.user.id).maybeSingle();
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) return null;
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', user.id).maybeSingle();
   return staff || null;
 }
 
