@@ -4,11 +4,15 @@ import { useCart } from '@/context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 interface CartFABProps { onClick: () => void; }
 
 export function CartFAB({ onClick }: CartFABProps) {
   const { totalItems, totalPrice } = useCart();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return null;
 
   return (
     <AnimatePresence>

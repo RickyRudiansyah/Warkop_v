@@ -13,9 +13,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!await requireAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
   const supabase = createAdminClient();
-  const { data: current, error: fetchError } = await supabase.from('menu_items').select('is_sold_out').eq('id', id).single();
-  if (fetchError || !current) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  const { data, error } = await supabase.from('menu_items').update({ is_sold_out: !current.is_sold_out }).eq('id', id).select().single();
+
+  const { data: current } = await supabase.from('orders').select('payment_status').eq('id', id).single();
+  if (!current) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+  if (current.payment_status === 'PAID') {
+    return NextResponse.json({ error: 'Order is already paid' }, { status: 400 });
+  }
+
+  const { data, error } = await supabase.from('orders').update({ payment_status: 'PAID' }).eq('id', id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
