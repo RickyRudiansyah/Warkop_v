@@ -6,7 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatCurrency } from '@/lib/utils';
-import { PaymentMethod, PaymentStatus, Table } from '@/types';
+import { PaymentMethod, Table } from '@/types';
 import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import Link from 'next/link';
@@ -34,7 +34,7 @@ export default function CheckoutPage() {
       .catch(() => setLoadingTables(false));
   }, []);
 
-  const submitOrder = async (payment_status: PaymentStatus) => {
+  const submitOrder = async (payment_status: 'PAID' | 'UNPAID') => {
     if (!selectedTableId) { toast.error('Silakan pilih nomor meja'); return; }
     if (!agreed) { toast.error('Silakan setujui ketentuan terlebih dahulu'); return; }
     setSubmitting(true);
@@ -56,6 +56,7 @@ export default function CheckoutPage() {
         const order = await res.json();
         if (selectedTable) setTableNumber(selectedTable.table_number);
         clearCart();
+        setQrisOpen(false);
         toast.success('Pesanan berhasil dibuat!');
         router.push('/order-success?orderId=' + order.id + (selectedTableId ? '&tableId=' + selectedTableId : ''));
       } else {
@@ -189,7 +190,7 @@ export default function CheckoutPage() {
             <div>
               <p className="font-semibold text-sm">Perhatian</p>
               <p className="text-xs text-text-secondary mt-1 leading-relaxed">
-                Setelah pesanan dikirim ke kasir, <strong>pesanan tidak dapat dibatalkan</strong> secara langsung oleh Anda. Jika ada perubahan, silakan hubungi staff kami.
+                Setelah pesanan dikirim ke kasir, <strong>pesanan tidak dapat dibatalkan</strong> secara langsung oleh Anda.
               </p>
             </div>
           </div>
@@ -200,13 +201,7 @@ export default function CheckoutPage() {
             <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
               Saya setuju, pesanan saya akan segera diproses dan <strong>tidak dapat dibatalkan setelah checkout</strong>.
             </span>
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={e => setAgreed(e.target.checked)}
-              className="sr-only"
-              aria-label="Saya setuju pesanan tidak dapat dibatalkan"
-            />
+            <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="sr-only" aria-label="Setuju" />
           </label>
         </div>
 
@@ -214,7 +209,7 @@ export default function CheckoutPage() {
           size="lg"
           className="w-full"
           loading={submitting}
-          disabled={!agreed || !selectedTableId}
+          disabled={!agreed || !selectedTableId || submitting}
           onClick={handleCheckout}
         >
           {paymentMethod === 'QRIS' ? 'Bayar dengan QRIS' : 'Pesan Sekarang'}
