@@ -13,10 +13,11 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { Search } from 'lucide-react';
+import { Search, MapPin, MapPinOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { useLocationCheck } from '@/hooks/useLocationCheck';
 
 const container = {
   hidden: { opacity: 0 },
@@ -34,6 +35,7 @@ const itemAnim = {
 export default function OrderPage() {
   const { menuItems, categories, loading, error, refetch } = useMenu();
   const { addItem } = useCart();
+  const { status: locationStatus, distance, radiusM, retry } = useLocationCheck();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -60,6 +62,68 @@ export default function OrderPage() {
     addItem(item, quantity, selectedVariations, notes);
     toast.success('Ditambahkan ke keranjang', { description: item.name });
   };
+
+  const brandHeader = (
+    <header className="glass sticky top-0 z-10 border-b px-4 py-3">
+      <h1 className="text-xl font-bold text-primary">Warkop QR</h1>
+      <p className="text-sm text-text-secondary">Pilih menu favoritmu</p>
+    </header>
+  );
+
+  if (locationStatus === 'checking') {
+    return (
+      <div className="min-h-screen bg-surface-2 flex flex-col">
+        {brandHeader}
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+          <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-text-secondary text-sm">Memeriksa lokasi Anda...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (locationStatus === 'denied' || locationStatus === 'unavailable') {
+    return (
+      <div className="min-h-screen bg-surface-2 flex flex-col">
+        {brandHeader}
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center">
+            <MapPinOff className="w-8 h-8 text-danger" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold mb-1">Akses Lokasi Diperlukan</h2>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              {locationStatus === 'unavailable'
+                ? 'Browser kamu tidak mendukung lokasi. Gunakan browser yang mendukung GPS.'
+                : 'Izinkan akses lokasi di browser kamu, lalu tekan tombol di bawah.'}
+            </p>
+          </div>
+          <Button variant="primary" onClick={retry}>Coba Lagi</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (locationStatus === 'far') {
+    return (
+      <div className="min-h-screen bg-surface-2 flex flex-col">
+        {brandHeader}
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center">
+            <MapPin className="w-8 h-8 text-warning" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold mb-1">Kamu Terlalu Jauh dari Café</h2>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              {distance !== null && `Jarak kamu saat ini: ${distance > 999 ? (distance / 1000).toFixed(1) + ' km' : distance + ' m'} dari café.`}
+              {' '}Silakan datang ke café untuk memesan.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={retry}>Perbarui Lokasi</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-surface-2 pb-24">
