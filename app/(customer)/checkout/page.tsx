@@ -7,10 +7,20 @@ import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { PaymentMethod, Table } from '@/types';
-import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X } from 'lucide-react';
+import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X, Loader2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+
+type PayState = 'idle' | 'creating' | 'waiting' | 'paid' | 'expired' | 'failed';
+
+interface QrisData {
+  intentId: string;
+  qrUrl: string | null;
+  qrString: string | null;
+  grossAmount: number;
+}
 
 export default function CheckoutPage() {
   const { items, removeItem, clearCart, totalPrice, setTableNumber } = useCart();
@@ -22,7 +32,10 @@ export default function CheckoutPage() {
   const [agreed, setAgreed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [qrisOpen, setQrisOpen] = useState(false);
-  const [qrisImgError, setQrisImgError] = useState(false);
+  const [qrImgError, setQrImgError] = useState(false);
+  const [payState, setPayState] = useState<PayState>('idle');
+  const [qris, setQris] = useState<QrisData | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const router = useRouter();
 
   useEffect(() => { setMounted(true); }, []);
@@ -34,31 +47,34 @@ export default function CheckoutPage() {
       .catch(() => setLoadingTables(false));
   }, []);
 
-  const submitOrder = async (payment_status: 'PAID' | 'UNPAID') => {
-    if (!selectedTableId) { toast.error('Silakan pilih nomor meja'); return; }
-    if (!agreed) { toast.error('Silakan setujui ketentuan terlebih dahulu'); return; }
+  const orderItemsPayload = () => items.map(item => ({
+    menu_item_id: item.menu_item.id,
+    menu_item_name: item.menu_item.name,
+    menu_item_price: item.menu_item.price,
+    quantity: item.quantity,
+    variations: item.selectedVariations,
+    subtotal: item.subtotal,
+    notes: item.notes || null,
+  }));
+
+  // ---- CASH: create the order immediately as UNPAID ----
+  const submitCashOrder = async () => {
     setSubmitting(true);
     try {
       const selectedTable = tables.find(t => t.id === selectedTableId);
       const res = await fetch('/api/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          table_id: selectedTableId, payment_method: paymentMethod, payment_status,
-          total_amount: totalPrice, notes: '',
-          items: items.map(item => ({
-            menu_item_id: item.menu_item.id, menu_item_name: item.menu_item.name,
-            menu_item_price: item.menu_item.price, quantity: item.quantity,
-            variations: item.selectedVariations, subtotal: item.subtotal, notes: item.notes || null,
-          })),
+          table_id: selectedTableId, payment_method: 'CASH', payment_status: 'UNPAID',
+          total_amount: totalPrice, notes: '', items: orderItemsPayload(),
         }),
       });
       if (res.ok) {
         const order = await res.json();
         if (selectedTable) setTableNumber(selectedTable.table_number);
         clearCart();
-        setQrisOpen(false);
         toast.success('Pesanan berhasil dibuat!');
-        router.push('/order-success?orderId=' + order.id + (selectedTableId ? '&tableId=' + selectedTableId : ''));
+        router.push('/order-success?orderId=' + order.id + '&tableId=' + selectedTableId);
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || 'Gagal membuat pesanan');
@@ -67,15 +83,87 @@ export default function CheckoutPage() {
     } catch { toast.error('Gagal membuat pesanan'); setSubmitting(false); }
   };
 
+  // ---- QRIS: charge Midtrans, show QR, poll until settled ----
+  const startQris = async () => {
+    setPayState('creating');
+    setQrImgError(false);
+    setQris(null);
+    setQrisOpen(true);
+    try {
+      const res = await fetch('/api/payments/midtrans/charge', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table_id: selectedTableId, total_amount: totalPrice, notes: '', items: orderItemsPayload(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || 'Gagal memproses pembayaran QRIS');
+        setPayState('idle');
+        setQrisOpen(false);
+        return;
+      }
+      setQris({ intentId: data.intentId, qrUrl: data.qrUrl, qrString: data.qrString, grossAmount: data.grossAmount });
+      setPayState('waiting');
+    } catch {
+      toast.error('Gagal memproses pembayaran QRIS');
+      setPayState('idle');
+      setQrisOpen(false);
+    }
+  };
+
+  // Poll payment status while waiting.
+  useEffect(() => {
+    if (payState !== 'waiting' || !qris) return;
+    let active = true;
+    const check = async () => {
+      try {
+        const res = await fetch('/api/payments/midtrans/status?intentId=' + qris.intentId, { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (!active) return;
+        if (data.status === 'PAID') {
+          setPayState('paid');
+          const selectedTable = tables.find(t => t.id === selectedTableId);
+          if (selectedTable) setTableNumber(selectedTable.table_number);
+          clearCart();
+          toast.success('Pembayaran berhasil!');
+          router.push('/order-success?orderId=' + data.orderId + '&tableId=' + selectedTableId);
+        } else if (data.status === 'EXPIRED') {
+          setPayState('expired');
+        } else if (data.status === 'FAILED') {
+          setPayState('failed');
+        }
+      } catch { /* keep polling */ }
+    };
+    const id = setInterval(check, 3000);
+    check();
+    return () => { active = false; clearInterval(id); };
+  }, [payState, qris, selectedTableId, tables, router, clearCart, setTableNumber]);
+
+  // 15-minute local countdown for the QRIS code.
+  useEffect(() => {
+    if (payState !== 'waiting') return;
+    setSecondsLeft(15 * 60);
+    const id = setInterval(() => {
+      setSecondsLeft(s => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [payState]);
+
+  const closeQris = () => {
+    setQrisOpen(false);
+    setPayState('idle');
+    setQris(null);
+  };
+
   const handleCheckout = () => {
     if (!selectedTableId) { toast.error('Silakan pilih nomor meja'); return; }
     if (!agreed) { toast.error('Silakan setujui ketentuan terlebih dahulu'); return; }
-    if (paymentMethod === 'QRIS') {
-      setQrisOpen(true);
-    } else {
-      submitOrder('UNPAID');
-    }
+    if (paymentMethod === 'QRIS') startQris();
+    else submitCashOrder();
   };
+
+  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   if (!mounted) {
     return (
@@ -94,7 +182,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (items.length === 0 && !submitting) {
+  if (items.length === 0 && !submitting && payState === 'idle') {
     return (
       <div className="min-h-screen bg-surface-2">
         <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
@@ -171,7 +259,7 @@ export default function CheckoutPage() {
           <p className="text-xs text-text-secondary mt-2">
             {paymentMethod === 'CASH'
               ? 'Pesanan langsung diproses. Bayar di kasir.'
-              : 'Scan QRIS & bayar dulu, lalu konfirmasi. Pesanan diproses setelah pembayaran.'}
+              : 'Scan QRIS & bayar. Pesanan otomatis diproses setelah pembayaran terkonfirmasi.'}
           </p>
         </div>
 
@@ -208,8 +296,8 @@ export default function CheckoutPage() {
         <Button
           size="lg"
           className="w-full"
-          loading={submitting}
-          disabled={!agreed || !selectedTableId || submitting}
+          loading={submitting || payState === 'creating'}
+          disabled={!agreed || !selectedTableId || submitting || payState === 'creating'}
           onClick={handleCheckout}
         >
           {paymentMethod === 'QRIS' ? 'Bayar dengan QRIS' : 'Pesan Sekarang'}
@@ -218,35 +306,67 @@ export default function CheckoutPage() {
 
       {qrisOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => !submitting && setQrisOpen(false)} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => payState !== 'creating' && closeQris()} />
           <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-sm p-6" role="dialog" aria-modal="true" aria-labelledby="qris-title">
-            <button onClick={() => !submitting && setQrisOpen(false)} className="absolute top-4 right-4 text-text-secondary" aria-label="Tutup"><X className="w-5 h-5" /></button>
+            <button onClick={closeQris} disabled={payState === 'creating'} className="absolute top-4 right-4 text-text-secondary disabled:opacity-40" aria-label="Tutup"><X className="w-5 h-5" /></button>
             <h3 id="qris-title" className="text-lg font-bold mb-1 text-center">Pembayaran QRIS</h3>
-            <p className="text-sm text-text-secondary text-center mb-4">Scan kode di bawah, lalu tekan tombol setelah membayar.</p>
-            <div className="flex justify-center mb-4">
-              {qrisImgError ? (
-                <div className="w-56 h-56 flex flex-col items-center justify-center border-2 border-dashed rounded-xl text-center p-4">
-                  <QrCode className="w-12 h-12 text-text-secondary mb-2" />
-                  <p className="text-sm font-medium">QRIS (placeholder)</p>
-                  <p className="text-xs text-text-secondary mt-1">Letakkan gambar QRIS di <code>/public/qris.png</code></p>
+
+            {payState === 'creating' && (
+              <div className="flex flex-col items-center justify-center gap-3 py-12">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <p className="text-sm text-text-secondary">Membuat kode QRIS...</p>
+              </div>
+            )}
+
+            {payState === 'waiting' && qris && (
+              <>
+                <p className="text-sm text-text-secondary text-center mb-4">Scan dengan aplikasi e-wallet / m-banking apa pun.</p>
+                <div className="flex justify-center mb-4">
+                  {qris.qrUrl && !qrImgError ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={qris.qrUrl} alt="Kode QRIS" className="w-56 h-56 object-contain bg-white rounded-xl p-2" onError={() => setQrImgError(true)} />
+                  ) : qris.qrString ? (
+                    <div className="bg-white rounded-xl p-3">
+                      <QRCodeSVG value={qris.qrString} size={208} />
+                    </div>
+                  ) : (
+                    <div className="w-56 h-56 flex items-center justify-center border-2 border-dashed rounded-xl text-center p-4">
+                      <p className="text-sm text-text-secondary">Kode QRIS tidak tersedia</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <img
-                  src="/qris.png"
-                  alt="Kode QRIS"
-                  className="w-56 h-56 object-contain bg-white rounded-xl p-2"
-                  onError={() => setQrisImgError(true)}
-                />
-              )}
-            </div>
-            <div className="card p-3 mb-4 text-center bg-surface-2">
-              <p className="text-sm text-text-secondary">Total Pembayaran</p>
-              <p className="text-2xl font-bold text-primary">{formatCurrency(totalPrice)}</p>
-            </div>
-            <Button size="lg" className="w-full" loading={submitting} onClick={() => submitOrder('PAID')}>
-              <Check className="w-4 h-4 mr-2" />Saya Sudah Bayar
-            </Button>
-            <Button variant="ghost" className="w-full mt-2" disabled={submitting} onClick={() => setQrisOpen(false)}>Batal</Button>
+                <div className="card p-3 mb-4 text-center bg-surface-2">
+                  <p className="text-sm text-text-secondary">Total Pembayaran</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(qris.grossAmount)}</p>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-text-secondary mb-1">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Menunggu pembayaran...</span>
+                </div>
+                <p className="text-xs text-text-secondary text-center mb-4">Berlaku {mmss(secondsLeft)} • Pesanan otomatis diproses setelah dibayar.</p>
+                <Button variant="ghost" className="w-full" onClick={closeQris}>Batal</Button>
+              </>
+            )}
+
+            {payState === 'expired' && (
+              <div className="flex flex-col items-center gap-3 py-8 text-center">
+                <div className="w-14 h-14 rounded-full bg-warning/10 flex items-center justify-center"><AlertTriangle className="w-7 h-7 text-warning" /></div>
+                <p className="font-semibold">Kode QRIS Kadaluarsa</p>
+                <p className="text-sm text-text-secondary">Buat kode baru untuk melanjutkan pembayaran.</p>
+                <Button className="w-full mt-2" onClick={startQris}>Buat Kode Baru</Button>
+                <Button variant="ghost" className="w-full" onClick={closeQris}>Tutup</Button>
+              </div>
+            )}
+
+            {payState === 'failed' && (
+              <div className="flex flex-col items-center gap-3 py-8 text-center">
+                <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center"><X className="w-7 h-7 text-danger" /></div>
+                <p className="font-semibold">Pembayaran Dibatalkan</p>
+                <p className="text-sm text-text-secondary">Silakan coba lagi.</p>
+                <Button className="w-full mt-2" onClick={startQris}>Coba Lagi</Button>
+                <Button variant="ghost" className="w-full" onClick={closeQris}>Tutup</Button>
+              </div>
+            )}
           </div>
         </div>
       )}
