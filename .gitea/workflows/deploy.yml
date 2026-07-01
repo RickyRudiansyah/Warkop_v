@@ -16,9 +16,14 @@ jobs:
         run: |
           echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> .env
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
-          echo "NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}" >> .env
           echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}" >> .env
+          echo "NEXT_PUBLIC_LOCATION_CHECK=${{ secrets.NEXT_PUBLIC_LOCATION_CHECK }}" >> .env
+          echo "NEXT_PUBLIC_CAFE_LAT=${{ secrets.NEXT_PUBLIC_CAFE_LAT }}" >> .env
+          echo "NEXT_PUBLIC_CAFE_LNG=${{ secrets.NEXT_PUBLIC_CAFE_LNG }}" >> .env
+          echo "NEXT_PUBLIC_CAFE_RADIUS_METERS=${{ secrets.NEXT_PUBLIC_CAFE_RADIUS_METERS }}" >> .env
           echo "MIDTRANS_SERVER_KEY=${{ secrets.MIDTRANS_SERVER_KEY }}" >> .env
+          echo "MIDTRANS_IS_PRODUCTION=${{ secrets.MIDTRANS_IS_PRODUCTION }}" >> .env
 
       - name: Rebuild and restart containers
         run: |
