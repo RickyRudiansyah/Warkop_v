@@ -1,5 +1,5 @@
 -- ============================================================
--- WARKOP QR - COMPLETE SUPABASE SCHEMA
+-- Rumipang - COMPLETE SUPABASE SCHEMA
 -- Copy this ENTIRE file and Run in Supabase SQL Editor
 -- ============================================================
 

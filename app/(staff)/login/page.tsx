@@ -45,7 +45,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary-light shadow-lg shadow-primary/25 mb-4">
             <Coffee className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold mb-1">Warkop QR</h1>
+          <h1 className="text-3xl font-bold mb-1">Rumipang</h1>
           <p className="text-text-secondary">Selamat datang! Silakan login untuk melanjutkan.</p>
         </div>
         <div className="card p-8">

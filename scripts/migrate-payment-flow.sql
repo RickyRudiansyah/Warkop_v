@@ -1,4 +1,4 @@
--- Warkop QR — Payment Flow Redesign migration
+-- Rumipang — Payment Flow Redesign migration
 -- Run this ONCE in your Supabase SQL Editor.
 --
 -- What it does:

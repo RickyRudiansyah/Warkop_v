@@ -82,7 +82,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-surface-2">
         <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
           <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-          <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+          <h1 className="text-lg font-bold text-primary">Rumipang</h1>
           <ThemeToggle className="ml-auto" />
         </header>
         <div className="p-4 space-y-4 max-w-md mx-auto">
@@ -99,7 +99,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-surface-2">
         <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
           <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-          <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+          <h1 className="text-lg font-bold text-primary">Rumipang</h1>
           <ThemeToggle className="ml-auto" />
         </header>
         <div className="flex flex-col items-center justify-center p-12">
@@ -114,7 +114,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-surface-2">
       <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
         <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-        <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+        <h1 className="text-lg font-bold text-primary">Rumipang</h1>
         <ThemeToggle className="ml-auto" />
       </header>
       <div className="p-4 space-y-4 max-w-md mx-auto">

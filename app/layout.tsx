@@ -19,7 +19,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Warkop QR Ordering",
+  title: "Rumipang Ordering",
   description: "Sistem pemesanan QR untuk warkop dan kafe",
 };
 

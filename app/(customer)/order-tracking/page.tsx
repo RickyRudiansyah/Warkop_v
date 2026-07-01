@@ -121,7 +121,7 @@ export default function OrderTrackingPage() {
   const header = (
     <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
       <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-      <h1 className="text-lg font-bold text-primary">Warkop QR</h1>
+      <h1 className="text-lg font-bold text-primary">Rumipang</h1>
       {tableLabel && <p className="text-sm text-text-secondary ml-auto">{tableLabel}</p>}
       <ThemeToggle />
     </header>

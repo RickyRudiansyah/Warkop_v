@@ -65,7 +65,7 @@ export default function OrderPage() {
 
   const brandHeader = (
     <header className="glass sticky top-0 z-10 border-b px-4 py-3">
-      <h1 className="text-xl font-bold text-primary">Warkop QR</h1>
+      <h1 className="text-xl font-bold text-primary">Rumipang</h1>
       <p className="text-sm text-text-secondary">Pilih menu favoritmu</p>
     </header>
   );
@@ -130,7 +130,7 @@ export default function OrderPage() {
       <header className="glass sticky top-0 z-10 border-b px-4 py-3">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-xl font-bold text-primary">Warkop QR</h1>
+            <h1 className="text-xl font-bold text-primary">Rumipang</h1>
             <p className="text-sm text-text-secondary">Pilih menu favoritmu</p>
           </div>
           <ThemeToggle />

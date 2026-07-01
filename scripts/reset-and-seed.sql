@@ -1,5 +1,5 @@
 -- ============================================================
--- WARKOP QR - FULL RESET + SEED (Match image/ folder)
+-- Rumipang - FULL RESET + SEED (Match image/ folder)
 -- Run this ENTIRE file in Supabase SQL Editor
 -- ============================================================
 

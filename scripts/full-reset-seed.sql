@@ -1,5 +1,5 @@
 -- ============================================================
--- Warkop QR - Full Reset + Seed Data
+-- Rumipang - Full Reset + Seed Data
 -- Run this ENTIRE file in Supabase SQL Editor
 -- ============================================================
 

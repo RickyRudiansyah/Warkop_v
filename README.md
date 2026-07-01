@@ -1,4 +1,4 @@
-﻿# Warkop QR Ordering System v2.9
+﻿# Rumipang Ordering System v2.9
 
 > Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pesan, bayar tanpa antri ke kasir.
 
@@ -37,7 +37,7 @@
 
 ## Overview
 
-Warkop QR Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil-menengah. Customer cukup scan QR di meja, pilih menu, dan bayar tanpa perlu antri ke kasir. Staff (kasir, koki, owner) mengelola pesanan melalui dashboard masing-masing.
+Rumipang Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil-menengah. Customer cukup scan QR di meja, pilih menu, dan bayar tanpa perlu antri ke kasir. Staff (kasir, koki, owner) mengelola pesanan melalui dashboard masing-masing.
 
 Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan seluruh stack diganti menjadi **full Next.js 16** menggunakan App Router dan API Routes sebagai backend — sehingga hanya 1 project, 1 repo, 1 deploy.
 
@@ -525,7 +525,7 @@ npm run dev
 1. Buka [Supabase Dashboard](https://supabase.com/dashboard)
 2. Klik **"New Project"**
 3. Isi:
-   - **Name:** `Warkop QR`
+   - **Name:** `Rumipang`
    - **Database Password:** (buat password kuat)
    - **Region:** `Southeast Asia (Singapore)`
 4. Klik **"Create new project"** — tunggu ~2 menit
@@ -598,7 +598,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
 ```bash
 git init
 git add .
-git commit -m "Initial commit: Warkop QR v2.1"
+git commit -m "Initial commit: Rumipang v2.1"
 git remote add origin https://github.com/your-username/warkop-qr-ordering-v2.git
 git push -u origin main
 ```
@@ -770,7 +770,7 @@ git push -u origin main
 - **OrderCard animations** — Frameworks Motion enter/exit animations (`motion.div` with `opacity`/`y` transitions) for smooth card appearance
 - **Skeleton loading everywhere** — Added skeleton placeholders in checkout page and order tracking page (was blank spinner only)
 - **Loading state prop** — `OrderCard` now has `isLoading` prop; buttons show spinner + disabled state during API calls
-- **Persistent customer headers** — All customer pages (checkout, order-success, order-tracking) now have consistent sticky header with "Warkop QR" + back button + "Meja X" indicator
+- **Persistent customer headers** — All customer pages (checkout, order-success, order-tracking) now have consistent sticky header with "Rumipang" + back button + "Meja X" indicator
 - **Duplicated `cn` utility removed** — `DashboardLayout` now imports `cn` from `@/lib/utils` instead of redefining it
 - **History nav link added** — Both cashier and owner navigation now include "History" link to `/dashboard/history`
 - **DRY refactoring** — `useMenu` hook deduplicates fetch logic into shared function; `useOrders` fixes `.not()` filter syntax

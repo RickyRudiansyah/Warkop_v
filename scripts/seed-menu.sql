@@ -1,4 +1,4 @@
--- Warkop QR - Seed Menu Categories & Update Existing Items
+-- Rumipang - Seed Menu Categories & Update Existing Items
 -- Run this in Supabase SQL Editor
 
 -- 1. Create menu_categories table if not exists
