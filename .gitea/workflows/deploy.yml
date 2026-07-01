@@ -1,0 +1,21 @@
+name: Deploy to home server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: docker
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rebuild and restart containers
+        run: |
+          docker compose down
+          docker compose up -d --build
+
+      - name: Clean up old images
+        run: docker image prune -f
