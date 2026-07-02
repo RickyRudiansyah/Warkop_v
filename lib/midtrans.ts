@@ -50,6 +50,7 @@ export async function midtransChargeQris(orderId: string, grossAmount: number): 
 
   // Midtrans returns 200/201 on success. status_code "201" = pending (expected for QRIS).
   if (!res.ok || !['200', '201'].includes(String(data.status_code))) {
+    console.error('[Midtrans charge failed]', JSON.stringify(data));
     return { ok: false, error: data.status_message || 'Midtrans charge gagal' };
   }
 
