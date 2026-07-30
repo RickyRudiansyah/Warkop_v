@@ -9,6 +9,7 @@ import { MenuItemSheet } from '@/components/menu/MenuItemSheet';
 import { CategoryPills } from '@/components/menu/CategoryPills';
 import { CartFAB } from '@/components/cart/CartFAB';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { Footer } from '@/components/ui/Footer';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -174,6 +175,9 @@ export default function OrderPage() {
         </motion.div>
       )}
       {!loading && filteredItems.length === 0 && <EmptyState title="Menu tidak ditemukan" description="Coba kata kunci lain" />}
+      <div className="mt-10">
+        <Footer />
+      </div>
       <MenuItemSheet item={selectedItem} variations={variations} onClose={() => setSelectedItem(null)} onAdd={handleAddToCart} />
       <CartFAB onClick={() => setCartOpen(true)} />
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
