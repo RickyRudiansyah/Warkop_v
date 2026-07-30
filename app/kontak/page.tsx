@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { StaticPage } from '@/components/ui/StaticPage';
-import { Placeholder } from '@/components/ui/Placeholder';
 
 export const metadata: Metadata = {
   title: 'Kontak — Rumipang',
@@ -18,8 +17,7 @@ export default function KontakPage() {
       </p>
 
       <div className="space-y-4">
-        {/* EMAIL — wajib tampil jelas untuk verifikasi iPaymu.
-            Setelah diisi, ubah menjadi: <a href="mailto:email@bisnis.com"> */}
+        {/* EMAIL — wajib tampil jelas untuk verifikasi iPaymu. */}
         <div className="card p-5 flex items-start gap-4">
           <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Mail className="w-5 h-5 text-primary" aria-hidden="true" />
@@ -27,7 +25,9 @@ export default function KontakPage() {
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text">Email</p>
             <p className="text-base mt-0.5 break-words">
-              <Placeholder>Email Bisnis, mis. halo@rumipang.com</Placeholder>
+              <a href="mailto:rumipang.id@gmail.com" className="text-primary hover:underline">
+                rumipang.id@gmail.com
+              </a>
             </p>
             <p className="text-sm text-text-secondary mt-1">
               Balasan maksimal 1×24 jam pada hari kerja.
@@ -35,8 +35,7 @@ export default function KontakPage() {
           </div>
         </div>
 
-        {/* NOMOR TELEPON — wajib tampil jelas untuk verifikasi iPaymu.
-            Setelah diisi, ubah menjadi: <a href="tel:+62..."> */}
+        {/* NOMOR TELEPON — wajib tampil jelas untuk verifikasi iPaymu. */}
         <div className="card p-5 flex items-start gap-4">
           <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Phone className="w-5 h-5 text-primary" aria-hidden="true" />
@@ -44,10 +43,21 @@ export default function KontakPage() {
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text">Telepon / WhatsApp</p>
             <p className="text-base mt-0.5 break-words">
-              <Placeholder>Nomor Telepon, mis. +62 812-3456-7890</Placeholder>
+              <a href="tel:+6285117408510" className="text-primary hover:underline">
+                0851-1740-8510
+              </a>
             </p>
             <p className="text-sm text-text-secondary mt-1">
-              Dapat dihubungi via telepon maupun WhatsApp.
+              Telepon atau{' '}
+              <a
+                href="https://wa.me/6285117408510"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                chat via WhatsApp
+              </a>
+              .
             </p>
           </div>
         </div>
@@ -60,10 +70,8 @@ export default function KontakPage() {
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text">Alamat Usaha</p>
             <p className="text-base mt-0.5 leading-relaxed">
-              <Placeholder>
-                Alamat Lengkap Usaha — nama jalan, nomor, kelurahan, kecamatan,
-                kota, provinsi, dan kode pos
-              </Placeholder>
+              Jl. Ruko Poris Indah No.11 Blok A9C, RT.003/RW.003, Cipondoh
+              Indah, Kec. Cipondoh, Kota Tangerang, Banten 15122
             </p>
           </div>
         </div>
@@ -76,15 +84,14 @@ export default function KontakPage() {
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text">Jam Operasional</p>
             <p className="text-base mt-0.5 leading-relaxed">
-              <Placeholder>Jam Buka, mis. Senin–Minggu, 08.00–22.00 WIB</Placeholder>
+              Setiap hari, pukul 11.00 – 00.00 WIB
             </p>
           </div>
         </div>
       </div>
 
       <p className="text-sm text-text-secondary leading-relaxed mt-8">
-        Nama badan usaha:{' '}
-        <Placeholder>Nama Bisnis / Badan Usaha</Placeholder>. Kontak di atas
+        Nama badan usaha: Rumipang. Kontak di atas
         adalah saluran resmi kami — mohon berhati-hati terhadap pihak yang
         mengatasnamakan usaha kami di luar kontak ini.
       </p>

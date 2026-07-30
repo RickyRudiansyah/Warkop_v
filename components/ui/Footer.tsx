@@ -28,7 +28,7 @@ export function Footer() {
           ))}
         </nav>
         <p className="text-xs text-text-secondary mt-6">
-          © {new Date().getFullYear()} [ISI_DI_SINI — Nama Bisnis]. Semua hak dilindungi.
+          © {new Date().getFullYear()} Rumipang. Semua hak dilindungi.
         </p>
       </div>
     </footer>

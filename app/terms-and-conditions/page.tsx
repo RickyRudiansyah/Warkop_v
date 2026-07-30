@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { StaticPage } from '@/components/ui/StaticPage';
-import { Placeholder } from '@/components/ui/Placeholder';
 
 export const metadata: Metadata = {
   title: 'Syarat & Ketentuan — Rumipang',
@@ -12,12 +11,12 @@ export default function TermsPage() {
   return (
     <StaticPage title="Syarat & Ketentuan">
       <p className="text-sm text-text-secondary mb-6">
-        Terakhir diperbarui: <Placeholder>Tanggal, mis. 30 Juli 2026</Placeholder>
+        Terakhir diperbarui: 30 Juli 2026
       </p>
 
       <p className="text-text-secondary leading-relaxed">
         Selamat datang di layanan pemesanan{' '}
-        <Placeholder>Nama Bisnis</Placeholder>. Dengan mengakses dan
+        Rumipang. Dengan mengakses dan
         menggunakan layanan ini, Anda menyetujui untuk terikat pada syarat dan
         ketentuan di bawah ini. Mohon baca dengan saksama sebelum melakukan
         pemesanan.
@@ -25,9 +24,8 @@ export default function TermsPage() {
 
       <h2 className="text-lg font-bold mt-8 mb-3">1. Tentang Layanan</h2>
       <p className="text-text-secondary leading-relaxed">
-        <Placeholder>Nama Bisnis</Placeholder> menyediakan layanan pemesanan
-        mandiri berbasis QR Code untuk pembelian{' '}
-        <Placeholder>Jenis Produk/Jasa, mis. makanan &amp; minuman</Placeholder>{' '}
+        Rumipang menyediakan layanan pemesanan
+        mandiri berbasis QR Code untuk pembelian makanan &amp; minuman
         yang dinikmati di tempat. Pemesanan dilakukan dengan memindai QR Code
         pada meja di lokasi kami.
       </p>
@@ -51,9 +49,8 @@ export default function TermsPage() {
       <h2 className="text-lg font-bold mt-8 mb-3">3. Harga &amp; Pembayaran</h2>
       <ul className="list-disc pl-5 space-y-2 text-text-secondary leading-relaxed">
         <li>
-          Seluruh harga ditampilkan dalam Rupiah (IDR) dan sudah termasuk/belum
-          termasuk pajak atau biaya lain sesuai{' '}
-          <Placeholder>ketentuan pajak/biaya layanan Anda</Placeholder>.
+          Seluruh harga ditampilkan dalam Rupiah (IDR) dan sudah termasuk
+          pajak serta biaya layanan (jika ada).
         </li>
         <li>
           Pembayaran dapat dilakukan melalui Tunai, QRIS, transfer bank, atau
@@ -106,7 +103,7 @@ export default function TermsPage() {
       <h2 className="text-lg font-bold mt-8 mb-3">8. Hak Kekayaan Intelektual</h2>
       <p className="text-text-secondary leading-relaxed">
         Seluruh merek, logo, nama, dan konten dalam layanan ini merupakan milik{' '}
-        <Placeholder>Nama Bisnis</Placeholder> dan dilindungi undang-undang.
+        Rumipang dan dilindungi undang-undang.
         Dilarang menggunakan tanpa izin tertulis.
       </p>
 
@@ -120,8 +117,7 @@ export default function TermsPage() {
       <p className="text-text-secondary leading-relaxed">
         Syarat dan ketentuan ini tunduk pada hukum Republik Indonesia. Setiap
         perselisihan akan diselesaikan secara musyawarah, dan bila tidak
-        tercapai, melalui yurisdiksi hukum di{' '}
-        <Placeholder>Kota/Kabupaten domisili usaha</Placeholder>.
+        tercapai, melalui yurisdiksi hukum di Kota Tangerang.
       </p>
 
       <h2 className="text-lg font-bold mt-8 mb-3">11. Hubungi Kami</h2>

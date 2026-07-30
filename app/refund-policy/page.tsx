@@ -1,112 +1,80 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { StaticPage } from '@/components/ui/StaticPage';
-import { Placeholder } from '@/components/ui/Placeholder';
 
 export const metadata: Metadata = {
   title: 'Kebijakan Refund — Rumipang',
-  description: 'Ketentuan pengembalian dana untuk pesanan dan pembayaran.',
+  description: 'Ketentuan pengembalian dana: seluruh transaksi bersifat final.',
 };
 
 export default function RefundPolicyPage() {
   return (
     <StaticPage title="Kebijakan Refund (Pengembalian Dana)">
-      <p className="text-sm text-text-secondary mb-6">
-        Terakhir diperbarui: <Placeholder>Tanggal, mis. 30 Juli 2026</Placeholder>
-      </p>
+      <p className="text-sm text-text-secondary mb-6">Terakhir diperbarui: 30 Juli 2026</p>
 
       <p className="text-text-secondary leading-relaxed">
-        Kebijakan ini menjelaskan ketentuan pengembalian dana (refund) atas
-        pembayaran yang dilakukan kepada{' '}
-        <Placeholder>Nama Bisnis</Placeholder> untuk pembelian{' '}
-        <Placeholder>Jenis Produk/Jasa, mis. makanan &amp; minuman</Placeholder>.
-        Dengan melakukan pemesanan dan pembayaran, Anda dianggap telah membaca,
-        memahami, dan menyetujui kebijakan ini.
+        Kebijakan ini menjelaskan ketentuan pengembalian dana atas pembayaran
+        yang dilakukan kepada Rumipang untuk pembelian makanan &amp; minuman.
+        Pembayaran dilakukan langsung di tempat dan produk disiapkan segera
+        setelah pesanan diterima. Dengan melakukan pemesanan dan pembayaran,
+        Anda dianggap telah membaca, memahami, dan menyetujui kebijakan ini.
       </p>
 
-      <h2 className="text-lg font-bold mt-8 mb-3">1. Ketentuan Umum</h2>
-      <p className="text-text-secondary leading-relaxed">
-        Karena produk kami merupakan barang yang mudah rusak dan disiapkan
-        segera setelah pesanan diterima, pada dasarnya pesanan yang sudah
-        diproses tidak dapat dibatalkan. Pengembalian dana hanya dapat
-        diajukan pada kondisi tertentu yang dijelaskan di bawah ini.
-      </p>
-
-      <h2 className="text-lg font-bold mt-8 mb-3">2. Kondisi yang Dapat Diajukan Refund</h2>
+      <h2 className="text-lg font-bold mt-8 mb-3">1. Seluruh Transaksi Bersifat Final</h2>
       <ul className="list-disc pl-5 space-y-2 text-text-secondary leading-relaxed">
         <li>
-          <strong className="text-text font-semibold">Pembayaran gagal namun dana terpotong.</strong>{' '}
-          Transaksi tidak berhasil terkonfirmasi, tetapi saldo/rekening Anda
-          telah terdebit.
+          Karena produk kami berupa makanan &amp; minuman (barang yang mudah
+          rusak) dan langsung disiapkan, seluruh pembayaran bersifat{' '}
+          <strong className="text-text font-semibold">final</strong>.
         </li>
         <li>
-          <strong className="text-text font-semibold">Pembayaran ganda (double charge).</strong>{' '}
-          Anda terkena tagihan lebih dari satu kali untuk pesanan yang sama.
+          Kami{' '}
+          <strong className="text-text font-semibold">
+            tidak menyediakan pengembalian dana (refund) maupun pembatalan
+          </strong>{' '}
+          atas pesanan yang telah dibayar dan/atau diproses.
         </li>
         <li>
-          <strong className="text-text font-semibold">Pesanan dibatalkan oleh pihak kami.</strong>{' '}
-          Misalnya stok/menu habis sebelum pesanan sempat kami proses.
-        </li>
-        <li>
-          <strong className="text-text font-semibold">Pesanan salah, tidak sesuai, atau rusak</strong>{' '}
-          saat diterima, dengan bukti yang memadai dan dilaporkan sesuai batas
-          waktu klaim.
-        </li>
-        <li>
-          <Placeholder>
-            Kondisi lain yang berlaku khusus untuk bisnis Anda (bila ada)
-          </Placeholder>
+          Mohon pastikan pilihan menu, variasi, jumlah, dan catatan sudah benar
+          sebelum menyelesaikan pembayaran.
         </li>
       </ul>
 
-      <h2 className="text-lg font-bold mt-8 mb-3">3. Kondisi yang Tidak Dapat Direfund</h2>
-      <ul className="list-disc pl-5 space-y-2 text-text-secondary leading-relaxed">
-        <li>Produk sudah disiapkan, disajikan, dan/atau sudah dikonsumsi.</li>
-        <li>Perubahan pikiran (change of mind) setelah pesanan dikonfirmasi.</li>
-        <li>
-          Kesalahan pemilihan menu, variasi, atau catatan yang dilakukan oleh
-          pelanggan sendiri.
-        </li>
-        <li>
-          <Placeholder>Pengecualian lain sesuai kebijakan bisnis Anda (bila ada)</Placeholder>
-        </li>
-      </ul>
-
-      <h2 className="text-lg font-bold mt-8 mb-3">4. Cara Mengajukan Refund</h2>
+      <h2 className="text-lg font-bold mt-8 mb-3">2. Kendala Pembayaran (Dana Terpotong Tanpa Pesanan)</h2>
       <p className="text-text-secondary leading-relaxed">
-        Ajukan permohonan refund melalui halaman{' '}
+        Ketentuan final di atas tidak berlaku untuk kesalahan teknis pembayaran.
+        Apabila saldo/rekening Anda terpotong tetapi pesanan{' '}
+        <strong className="text-text font-semibold">tidak terbentuk</strong>,
+        atau terjadi{' '}
+        <strong className="text-text font-semibold">pembayaran ganda
+        (double charge)</strong>, dana yang keliru terpotong akan kami
+        kembalikan karena tidak ada transaksi yang sah. Laporkan melalui halaman{' '}
         <Link href="/kontak" className="text-primary font-medium hover:underline">
           Kontak
         </Link>{' '}
-        paling lambat{' '}
-        <Placeholder>Batas Waktu Klaim, mis. 1×24 jam</Placeholder> sejak
-        transaksi. Sertakan informasi berikut agar proses lebih cepat:
+        dengan menyertakan bukti pembayaran dan waktu transaksi, dan mohon
+        jangan mengulang pembayaran.
       </p>
-      <ul className="list-disc pl-5 space-y-2 text-text-secondary leading-relaxed mt-3">
-        <li>Nomor pesanan dan tanggal transaksi.</li>
-        <li>Bukti pembayaran (struk/screenshot).</li>
-        <li>Alasan pengajuan dan foto (bila terkait pesanan salah/rusak).</li>
-      </ul>
 
-      <h2 className="text-lg font-bold mt-8 mb-3">5. Proses &amp; Waktu Pengembalian</h2>
+      <h2 className="text-lg font-bold mt-8 mb-3">3. Pesanan Salah atau Tidak Sesuai</h2>
       <p className="text-text-secondary leading-relaxed">
-        Setelah permohonan disetujui, dana akan dikembalikan ke metode
-        pembayaran asal (QRIS, transfer bank, atau melalui payment gateway)
-        dalam waktu{' '}
-        <Placeholder>Estimasi Proses, mis. 3–14 hari kerja</Placeholder>. Lama
-        proses dapat dipengaruhi oleh kebijakan bank atau penyedia pembayaran.
-        Potongan biaya administrasi (jika ada) sebesar{' '}
-        <Placeholder>Biaya Admin, mis. 0% / sesuai ketentuan gateway</Placeholder>.
+        Jika pesanan yang Anda terima salah atau tidak sesuai, segera laporkan
+        kepada staf kami di lokasi pada saat itu juga agar dapat kami perbaiki
+        atau ganti. Penyelesaian dilakukan dalam bentuk penggantian pesanan,
+        bukan pengembalian uang.
       </p>
 
-      <h2 className="text-lg font-bold mt-8 mb-3">6. Hubungi Kami</h2>
+      <h2 className="text-lg font-bold mt-8 mb-3">4. Hubungi Kami</h2>
       <p className="text-text-secondary leading-relaxed">
         Pertanyaan seputar kebijakan ini dapat diajukan melalui halaman{' '}
         <Link href="/kontak" className="text-primary font-medium hover:underline">
           Kontak
         </Link>{' '}
         atau email{' '}
-        <Placeholder>Email Bisnis</Placeholder>.
+        <a href="mailto:rumipang.id@gmail.com" className="text-primary font-medium hover:underline">
+          rumipang.id@gmail.com
+        </a>
+        .
       </p>
     </StaticPage>
   );

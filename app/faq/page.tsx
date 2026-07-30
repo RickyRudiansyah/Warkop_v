@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import { StaticPage } from '@/components/ui/StaticPage';
-import { Placeholder } from '@/components/ui/Placeholder';
 
 export const metadata: Metadata = {
   title: 'FAQ — Rumipang',
@@ -142,21 +141,11 @@ export default function FaqPage() {
           </p>
         </FaqItem>
 
-        {/* Tambahkan pertanyaan khusus bisnis Anda di sini. Contoh:
-            apakah produk halal, apakah tersedia menu tertentu, minimum order, dll. */}
-        <FaqItem question={<Placeholder>Pertanyaan Khusus Bisnis Anda #1</Placeholder>}>
+        <FaqItem question="Apakah makanan di Rumipang halal?">
           <p>
-            <Placeholder>
-              Jawaban FAQ #1 yang relevan dengan bisnis Anda — mis. sertifikasi
-              halal, ketersediaan menu, kebijakan reservasi, atau info produk/jasa
-              yang dijual
-            </Placeholder>
-          </p>
-        </FaqItem>
-
-        <FaqItem question={<Placeholder>Pertanyaan Khusus Bisnis Anda #2</Placeholder>}>
-          <p>
-            <Placeholder>Jawaban FAQ #2 yang relevan dengan bisnis Anda</Placeholder>
+            Makanan dan minuman kami diolah menggunakan bahan-bahan yang halal.
+            Saat ini kami belum memiliki sertifikat halal resmi, namun kami
+            berkomitmen menjaga kehalalan bahan yang kami gunakan.
           </p>
         </FaqItem>
       </div>
