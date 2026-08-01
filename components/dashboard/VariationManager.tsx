@@ -122,7 +122,7 @@ export function VariationManager({ menuItemId, menuName, onClose }: VariationMan
                   <div key={v.id} className="flex items-center justify-between px-3 py-2 bg-surface rounded-lg">
                     <span className="text-sm">{v.label}</span>
                     <div className="flex items-center gap-2">
-                      {v.extra_price > 0 && <span className="text-xs text-primary">+Rp{v.extra_price.toLocaleString('id')}</span>}
+                      {v.extra_price > 0 && <span className="text-xs text-text">+Rp{v.extra_price.toLocaleString('id')}</span>}
                       <button onClick={() => handleEdit(v)} className="p-1 hover:bg-surface-2 rounded" aria-label="Edit variasi"><Edit2 className="w-3.5 h-3.5" /></button>
                       <button onClick={() => handleDelete(v.id)} className="p-1 hover:bg-danger/10 rounded text-danger" aria-label="Hapus variasi"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>

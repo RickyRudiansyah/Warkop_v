@@ -65,7 +65,7 @@ export default function TermsPage() {
       <h2 className="text-lg font-bold mt-8 mb-3">4. Pembatalan &amp; Pengembalian Dana</h2>
       <p className="text-text-secondary leading-relaxed">
         Ketentuan pembatalan dan pengembalian dana mengikuti{' '}
-        <Link href="/refund-policy" className="text-primary font-medium hover:underline">
+        <Link href="/refund-policy" className="text-text font-medium hover:underline">
           Kebijakan Refund
         </Link>{' '}
         yang merupakan bagian tidak terpisahkan dari syarat dan ketentuan ini.
@@ -86,7 +86,7 @@ export default function TermsPage() {
         Ketersediaan menu dapat berubah sewaktu-waktu. Jika suatu menu habis
         setelah pesanan dibuat, kami akan menghubungi Anda untuk penggantian
         atau pengembalian dana sesuai{' '}
-        <Link href="/refund-policy" className="text-primary font-medium hover:underline">
+        <Link href="/refund-policy" className="text-text font-medium hover:underline">
           Kebijakan Refund
         </Link>
         .
@@ -124,7 +124,7 @@ export default function TermsPage() {
       <p className="text-text-secondary leading-relaxed">
         Pertanyaan mengenai syarat dan ketentuan ini dapat diajukan melalui
         halaman{' '}
-        <Link href="/kontak" className="text-primary font-medium hover:underline">
+        <Link href="/kontak" className="text-text font-medium hover:underline">
           Kontak
         </Link>
         .

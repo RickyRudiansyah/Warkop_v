@@ -50,7 +50,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-surface-2">
       <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-primary">Rumipang</h1>
+        <h1 className="text-lg font-bold text-text">Rumipang</h1>
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <span className="text-sm text-text-secondary">{staffProfile?.name} ({role})</span>

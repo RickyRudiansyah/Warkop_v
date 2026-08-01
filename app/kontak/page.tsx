@@ -20,12 +20,12 @@ export default function KontakPage() {
         {/* EMAIL — wajib tampil jelas untuk verifikasi iPaymu. */}
         <div className="card p-5 flex items-start gap-4">
           <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Mail className="w-5 h-5 text-primary" aria-hidden="true" />
+            <Mail className="w-5 h-5 text-text" aria-hidden="true" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text">Email</p>
             <p className="text-base mt-0.5 break-words">
-              <a href="mailto:rumipang.id@gmail.com" className="text-primary hover:underline">
+              <a href="mailto:rumipang.id@gmail.com" className="text-text hover:underline">
                 rumipang.id@gmail.com
               </a>
             </p>
@@ -38,12 +38,12 @@ export default function KontakPage() {
         {/* NOMOR TELEPON — wajib tampil jelas untuk verifikasi iPaymu. */}
         <div className="card p-5 flex items-start gap-4">
           <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Phone className="w-5 h-5 text-primary" aria-hidden="true" />
+            <Phone className="w-5 h-5 text-text" aria-hidden="true" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text">Telepon / WhatsApp</p>
             <p className="text-base mt-0.5 break-words">
-              <a href="tel:+6285117408510" className="text-primary hover:underline">
+              <a href="tel:+6285117408510" className="text-text hover:underline">
                 0851-1740-8510
               </a>
             </p>
@@ -53,7 +53,7 @@ export default function KontakPage() {
                 href="https://wa.me/6285117408510"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline"
+                className="text-text hover:underline"
               >
                 chat via WhatsApp
               </a>
@@ -65,7 +65,7 @@ export default function KontakPage() {
         {/* ALAMAT USAHA — wajib tampil jelas untuk verifikasi iPaymu. */}
         <div className="card p-5 flex items-start gap-4">
           <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <MapPin className="w-5 h-5 text-primary" aria-hidden="true" />
+            <MapPin className="w-5 h-5 text-text" aria-hidden="true" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text">Alamat Usaha</p>
@@ -79,7 +79,7 @@ export default function KontakPage() {
         {/* JAM OPERASIONAL — opsional tapi disarankan. */}
         <div className="card p-5 flex items-start gap-4">
           <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5 text-primary" aria-hidden="true" />
+            <Clock className="w-5 h-5 text-text" aria-hidden="true" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text">Jam Operasional</p>

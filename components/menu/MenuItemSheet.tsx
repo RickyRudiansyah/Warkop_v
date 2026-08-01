@@ -75,7 +75,7 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
                           <input type="radio" name={group} checked={selectedVariations[group]?.label === v.label} onChange={() => setSelectedVariations(prev => ({ ...prev, [group]: { variation_type: v.variation_type, label: v.label, extra_price: v.extra_price } }))} />
                           <span>{v.label}</span>
                         </div>
-                        {v.extra_price > 0 && <span className="text-sm text-primary">+{formatCurrency(v.extra_price)}</span>}
+                        {v.extra_price > 0 && <span className="text-sm text-text">+{formatCurrency(v.extra_price)}</span>}
                       </label>
                     ))}
                   </div>
@@ -91,7 +91,7 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
                   <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
                   <button onClick={() => setQuantity(quantity + 1)} className="p-2 border rounded-full" aria-label="Tambah"><Plus className="w-4 h-4" /></button>
                 </div>
-                <span className="text-xl font-bold text-primary">{formatCurrency(total)}</span>
+                <span className="text-xl font-bold text-text">{formatCurrency(total)}</span>
               </div>
               <Button size="lg" className="w-full" onClick={() => { onAdd(item, quantity, Object.values(selectedVariations), notes); }}>
                 Tambah ke Keranjang

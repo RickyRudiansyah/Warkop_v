@@ -9,7 +9,6 @@ import { formatCurrency } from '@/lib/utils';
 import { PaymentMethod, Table } from '@/types';
 import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X, Loader2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -17,8 +16,7 @@ type PayState = 'idle' | 'creating' | 'waiting' | 'paid' | 'expired' | 'failed';
 
 interface QrisData {
   intentId: string;
-  qrUrl: string | null;
-  qrString: string | null;
+  link: string;
   grossAmount: number;
 }
 
@@ -32,7 +30,6 @@ export default function CheckoutPage() {
   const [agreed, setAgreed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [qrisOpen, setQrisOpen] = useState(false);
-  const [qrImgError, setQrImgError] = useState(false);
   const [payState, setPayState] = useState<PayState>('idle');
   const [qris, setQris] = useState<QrisData | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -83,28 +80,29 @@ export default function CheckoutPage() {
     } catch { toast.error('Gagal membuat pesanan'); setSubmitting(false); }
   };
 
-  // ---- QRIS: charge Midtrans, show QR, poll until settled ----
+  // ---- QRIS via Mayar: create payment request, open pay page, poll until paid ----
   const startQris = async () => {
     setPayState('creating');
-    setQrImgError(false);
     setQris(null);
     setQrisOpen(true);
     try {
-      const res = await fetch('/api/payments/midtrans/charge', {
+      const res = await fetch('/api/payments/mayar/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           table_id: selectedTableId, total_amount: totalPrice, notes: '', items: orderItemsPayload(),
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      if (!res.ok || !data.link) {
         toast.error(data.error || 'Gagal memproses pembayaran QRIS');
         setPayState('idle');
         setQrisOpen(false);
         return;
       }
-      setQris({ intentId: data.intentId, qrUrl: data.qrUrl, qrString: data.qrString, grossAmount: data.grossAmount });
+      setQris({ intentId: data.intentId, link: data.link, grossAmount: totalPrice });
       setPayState('waiting');
+      // Open the Mayar QRIS page in a new tab (user gesture -> not popup-blocked).
+      window.open(data.link, '_blank', 'noopener');
     } catch {
       toast.error('Gagal memproses pembayaran QRIS');
       setPayState('idle');
@@ -118,7 +116,7 @@ export default function CheckoutPage() {
     let active = true;
     const check = async () => {
       try {
-        const res = await fetch('/api/payments/midtrans/status?intentId=' + qris.intentId, { cache: 'no-store' });
+        const res = await fetch('/api/payments/mayar/status?intentId=' + qris.intentId, { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));
         if (!active) return;
         if (data.status === 'PAID') {
@@ -140,10 +138,10 @@ export default function CheckoutPage() {
     return () => { active = false; clearInterval(id); };
   }, [payState, qris, selectedTableId, tables, router, clearCart, setTableNumber]);
 
-  // 15-minute local countdown for the QRIS code.
+  // 30-minute local countdown (matches the Mayar payment expiry).
   useEffect(() => {
     if (payState !== 'waiting') return;
-    setSecondsLeft(15 * 60);
+    setSecondsLeft(30 * 60);
     const id = setInterval(() => {
       setSecondsLeft(s => (s <= 1 ? 0 : s - 1));
     }, 1000);
@@ -170,7 +168,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-surface-2">
         <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
           <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-          <h1 className="text-lg font-bold text-primary">Rumipang</h1>
+          <h1 className="text-lg font-bold text-text">Rumipang</h1>
           <ThemeToggle className="ml-auto" />
         </header>
         <div className="p-4 space-y-4 max-w-md mx-auto">
@@ -187,7 +185,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-surface-2">
         <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
           <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-          <h1 className="text-lg font-bold text-primary">Rumipang</h1>
+          <h1 className="text-lg font-bold text-text">Rumipang</h1>
           <ThemeToggle className="ml-auto" />
         </header>
         <div className="flex flex-col items-center justify-center p-12">
@@ -202,7 +200,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-surface-2">
       <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
         <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-        <h1 className="text-lg font-bold text-primary">Rumipang</h1>
+        <h1 className="text-lg font-bold text-text">Rumipang</h1>
         <ThemeToggle className="ml-auto" />
       </header>
       <div className="p-4 space-y-4 max-w-md mx-auto">
@@ -266,7 +264,7 @@ export default function CheckoutPage() {
         <div className="card p-4">
           <div className="flex justify-between text-lg font-bold">
             <span>Total</span>
-            <span className="text-primary">{formatCurrency(totalPrice)}</span>
+            <span className="text-text">{formatCurrency(totalPrice)}</span>
           </div>
         </div>
 
@@ -313,32 +311,24 @@ export default function CheckoutPage() {
 
             {payState === 'creating' && (
               <div className="flex flex-col items-center justify-center gap-3 py-12">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <Loader2 className="w-8 h-8 text-text animate-spin" />
                 <p className="text-sm text-text-secondary">Membuat kode QRIS...</p>
               </div>
             )}
 
             {payState === 'waiting' && qris && (
               <>
-                <p className="text-sm text-text-secondary text-center mb-4">Scan dengan aplikasi e-wallet / m-banking apa pun.</p>
-                <div className="flex justify-center mb-4">
-                  {qris.qrUrl && !qrImgError ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={qris.qrUrl} alt="Kode QRIS" className="w-56 h-56 object-contain bg-white rounded-xl p-2" onError={() => setQrImgError(true)} />
-                  ) : qris.qrString ? (
-                    <div className="bg-white rounded-xl p-3">
-                      <QRCodeSVG value={qris.qrString} size={208} />
-                    </div>
-                  ) : (
-                    <div className="w-56 h-56 flex items-center justify-center border-2 border-dashed rounded-xl text-center p-4">
-                      <p className="text-sm text-text-secondary">Kode QRIS tidak tersedia</p>
-                    </div>
-                  )}
+                <div className="flex flex-col items-center gap-2 my-4">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center"><QrCode className="w-7 h-7 text-text" /></div>
+                  <p className="text-sm text-text-secondary text-center">Halaman pembayaran QRIS terbuka di tab baru. Scan & bayar di sana, lalu kembali ke halaman ini.</p>
                 </div>
                 <div className="card p-3 mb-4 text-center bg-surface-2">
                   <p className="text-sm text-text-secondary">Total Pembayaran</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(qris.grossAmount)}</p>
+                  <p className="text-2xl font-bold text-text">{formatCurrency(qris.grossAmount)}</p>
                 </div>
+                <a href={qris.link} target="_blank" rel="noopener noreferrer" className="block w-full mb-3">
+                  <Button className="w-full"><QrCode className="w-4 h-4 mr-2" />Buka Halaman Pembayaran</Button>
+                </a>
                 <div className="flex items-center justify-center gap-2 text-sm text-text-secondary mb-1">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Menunggu pembayaran...</span>
