@@ -166,7 +166,7 @@ export default function CheckoutPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-surface-2">
-        <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
+        <header className="sticky top-0 z-20 bg-primary text-[color:var(--color-on-primary)] px-4 py-3 flex items-center gap-3 shadow-sm">
           <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
           <h1 className="text-lg font-bold text-text">Rumipang</h1>
           <ThemeToggle className="ml-auto" />
@@ -183,7 +183,7 @@ export default function CheckoutPage() {
   if (items.length === 0 && !submitting && payState === 'idle') {
     return (
       <div className="min-h-screen bg-surface-2">
-        <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
+        <header className="sticky top-0 z-20 bg-primary text-[color:var(--color-on-primary)] px-4 py-3 flex items-center gap-3 shadow-sm">
           <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
           <h1 className="text-lg font-bold text-text">Rumipang</h1>
           <ThemeToggle className="ml-auto" />
@@ -282,7 +282,7 @@ export default function CheckoutPage() {
           </div>
           <label className="flex items-start gap-3 cursor-pointer group">
             <div className={'mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ' + (agreed ? 'bg-primary border-primary' : 'border-text-secondary/40 group-hover:border-primary')}>
-              {agreed && <Check className="w-3.5 h-3.5 text-white" />}
+              {agreed && <Check className="w-3.5 h-3.5 text-[color:var(--color-on-primary)]" />}
             </div>
             <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
               Saya setuju, pesanan saya akan segera diproses dan <strong>tidak dapat dibatalkan setelah checkout</strong>.

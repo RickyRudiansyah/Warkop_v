@@ -50,7 +50,7 @@ function OrderStatusCard({ order }: { order: Order }) {
             const isCompleted = stepIndex < currentStatusIndex || (order.status === 'SERVED' && stepIndex <= currentStatusIndex);
             const isCurrent = stepIndex === currentStatusIndex;
             const Icon = step.icon;
-            const ringClass = isCompleted ? 'bg-success text-white' : isCurrent ? 'bg-primary text-white' : 'bg-surface-3 text-text-secondary';
+            const ringClass = isCompleted ? 'bg-success text-white' : isCurrent ? 'bg-primary text-[color:var(--color-on-primary)]' : 'bg-surface-3 text-text-secondary';
             const textClass = isCurrent ? 'text-text font-medium' : isCompleted ? 'text-success font-medium' : 'text-text-secondary';
             const etaClass = isOverdue ? 'text-danger' : isWarning ? 'text-warning' : 'text-text-secondary';
             return (

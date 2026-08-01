@@ -50,7 +50,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-surface-2">
       <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-text">Rumipang</h1>
+        <div className="flex items-center gap-2">
+          <span className="w-7 h-7 rounded-lg bg-primary text-[color:var(--color-on-primary)] font-extrabold flex items-center justify-center text-sm shadow-sm">R</span>
+          <h1 className="text-lg font-bold text-text">Rumipang</h1>
+        </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <span className="text-sm text-text-secondary">{staffProfile?.name} ({role})</span>
@@ -60,7 +63,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <nav className="glass border-b px-4 py-2 flex gap-2 overflow-x-auto" aria-label="Navigasi dashboard">
         {items.map(item => (
           <Link key={item.href} href={item.href}
-            className={cn('px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2', pathname === item.href ? 'bg-primary text-white' : 'text-text-secondary hover:bg-surface-3')}
+            className={cn('px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2', pathname === item.href ? 'bg-primary text-[color:var(--color-on-primary)]' : 'text-text-secondary hover:bg-surface-3')}
             aria-current={pathname === item.href ? 'page' : undefined}
           >
             <item.icon className="w-4 h-4" />{item.label}

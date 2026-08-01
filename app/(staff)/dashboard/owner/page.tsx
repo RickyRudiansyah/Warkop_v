@@ -280,7 +280,7 @@ export default function OwnerPage() {
           <h3 className="font-semibold">Rekap Penjualan</h3>
           <div className="flex gap-2">
             {(['today', '7days', 'all'] as TimeFilter[]).map(f => (
-              <button key={f} onClick={() => setTimeFilter(f)} className={'px-3 py-1 rounded-lg text-sm font-medium ' + (timeFilter === f ? 'bg-primary text-white' : 'bg-surface-3 text-text-secondary')}>
+              <button key={f} onClick={() => setTimeFilter(f)} className={'px-3 py-1 rounded-lg text-sm font-medium ' + (timeFilter === f ? 'bg-primary text-[color:var(--color-on-primary)]' : 'bg-surface-3 text-text-secondary')}>
                 {f === 'today' ? 'Hari Ini' : f === '7days' ? '7 Hari' : 'Semua'}
               </button>
             ))}
