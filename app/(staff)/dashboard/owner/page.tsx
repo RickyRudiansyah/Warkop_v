@@ -213,7 +213,7 @@ export default function OwnerPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="card p-4">
           <div className="flex items-center gap-2 text-text-secondary text-sm mb-1"><DollarSign className="w-4 h-4" /> Pendapatan</div>
-          <p className="text-xl font-bold text-primary">{formatCurrency(totalRevenue)}</p>
+          <p className="text-xl font-bold text-text">{formatCurrency(totalRevenue)}</p>
         </div>
         <div className="card p-4">
           <div className="flex items-center gap-2 text-text-secondary text-sm mb-1"><ShoppingCart className="w-4 h-4" /> Total Order</div>
@@ -231,7 +231,7 @@ export default function OwnerPage() {
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <div className="card p-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-primary" /> Top Menu Terlaris</h3>
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-text" /> Top Menu Terlaris</h3>
           {topMenu.length === 0 ? (
             <p className="text-text-secondary text-sm">Belum ada data</p>
           ) : (
@@ -280,14 +280,14 @@ export default function OwnerPage() {
           <h3 className="font-semibold">Rekap Penjualan</h3>
           <div className="flex gap-2">
             {(['today', '7days', 'all'] as TimeFilter[]).map(f => (
-              <button key={f} onClick={() => setTimeFilter(f)} className={'px-3 py-1 rounded-lg text-sm font-medium ' + (timeFilter === f ? 'bg-primary text-white' : 'bg-surface-3 text-text-secondary')}>
+              <button key={f} onClick={() => setTimeFilter(f)} className={'px-3 py-1 rounded-lg text-sm font-medium ' + (timeFilter === f ? 'bg-primary text-[color:var(--color-on-primary)]' : 'bg-surface-3 text-text-secondary')}>
                 {f === 'today' ? 'Hari Ini' : f === '7days' ? '7 Hari' : 'Semua'}
               </button>
             ))}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4">
-          <div><p className="text-sm text-text-secondary">Pendapatan</p><p className="text-lg font-bold text-primary">{formatCurrency(totalRevenue)}</p></div>
+          <div><p className="text-sm text-text-secondary">Pendapatan</p><p className="text-lg font-bold text-text">{formatCurrency(totalRevenue)}</p></div>
           <div><p className="text-sm text-text-secondary">Order</p><p className="text-lg font-bold">{totalOrders}</p></div>
           <div><p className="text-sm text-text-secondary">Dibatalkan</p><p className="text-lg font-bold text-danger">{cancelCount}</p></div>
         </div>

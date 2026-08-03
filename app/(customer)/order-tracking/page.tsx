@@ -28,7 +28,7 @@ function OrderStatusCard({ order }: { order: Order }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-text-secondary">Pesanan #{order.id.slice(0, 8)}</p>
-          <p className="text-lg font-bold text-primary">{formatCurrency(order.total_amount)}</p>
+          <p className="text-lg font-bold text-text">{formatCurrency(order.total_amount)}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
           <span className="text-xs text-text-secondary">{order.payment_method}</span>
@@ -50,8 +50,8 @@ function OrderStatusCard({ order }: { order: Order }) {
             const isCompleted = stepIndex < currentStatusIndex || (order.status === 'SERVED' && stepIndex <= currentStatusIndex);
             const isCurrent = stepIndex === currentStatusIndex;
             const Icon = step.icon;
-            const ringClass = isCompleted ? 'bg-success text-white' : isCurrent ? 'bg-primary text-white' : 'bg-surface-3 text-text-secondary';
-            const textClass = isCurrent ? 'text-primary font-medium' : isCompleted ? 'text-success font-medium' : 'text-text-secondary';
+            const ringClass = isCompleted ? 'bg-success text-white' : isCurrent ? 'bg-primary text-[color:var(--color-on-primary)]' : 'bg-surface-3 text-text-secondary';
+            const textClass = isCurrent ? 'text-text font-medium' : isCompleted ? 'text-success font-medium' : 'text-text-secondary';
             const etaClass = isOverdue ? 'text-danger' : isWarning ? 'text-warning' : 'text-text-secondary';
             return (
               <div key={step.key} className="flex items-center gap-3">
@@ -121,7 +121,7 @@ export default function OrderTrackingPage() {
   const header = (
     <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
       <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-      <h1 className="text-lg font-bold text-primary">Rumipang</h1>
+      <h1 className="text-lg font-bold text-text">Rumipang</h1>
       {tableLabel && <p className="text-sm text-text-secondary ml-auto">{tableLabel}</p>}
       <ThemeToggle />
     </header>

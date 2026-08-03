@@ -1,12 +1,13 @@
-﻿# Rumipang Ordering System v2.9
+# Rumipang Ordering System v3.0
 
-> Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pesan, bayar tanpa antri ke kasir.
+> Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pilih menu, bayar (Cash atau QRIS otomatis), tanpa antri ke kasir.
 
 ![Tech Stack](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)
 ![Database](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=flat-square&logo=supabase)
 ![Styling](https://img.shields.io/badge/Styling-Tailwind%20CSS%20v4-06B6D4?style=flat-square&logo=tailwindcss)
-![Deploy](https://img.shields.io/badge/Deploy-Vercel-000000?style=flat-square&logo=vercel)
+![Payment](https://img.shields.io/badge/Payment-Mayar%20QRIS-6B3FA0?style=flat-square)
+![Deploy](https://img.shields.io/badge/Deploy-Docker-2496ED?style=flat-square&logo=docker)
 
 ---
 
@@ -15,14 +16,20 @@
 - [Overview](#overview)
 - [Fitur Utama](#fitur-utama)
 - [Tech Stack](#tech-stack)
-- [Arsitektur Project](#arsitektur-project)
+- [Struktur Project](#struktur-project)
 - [Database Schema](#database-schema)
 - [API Endpoints](#api-endpoints)
 - [Alur Pemesanan](#alur-pemesanan)
 - [Alur Status Order](#alur-status-order)
+- [Alur Pembayaran QRIS (Mayar)](#alur-pembayaran-qris-mayar)
+- [Fitur Lokasi (Geolocation Gate)](#fitur-lokasi-geolocation-gate)
+- [Environment Variables](#environment-variables)
 - [Cara Menjalankan Lokal](#cara-menjalankan-lokal)
 - [Setup Supabase](#setup-supabase)
+- [Deployment (Docker)](#deployment-docker)
 - [Login Staff](#login-staff)
+- [Riwayat Versi](#riwayat-versi)
+- [Changelog v3.0](#changelog-v30)
 - [Deployment ke Vercel](#deployment-ke-vercel)
 - [Environment Variables](#environment-variables)
 - [Struktur Project](#struktur-project)
@@ -38,28 +45,19 @@
 
 ## Overview
 
+Rumipang Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil–menengah. Customer scan **satu QR umum**, pilih meja saat checkout, pilih menu, lalu bayar via **Cash** (bayar di kasir) atau **QRIS** (otomatis terdeteksi tanpa konfirmasi kasir). Staff (kasir, koki, owner) mengelola pesanan lewat dashboard masing-masing.
 Rumipang Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil-menengah. Customer cukup scan QR di meja, pilih menu, dan bayar tanpa perlu antri ke kasir. Staff (kasir, owner) mengelola pesanan melalui dashboard masing-masing, dan struk
 lunas otomatis dicetak ke printer thermal Bluetooth lewat aplikasi Android companion.
 
-Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan seluruh stack diganti menjadi **full Next.js 16** menggunakan App Router dan API Routes sebagai backend — sehingga hanya 1 project, 1 repo, 1 deploy.
+Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 repo, 1 deploy. Database, Auth, Realtime, dan Storage memakai Supabase.
 
-### Perbedaan v1 vs v2.x
+### Konsep Kunci v3.x
 
-| Aspek | v1 (React + FastAPI) | v2.1/v2.2 (Next.js Full) |
-|---|---|---|
-|---|---|---|
-| Repo | 2 repo terpisah | 1 repo |
-| Backend | Python FastAPI | Next.js API Routes (TypeScript) |
-| Deploy | Vercel + Railway | Vercel saja |
-| Auth guard | Client-side ProtectedRoute | Server-side `middleware.ts` |
-| Language | Python + TypeScript | TypeScript saja |
-| Maintenance | 2 environment | 1 environment |
-| Cart persistence | sessionStorage | sessionStorage + merge duplicates |
-| clearCart() clears table | N/A | Fixed in v2.2: only clears cart |
-| Kitchen ETA | Tidak ada | Set time, countdown, update ETA, overdue warning |
-| Customer tracking | Tidak ada | Realtime order tracking + ETA countdown |
-| Cashier view | Grid list | Kanban 4 kolom |
-| Owner dashboard | Basic | Rekap penjualan, top menu, recent orders, edit menu |
+- **Satu QR umum** untuk seluruh kafe (bukan per-meja). Nomor meja dipilih customer saat checkout.
+- **Pemisahan status dapur & status bayar.** `status` (dapur) = `QUEUED → PROCESSING → SERVED`; `payment_status` = `PAID | UNPAID`.
+- **QRIS otomatis** lewat gateway **Mayar** — order baru masuk dapur setelah pembayaran benar-benar terkonfirmasi (verifikasi server-side).
+- **Data-fetch via API Routes** (service role, bypass RLS) — browser tidak query Supabase langsung untuk data, hanya untuk trigger Realtime.
+- **Dark mode**, **geolocation gate** (opsional), dan **Docker-ready**.
 
 ---
 
@@ -69,31 +67,30 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 
 | Fitur | Deskripsi |
 |---|---|
-| Scan QR Code | Scan QR di meja → langsung buka halaman menu dengan nomor meja |
-| Browse menu | Browse menu per kategori dengan filter kategori pills |
-| Search menu | Cari menu berdasarkan nama |
-| Detail menu | Lihat detail menu + pilih variasi (ukuran, level pedas, topping) |
-| Tambah catatan | Tambah catatan per item (contoh: "Tidak pakai gula") |
-| Keranjang | Kelola keranjang dengan CartFAB floating button + CartDrawer bottom sheet |
-| Cart persistence | Keranjang tersimpan di sessionStorage, survive page refresh |
-| Checkout | Halaman checkout dengan ringkasan pesanan + pilihan metode pembayaran |
-| Metode pembayaran | Cash (Tunai), QRIS, Transfer BCA |
-| Order tracking | Lacak status pesanan secara realtime dengan estimasi waktu selesai |
+| Scan QR umum | Scan satu QR → buka halaman menu |
+| Geolocation gate | (Opsional) Blokir pesanan jika customer jauh dari kafe |
+| Browse & search menu | Filter kategori pills + cari nama menu |
+| Detail menu | Pilih variasi (ukuran, level pedas, topping) + catatan per item |
+| Keranjang | CartFAB floating + CartDrawer bottom sheet, persist di sessionStorage |
+| Checkout | Pilih meja (dropdown) + metode bayar + persetujuan (tidak bisa dibatalkan) |
+| Bayar Cash | Order langsung dibuat `UNPAID`, bayar di kasir |
+| Bayar QRIS | Halaman QRIS Mayar → scan → **otomatis terdeteksi** → order masuk dapur |
+| Lacak pesanan | Lacak seluruh order 1 meja secara realtime + ETA countdown |
+| Dark mode | Toggle tema terang/gelap |
 
 ### Kasir
 
 | Fitur | Deskripsi |
 |---|---|
-| Dashboard Kanban | Lihat semua order aktif dalam 4 kolom: Pending Cash, Pending Bayar, Dikonfirmasi, Diproses |
-| Realtime updates | Order update secara realtime via Supabase Realtime |
-| Konfirmasi Cash | Tombol konfirmasi pembayaran cash |
-| Konfirmasi QRIS/Transfer | Tombol konfirmasi pembayaran non-cash |
-| Cancel order | Batalkan order dengan input alasan |
-| Manual order | Input order manual (POS-style) untuk pelanggan yang tidak scan QR |
-| QR Generator | Generate + download QR Code per meja (PNG) |
-| Order history | Lihat + hapus riwayat order yang sudah selesai atau dibatalkan |
-| Toast notifications | Notifikasi untuk setiap aksi (konfirmasi, cancel, dll) |
-| Activity logging | Log aktivitas kasir tercatat di database |
+| Board per meja | Order aktif dikelompokkan per meja, tiap order tampil status bayar sendiri |
+| Realtime updates | Update order via Supabase Realtime |
+| Tandai Lunas | Ubah `UNPAID → PAID` untuk order Cash |
+| Cancel order | Batalkan order yang masih `QUEUED` (belum diproses) |
+| Selesai (arsip) | Pindahkan semua order 1 meja ke history (saat semua `SERVED` + `PAID`) |
+| Manual order (POS) | Input order manual untuk pelanggan yang tidak scan |
+| QR Generator | Generate + download satu QR umum kafe |
+| Order history | Riwayat order (arsip + dibatalkan) |
+| Activity logging | Aktivitas kasir tercatat di database |
 
 ### Kitchen Display (dipegang Kasir)
 
@@ -101,6 +98,12 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 
 | Fitur | Deskripsi |
 |---|---|
+| Kitchen display | Ticket pesanan realtime |
+| Set ETA | Estimasi waktu (5–30 menit) saat mulai proses |
+| Countdown + warna | Hijau > 3 mnt, kuning < 3 mnt, merah + pulse jika overdue |
+| Update ETA | Perpanjang estimasi saat proses berjalan |
+| Mulai Proses / Sudah Diantar | `QUEUED → PROCESSING → SERVED` |
+| Badge pembayaran | Menampilkan Lunas / Belum Bayar |
 | Kitchen display | Tampilan ticket pesanan secara realtime |
 | Set ETA | Pilih estimasi waktu selesai (5/10/15/20/25/30 menit) saat mulai proses |
 | Countdown timer | Timer realtime yang berjalan setiap detik |
@@ -130,21 +133,21 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 
 | Fitur | Deskripsi |
 |---|---|
-| Statistik dashboard | Pendapatan, total order, rata-rata per order, cancel rate |
+| Statistik | Pendapatan, total order, rata-rata per order, cancel rate |
 | Top menu terlaris | Ranking menu dengan badge emas/perak/perunggu |
-| Order terbaru | List 10 order terakhir dengan status dan total |
-| Rekap penjualan | Filter: Hari Ini / 7 Hari / Semua |
-| Kelola menu | Tambah, edit, **hapus** (nama, harga, deskripsi, gambar), upload gambar via Supabase Storage, toggle sold out |
-| Kelola variasi | Tambah, edit, hapus variasi per menu (level pedas, ukuran, topping, dll) — grup + label + extra price |
-| Statistik menu | Total menu, tersedia, sold out |
-| Order history | Lihat + **hapus** semua order yang sudah selesai atau dibatalkan, dengan hapus satu per satu atau hapus semua |
-| Reset data | Hapus semua order (aktif + riwayat) & activity log dengan satu klik — menu, meja, staff tetap aman |
-| Toast notifications | Notifikasi untuk setiap aksi CRUD |
+| Rekap penjualan | Filter Hari Ini / 7 Hari / Semua |
+| Kelola menu | Tambah/edit/hapus menu, upload gambar, toggle sold out |
+| Kelola variasi | CRUD variasi per menu (grup + label + extra price) |
+| Order history | Lihat + hapus riwayat (satu / semua) |
+| Reset data | Hapus semua order + activity log (menu/meja/staff aman) |
 
 ### Auth & Session
 
 | Fitur | Deskripsi |
 |---|---|
+| Login terpusat | Semua staff login di `/login`, auto-redirect sesuai role |
+| Proteksi server-side | `middleware.ts` + `getUser()` (validasi ke auth server) di setiap API |
+| Role-based access | Cashier, Koki, Owner dengan akses berbeda |
 | Halaman login terpusat | Semua staff login di halaman yang sama |
 | Auto-redirect | Redirect otomatis ke halaman sesuai role setelah login |
 | Proteksi halaman | Server-side `middleware.ts` untuk auth guard |
@@ -158,173 +161,160 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 
 | Layer | Teknologi |
 |---|---|
-| Framework | Next.js 16 (App Router) |
+| Framework | Next.js 16 (App Router, Turbopack) |
 | Language | TypeScript |
-| Styling | Tailwind CSS v4 |
+| Styling | Tailwind CSS v4 (`@theme`, dark mode) |
 | Database | Supabase (PostgreSQL + Storage) |
-| Auth | Supabase Auth |
+| Auth | Supabase Auth (`@supabase/ssr`) |
 | Realtime | Supabase Realtime |
+| Payment (QRIS) | **Mayar** (aktif) · Midtrans (legacy, tidak dipakai) |
 | Animation | Framer Motion |
 | Icons | Lucide React |
 | Toast | Sonner |
 | QR Code | qrcode.react |
-| Deployment | Vercel (1 project) |
+| Deployment | Docker (output `standalone`) |
 
 ---
 
-## Arsitektur Project
+## Struktur Project
 
 ```
 warkop-app/
 ├── app/
-│   ├── (customer)/
-│   │   ├── layout.tsx                   # Suspense boundary
-│   │   ├── order/page.tsx               # Halaman menu customer
-│   │   ├── checkout/page.tsx            # Halaman checkout
-│   │   ├── order-success/page.tsx       # Konfirmasi sukses
-│   │   └── order-tracking/page.tsx      # Lacak pesanan realtime
-│   ├── (staff)/
-│   │   ├── login/page.tsx               # Staff login
+│   ├── (customer)/                          # Route group customer (tanpa /customer di URL)
+│   │   ├── layout.tsx                        # Suspense boundary
+│   │   ├── loading.tsx                       # Loading UI
+│   │   ├── order/page.tsx                    # Halaman menu + geolocation gate
+│   │   ├── checkout/page.tsx                 # Checkout: meja, bayar, QRIS Mayar
+│   │   ├── order-success/page.tsx            # Konfirmasi sukses
+│   │   └── order-tracking/page.tsx           # Lacak pesanan per meja (realtime)
+│   ├── (staff)/                             # Route group staff
+│   │   ├── login/page.tsx                    # Staff login
 │   │   └── dashboard/
-│   │       ├── cashier/page.tsx         # Dashboard kasir (Kanban)
-│   │       ├── cashier/new-order/page.tsx  # Manual order (POS)
-│   │       ├── kitchen/page.tsx         # Kitchen display (ETA)
-│   │       ├── owner/page.tsx           # Owner dashboard
-│   │       ├── qr/page.tsx              # QR Generator
-│   │       └── history/page.tsx         # Riwayat order
+│   │       ├── cashier/page.tsx              # Board kasir (grup per meja)
+│   │       ├── cashier/new-order/page.tsx    # Manual order (POS)
+│   │       ├── kitchen/page.tsx              # Kitchen display (ETA)
+│   │       ├── owner/page.tsx                # Owner dashboard
+│   │       ├── qr/page.tsx                   # QR umum + kelola meja
+│   │       └── history/page.tsx              # Riwayat order
 │   ├── api/
-│   │   ├── activity-logs/route.ts       # POST/GET activity logs
-│   │   ├── health/route.ts              # Health check
-│   │   ├── menu/route.ts                # GET all, POST create
-│   │   ├── menu/categories/route.ts     # GET categories
-│   │   ├── menu/[id]/route.ts           # PUT update, DELETE
-│   │   ├── menu/[id]/sold-out/route.ts  # PATCH toggle sold out
-│   │   ├── menu/variations/route.ts      # GET/POST variasi menu
-│   │   ├── menu/variations/[id]/route.ts # PUT/DELETE variasi
-│   │   ├── orders/route.ts              # GET active/history, POST create
-│   │   ├── orders/history/route.ts      # GET history (SERVED/CANCELLED)
-│   │   ├── orders/[id]/route.ts         # GET detail
-│   │   ├── orders/[id]/cancel/route.ts  # PATCH cancel
-│   │   ├── orders/[id]/confirm-cash/route.ts    # PATCH confirm cash
-│   │   ├── orders/[id]/confirm-payment/route.ts # PATCH confirm QRIS/Transfer
-│   │   ├── orders/[id]/status/route.ts  # PATCH update status
-│   │   ├── orders/[id]/track/route.ts   # GET order status (customer)
-│   │   ├── orders/[id]/update-eta/route.ts      # PATCH update ETA
-│   │   ├── tables/route.ts              # GET all tables
-│   │   ├── tables/[number]/route.ts     # GET table by number
-│   │   └── upload/route.ts              # POST upload gambar ke Storage
-│   ├── layout.tsx                       # Root layout + providers
-│   └── page.tsx                         # Redirect ke /order
+│   │   ├── health/route.ts                   # Health check
+│   │   ├── activity-logs/route.ts            # GET/POST activity logs
+│   │   ├── menu/route.ts                      # GET all, POST create
+│   │   ├── menu/categories/route.ts          # GET categories
+│   │   ├── menu/[id]/route.ts                # PUT, DELETE
+│   │   ├── menu/[id]/sold-out/route.ts       # PATCH toggle sold out
+│   │   ├── menu/variations/route.ts          # GET/POST variasi
+│   │   ├── menu/variations/[id]/route.ts     # PUT/DELETE variasi
+│   │   ├── orders/route.ts                   # GET (kitchen/cashier/history), POST create
+│   │   ├── orders/history/route.ts           # GET + DELETE bulk history
+│   │   ├── orders/reset/route.ts             # DELETE reset semua order (owner)
+│   │   ├── orders/table-track/route.ts       # GET tracking semua order 1 meja (public)
+│   │   ├── orders/[id]/route.ts              # GET detail, DELETE
+│   │   ├── orders/[id]/status/route.ts       # PATCH QUEUED→PROCESSING→SERVED
+│   │   ├── orders/[id]/mark-paid/route.ts    # PATCH UNPAID→PAID
+│   │   ├── orders/[id]/archive/route.ts      # PATCH is_archived=true (Selesai)
+│   │   ├── orders/[id]/cancel/route.ts       # PATCH cancel
+│   │   ├── orders/[id]/track/route.ts        # GET tracking 1 order (public)
+│   │   ├── orders/[id]/update-eta/route.ts   # PATCH update ETA
+│   │   ├── payments/mayar/create/route.ts    # POST buat payment request QRIS
+│   │   ├── payments/mayar/status/route.ts    # GET poll status (settle → buat order)
+│   │   ├── payments/mayar/webhook/route.ts   # POST notifikasi Mayar (verify ulang)
+│   │   ├── payments/midtrans/*               # (legacy) charge/status/webhook
+│   │   ├── tables/route.ts                   # GET/POST/DELETE meja
+│   │   ├── tables/[number]/route.ts          # GET meja by nomor
+│   │   └── upload/route.ts                    # POST upload gambar ke Storage
+│   ├── layout.tsx                            # Root layout + providers + Sonner
+│   ├── page.tsx                              # Redirect ke /order
+│   └── favicon.ico
 ├── components/
-│   ├── auth/ProtectedRoute.tsx          # Client-side route guard
-│   ├── cart/
-│   │   ├── CartFAB.tsx                  # Floating cart button
-│   │   └── CartDrawer.tsx               # Bottom sheet cart
+│   ├── auth/ProtectedRoute.tsx               # Client-side route guard
+│   ├── cart/CartFAB.tsx · CartDrawer.tsx     # Floating cart + bottom sheet
 │   ├── dashboard/
-│   │   ├── DashboardLayout.tsx          # Staff dashboard shell
-│   │   └── OrderCard.tsx                # Order card with ETA
-│   ├── menu/
-│   │   ├── MenuItemCard.tsx             # Menu item card
-│   │   ├── MenuItemSheet.tsx            # Bottom sheet detail
-│   │   └── CategoryPills.tsx            # Category filter pills
-│   └── ui/
-│       ├── Button.tsx                   # Button component
-│       ├── Badge.tsx                    # Badge component
-│       ├── Spinner.tsx                  # Loading spinner
-│       ├── Skeleton.tsx                 # Loading placeholder
-│       └── EmptyState.tsx               # Empty state
+│   │   ├── DashboardLayout.tsx               # Shell dashboard staff
+│   │   ├── OrderCard.tsx                     # Kartu order + ETA + badge bayar
+│   │   └── VariationManager.tsx              # CRUD variasi menu
+│   ├── menu/MenuItemCard.tsx · MenuItemSheet.tsx · CategoryPills.tsx
+│   └── ui/Button · Badge · Spinner · Skeleton · EmptyState · ThemeToggle
 ├── context/
-│   ├── AuthContext.tsx                  # Auth state management
-│   └── CartContext.tsx                  # Cart state + sessionStorage
+│   ├── AuthContext.tsx                       # Auth state (getUser)
+│   ├── CartContext.tsx                       # Cart + sessionStorage
+│   └── ThemeContext.tsx                      # Dark/light theme (localStorage)
 ├── hooks/
-│   ├── useMenu.ts                       # Menu data + variations
-│   ├── useOrders.ts                     # Orders with realtime
-│   └── useCountdown.ts                  # Countdown timer
+│   ├── useMenu.ts                            # Menu + variasi (via API route)
+│   ├── useOrders.ts                          # Orders (via API) + Realtime trigger
+│   ├── useCountdown.ts                       # Countdown timer
+│   └── useLocationCheck.ts                   # Geolocation gate (haversine)
 ├── lib/
-│   ├── supabase/
-│   │   ├── client.ts                    # Browser Supabase client
-│   │   └── server.ts                    # Server Supabase client
-│   └── utils.ts                         # Utilities (formatCurrency, etc)
-├── types/
-│   ├── index.ts                         # TypeScript interfaces
-│   └── database.ts                      # Supabase Database type
-├── middleware.ts                         # Server-side auth guard
-├── supabase-schema.sql                   # SQL schema for Supabase
-└── .env.example                          # Environment variables template
+│   ├── supabase/client.ts · server.ts        # Browser & admin/server client
+│   ├── mayar.ts                              # Provider Mayar (create + status)
+│   ├── midtrans.ts                           # Provider Midtrans + settleIntent (shared)
+│   └── utils.ts                              # formatCurrency, cn, dll
+├── types/index.ts · database.ts             # TypeScript interfaces
+├── scripts/
+│   ├── complete-schema.sql                   # Full DDL + seed + auth
+│   ├── migrate-payment-flow.sql              # Migrasi status/payment_status/method
+│   ├── create-payment-intents.sql            # Tabel payment_intents (QRIS)
+│   ├── full-reset-seed.sql · reset-and-seed.sql · seed-menu.sql
+│   └── fix-*.sql · upload-images.mjs
+├── middleware.ts                            # Auth guard server-side
+├── next.config.ts                           # output: 'standalone'
+├── Dockerfile · docker-compose.yml · .dockerignore
+├── .env.example
+├── AGENTS.md · CLAUDE.md                     # Catatan proyek
+└── README.md
 ```
 
 ---
 
 ## Database Schema
 
-### Tables
-
 ```sql
--- Meja
-tables (
-  id UUID PRIMARY KEY,
-  table_number INT UNIQUE NOT NULL,
-  label TEXT,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ
-)
+tables ( id UUID PK, table_number INT UNIQUE, label TEXT, is_active BOOL, created_at )
 
--- Kategori Menu
-menu_categories (
-  id UUID PRIMARY KEY,
-  name TEXT NOT NULL,
-  sort_order INT DEFAULT 0
-)
+categories ( id UUID PK, name TEXT, sort_order INT )
 
--- Menu Item
-menu_items (
-  id UUID PRIMARY KEY,
-  category_id UUID REFERENCES menu_categories,
-  name TEXT NOT NULL,
-  description TEXT,
-  price INT NOT NULL,
-  image_url TEXT,
-  is_available BOOLEAN DEFAULT true,
-  is_sold_out BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ
-)
+menu_items ( id UUID PK, category_id UUID→categories, name, description,
+             price INT, image_url, is_available BOOL, is_sold_out BOOL, created_at )
 
--- Variasi Menu
-menu_variations (
-  id UUID PRIMARY KEY,
-  menu_item_id UUID REFERENCES menu_items,
-  group_name TEXT NOT NULL,    -- "Ukuran", "Level Pedas"
-  label TEXT NOT NULL,         -- "Large", "Extra Pedas"
-  extra_price INT DEFAULT 0
-)
+menu_variations ( id UUID PK, menu_item_id UUID→menu_items,
+                  variation_type TEXT, label TEXT, extra_price INT )
 
--- Order
 orders (
-  id UUID PRIMARY KEY,
-  table_id UUID REFERENCES tables,
-  status TEXT NOT NULL,        -- PENDING_CASH | PENDING_PAYMENT | CONFIRMED | PROCESSING | SERVED | CANCELLED
-  payment_method TEXT NOT NULL,-- CASH | QRIS | TRANSFER_BCA
-  total_amount INT NOT NULL,
-  notes TEXT,
-  cancel_reason TEXT,
-  confirmed_at TIMESTAMPTZ,
-  estimated_ready_at TIMESTAMPTZ,  -- ETA untuk kitchen
+  id UUID PK,
+  table_id UUID → tables,
+  status         TEXT,   -- QUEUED | PROCESSING | SERVED | CANCELLED
+  payment_method TEXT,   -- CASH | QRIS
+  payment_status TEXT,   -- PAID | UNPAID
+  total_amount INT,
+  notes TEXT, cancel_reason TEXT,
+  confirmed_at TIMESTAMPTZ, estimated_ready_at TIMESTAMPTZ,
+  is_archived  BOOL DEFAULT false,   -- true = dipindah ke history oleh kasir
   created_at TIMESTAMPTZ
 )
 
--- Order Items
-order_items (
-  id UUID PRIMARY KEY,
-  order_id UUID REFERENCES orders,
-  menu_item_id UUID REFERENCES menu_items,
-  menu_item_name TEXT NOT NULL,
-  menu_item_price INT NOT NULL,
-  quantity INT NOT NULL,
-  variations JSONB DEFAULT '[]',
-  subtotal INT NOT NULL,
-  notes TEXT
+order_items ( id UUID PK, order_id UUID→orders, menu_item_id UUID,
+              menu_item_name, menu_item_price INT, quantity INT,
+              variations JSONB, subtotal INT, notes )
+
+-- QRIS: order baru dibuat SETELAH pembayaran terkonfirmasi
+payment_intents (
+  id UUID PK,
+  status TEXT,                    -- PENDING | PAID | EXPIRED | FAILED
+  gross_amount INT,
+  qr_string TEXT, qr_url TEXT,    -- qr_url = link pembayaran Mayar
+  cart JSONB,                     -- payload order (dibuat jadi order saat lunas)
+  order_id UUID → orders,
+  midtrans_transaction_id TEXT,   -- id transaksi provider (Mayar/Midtrans)
+  created_at TIMESTAMPTZ, paid_at TIMESTAMPTZ
 )
 
+staff_users ( id UUID PK, email UNIQUE, name, role CHECK(cashier|koki|owner), is_active, created_at )
+
+activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target_id, detail JSONB, created_at )
+```
+
+> **Migrasi:** jalankan `scripts/migrate-payment-flow.sql` (status/payment_status) lalu `scripts/create-payment-intents.sql` (tabel QRIS). Untuk fitur "Selesai" kasir: `ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;`
 -- Staff Users
 staff_users (
   id UUID PRIMARY KEY,
@@ -374,21 +364,33 @@ activity_logs (
 
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
-| GET | `/api/menu` | Public | Ambil semua menu aktif |
-| GET | `/api/menu/categories` | Public | Ambil semua kategori |
-| POST | `/api/menu` | owner | Tambah menu baru |
-| PUT | `/api/menu/[id]` | owner | Update menu |
-| DELETE | `/api/menu/[id]` | owner | Hapus menu |
-| PATCH | `/api/menu/[id]/sold-out` | owner/cashier | Toggle sold out |
-| GET | `/api/menu/variations` | Public | Ambil semua variasi / filter by menu_item_id |
-| POST | `/api/menu/variations` | owner | Tambah variasi baru |
-| PUT | `/api/menu/variations/[id]` | owner | Update variasi |
-| DELETE | `/api/menu/variations/[id]` | owner | Hapus variasi |
+| GET | `/api/menu` | Public | Semua menu aktif |
+| GET | `/api/menu/categories` | Public | Semua kategori |
+| POST | `/api/menu` | staff | Tambah menu |
+| PUT / DELETE | `/api/menu/[id]` | staff | Update / hapus menu |
+| PATCH | `/api/menu/[id]/sold-out` | staff | Toggle sold out |
+| GET | `/api/menu/variations` | Public | Variasi (filter `menu_item_id`) |
+| POST | `/api/menu/variations` | staff | Tambah variasi |
+| PUT / DELETE | `/api/menu/variations/[id]` | staff | Update / hapus variasi |
 
 ### Orders
 
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
+| GET | `/api/orders` | staff | Board dapur (non-arsip, aktif) |
+| GET | `/api/orders?mode=cashier` | staff | Board kasir (termasuk SERVED sampai diarsip) |
+| GET | `/api/orders?history=1` · `/api/orders/history` | staff | Arsip + dibatalkan |
+| DELETE | `/api/orders/history` | staff | Hapus semua history |
+| DELETE | `/api/orders/reset` | owner | Reset semua order + log |
+| POST | `/api/orders` | Public | Buat order (Cash langsung; QRIS lewat settle) |
+| GET | `/api/orders/[id]` · DELETE | staff | Detail / hapus order |
+| GET | `/api/orders/[id]/track` | Public | Tracking 1 order |
+| GET | `/api/orders/table-track?tableId=` | Public | Tracking semua order 1 meja |
+| PATCH | `/api/orders/[id]/status` | staff | QUEUED→PROCESSING→SERVED (+ETA) |
+| PATCH | `/api/orders/[id]/mark-paid` | staff | UNPAID→PAID |
+| PATCH | `/api/orders/[id]/archive` | staff | is_archived=true (Selesai) |
+| PATCH | `/api/orders/[id]/cancel` | staff | Cancel (tolak jika SERVED/CANCELLED) |
+| PATCH | `/api/orders/[id]/update-eta` | staff | Perpanjang ETA |
 | GET | `/api/orders` | cashier/owner | Ambil order aktif |
 | GET | `/api/orders?history=1` | cashier/owner | Ambil semua order |
 | GET | `/api/orders/history` | cashier/owner | Ambil order SERVED/CANCELLED |
@@ -412,37 +414,48 @@ activity_logs (
 | PATCH | `/api/print/jobs/[id]/ack` | Device token / staff | Konfirmasi PRINTED / FAILED |
 | POST | `/api/print/jobs/[id]/retry` | Staff | Antrikan ulang job gagal |
 
-### Tables
+### Payments (Mayar — aktif)
 
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
-| GET | `/api/tables` | Public | Ambil semua meja |
-| GET | `/api/tables/[number]` | Public | Ambil meja by nomor |
+| POST | `/api/payments/mayar/create` | Public | Buat payment request QRIS → return `link` |
+| GET | `/api/payments/mayar/status?intentId=` | Public | Poll status (settle → buat order PAID) |
+| POST | `/api/payments/mayar/webhook` | Public | Notifikasi Mayar (verifikasi ulang server-side) |
 
-### Activity Logs
+> Endpoint `/api/payments/midtrans/*` masih ada sebagai legacy tapi tidak dipakai.
 
-| Method | Endpoint | Auth | Deskripsi |
-|---|---|---|---|
-| GET | `/api/activity-logs` | staff | Ambil activity logs |
-| POST | `/api/activity-logs` | staff | Buat activity log |
-
-### Health
+### Tables · Upload · Activity · Health
 
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
+| GET | `/api/tables` | Public | Semua meja |
+| POST / DELETE | `/api/tables` | staff | Tambah / nonaktifkan meja |
+| GET | `/api/tables/[number]` | Public | Meja by nomor |
+| POST | `/api/upload` | staff | Upload gambar menu (≤5MB) |
+| GET / POST | `/api/activity-logs` | staff | Activity logging |
 | GET | `/api/health` | Public | Health check |
-
-### Upload
-
-| Method | Endpoint | Auth | Deskripsi |
-|---|---|---|---|
-| POST | `/api/upload` | owner | Upload gambar menu ke Supabase Storage (max 5MB, image only) |
 
 ---
 
 ## Alur Pemesanan
 
 ```
+Customer scan QR umum
+      ↓
+(Opsional) Cek lokasi — blokir jika terlalu jauh dari kafe
+      ↓
+Buka menu → pilih item → variasi + qty + catatan → keranjang
+      ↓
+Checkout → pilih MEJA + metode bayar + setuju ketentuan
+      ↓
+ ┌─ CASH ────────────────→ Order dibuat UNPAID + QUEUED
+ └─ QRIS (Mayar) ────────→ Halaman QRIS → scan & bayar
+                              ↓ (poll otomatis)
+                           Terkonfirmasi → Order dibuat PAID + QUEUED
+      ↓
+Kitchen: QUEUED → (set ETA) PROCESSING → SERVED
+      ↓
+Kasir: Tandai Lunas (jika Cash) → Selesai (arsip ke history)
 Customer scan QR di meja
        ↓
 Buka halaman menu (/order?table=N)
@@ -480,6 +493,62 @@ Kasir tekan "Selesai" → order pindah ke History
 
 ## Alur Status Order
 
+```
+QUEUED ──(koki set ETA + mulai)──→ PROCESSING ──(sudah diantar)──→ SERVED
+   │                                                                  │
+   └────────────(kasir cancel, hanya saat QUEUED)───→ CANCELLED       │
+                                                                       ↓
+                                      Kasir "Selesai" → is_archived=true → HISTORY
+```
+
+| Status | Deskripsi | Aksi |
+|---|---|---|
+| `QUEUED` | Masuk antrian dapur | Mulai Proses (ETA), Cancel, Tandai Lunas (jika UNPAID) |
+| `PROCESSING` | Sedang dimasak | Sudah Diantar, Update ETA |
+| `SERVED` | Sudah diantar | Tandai Lunas (jika UNPAID), Selesai (arsip) |
+| `CANCELLED` | Dibatalkan | — (masuk history) |
+
+Pembayaran: `UNPAID` (Cash belum dibayar) · `PAID` (QRIS lunas otomatis / kasir tandai lunas).
+
+---
+
+## Alur Pembayaran QRIS (Mayar)
+
+Order **tidak** dibuat sampai pembayaran benar-benar terkonfirmasi, jadi tidak ada "order hantu" belum bayar di dapur.
+
+```
+1. Customer pilih QRIS → POST /api/payments/mayar/create
+2. Server buat payment_intent (PENDING) + panggil Mayar → dapat `link` + transactionId
+3. Halaman QRIS Mayar terbuka → customer scan & bayar (OVO/DANA/GoPay/bank apa pun)
+4. App polling GET /api/payments/mayar/status tiap 3 detik
+      → server cek GET https://api.mayar.id/hl/v2/transactions/{id}
+      → status "paid"? settleIntent() buat order PAID + QUEUED (idempoten)
+5. App redirect ke order-success → order muncul di board dapur
+```
+
+- **Deteksi otomatis** lewat polling (jalan di lokal & produksi) + webhook (cadangan di produksi).
+- **Keamanan:** webhook Mayar tidak dipercaya sendiri — selalu diverifikasi ulang lewat status API terautentikasi sebelum settle.
+- **Idempoten:** `settleIntent` memakai conditional lock `PENDING → PAID`, jadi polling + webhook tidak akan membuat order ganda.
+
+---
+
+## Fitur Lokasi (Geolocation Gate)
+
+Membatasi pemesanan hanya untuk customer yang berada di sekitar kafe (via GPS browser, bukan IP — VPN tidak bisa menembusnya).
+
+| Env | Fungsi |
+|---|---|
+| `NEXT_PUBLIC_LOCATION_CHECK` | `true` = aktif, selain itu nonaktif |
+| `NEXT_PUBLIC_CAFE_LAT` / `NEXT_PUBLIC_CAFE_LNG` | Koordinat kafe (dari Google Maps) |
+| `NEXT_PUBLIC_CAFE_RADIUS_METERS` | Radius izin (default 200 m) |
+
+> GPS browser hanya aktif di **HTTPS atau localhost** — tidak jalan di `http://` LAN IP.
+
+---
+
+## Environment Variables
+
+| Variable | Deskripsi | Wajib |
 Status dapur dan status pembayaran dipisah sejak v2.x:
 
 ```
@@ -501,67 +570,48 @@ Bisa cancel selama status masih QUEUED → CANCELLED
 
 | Status | Deskripsi | Aksi Tersedia |
 |---|---|---|
-| `PENDING_CASH` | Order menunggu pembayaran cash | Konfirmasi Cash, Cancel |
-| `PENDING_PAYMENT` | Order menunggu pembayaran QRIS/Transfer | Konfirmasi Bayar, Cancel |
-| `CONFIRMED` | Order dikonfirmasi, masuk antrian dapur | Mulai Proses (dengan ETA), Cancel |
-| `PROCESSING` | Order sedang diproses dapur | Sudah Diantar, Update ETA |
-| `SERVED` | Order sudah diantar ke meja | - |
-| `CANCELLED` | Order dibatalkan | - |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase | Ya |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | API key public (anon) | Ya |
+| `SUPABASE_SERVICE_ROLE_KEY` | API key service role (rahasia!) | Ya |
+| `NEXT_PUBLIC_APP_URL` | Base URL app (untuk redirect) | Ya |
+| `MAYAR_API_KEY` | API key Mayar (QRIS) | Untuk QRIS |
+| `MAYAR_IS_PRODUCTION` | `true`=api.mayar.id, `false`=api.mayar.club | Untuk QRIS |
+| `NEXT_PUBLIC_LOCATION_CHECK` | Aktifkan geolocation gate | Tidak |
+| `NEXT_PUBLIC_CAFE_LAT/LNG` | Koordinat kafe | Jika gate aktif |
+| `NEXT_PUBLIC_CAFE_RADIUS_METERS` | Radius izin (m) | Tidak |
+| `MIDTRANS_SERVER_KEY` / `MIDTRANS_IS_PRODUCTION` | (Legacy) Midtrans | Tidak |
+
+> ⚠️ `SUPABASE_SERVICE_ROLE_KEY`, `MAYAR_API_KEY`, dan `MIDTRANS_SERVER_KEY` **server-only** — jangan pernah commit. Variabel `NEXT_PUBLIC_*` di-bake saat build (untuk Docker lewat `--build-arg`).
 
 ---
 
 ## Cara Menjalankan Lokal
 
-### Prerequisites
-
-- Node.js 18+
-- npm / yarn / pnpm
-- Akun Supabase
-
-### 1. Clone / Download Project
-
 ```bash
-cd C:\Users\ASUS\Documents\Vona\Warkop\warkop-app
-```
-
-### 2. Install Dependencies
-
-```bash
+# 1. Install
 npm install
+
+# 2. Siapkan environment
+cp .env.example .env      # lalu isi kredensial
+
+# 3. Jalankan migrasi SQL di Supabase (SQL Editor):
+#    scripts/complete-schema.sql (baru) ATAU migrate-payment-flow.sql + create-payment-intents.sql
+
+# 4. Dev server
+npm run dev               # http://localhost:3000
 ```
-
-### 3. Setup Supabase
-
-1. Buat project di [Supabase Dashboard](https://supabase.com/dashboard)
-2. Jalankan SQL schema di SQL Editor (lihat [Setup Supabase](#setup-supabase))
-3. Buat user staff di Authentication → Users
-4. Insert data staff ke tabel `staff_users`
-
-### 4. Setup Environment Variables
-
-```bash
-# Copy template
-copy .env.example .env
-
-# Edit .env dan isi credentials
-```
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
-
-### 5. Jalankan Development Server
-
-```bash
-npm run dev
-```
-
-### 6. Buka di Browser
 
 | URL | Halaman | Akses |
 |---|---|---|
+| `/order` | Menu customer | Public |
+| `/checkout` | Checkout | Public |
+| `/order-tracking?tableId=xxx` | Lacak pesanan | Public |
+| `/login` | Staff login | Public |
+| `/dashboard/cashier` | Board kasir | Cashier, Owner |
+| `/dashboard/kitchen` | Kitchen display | Koki |
+| `/dashboard/owner` | Owner dashboard | Owner |
+| `/dashboard/qr` | QR umum + kelola meja | Cashier, Owner |
+| `/dashboard/history` | Riwayat order | Staff |
 | `http://localhost:3000/order?table=1` | Menu Customer | Public |
 | `http://localhost:3000/checkout` | Checkout | Public |
 | `http://localhost:3000/order-success` | Order Success | Public |
@@ -579,6 +629,9 @@ npm run dev
 
 ## Setup Supabase
 
+1. Buat project di [Supabase Dashboard](https://supabase.com/dashboard) (region Singapore).
+2. **SQL Editor** → jalankan `scripts/complete-schema.sql` (atau migrasi bertahap di atas).
+3. **Authentication → Users** → buat user staff, lalu insert ke `staff_users`:
 ### Step 1: Buat Project
 
 1. Buka [Supabase Dashboard](https://supabase.com/dashboard)
@@ -614,9 +667,12 @@ npm run dev
 ```sql
 INSERT INTO staff_users (id, email, name, role) VALUES
   ('UUID_KASIR', 'kasir@warkop.com', 'Kasir 1', 'cashier'),
+  ('UUID_KOKI',  'koki@warkop.com',  'Koki 1',  'koki'),
   ('UUID_OWNER', 'owner@warkop.com', 'Owner 1', 'owner');
 ```
 
+4. **Project Settings → API** → salin `Project URL`, `anon`, dan `service_role` ke `.env`.
+5. **Storage** → bucket `menu-images` sudah dibuat oleh schema SQL (public read, staff write).
 ### Step 4: Ambil Credentials
 
 1. Klik **"Project Settings"** (ikon gear)
@@ -649,43 +705,41 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
 
 ---
 
-## Deployment ke Vercel
+## Deployment (Docker)
 
-### Step 1: Push ke GitHub
+Project memakai `output: 'standalone'` untuk image minimal.
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit: Rumipang v2.1"
-git remote add origin https://github.com/your-username/warkop-qr-ordering-v2.git
-git push -u origin main
+# Build & jalankan
+docker compose up -d --build
+
+# Cek health
+curl http://localhost:3000/api/health
 ```
 
-### Step 2: Deploy ke Vercel
+- `Dockerfile` — 3 stage (deps → builder → runner non-root). `NEXT_PUBLIC_*` di-pass sebagai `--build-arg`; secret server (service role, Mayar key) di runtime.
+- `docker-compose.yml` — meneruskan env dari `.env`, healthcheck, `restart: unless-stopped`.
+- **Produksi QRIS:** set Payment Notification URL di dashboard Mayar ke `https://<domain>/api/payments/mayar/webhook`.
 
-1. Buka [Vercel](https://vercel.com)
-2. Klik **"New Project"**
-3. Import repository GitHub
-4. Set environment variables:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   ```
-5. Klik **"Deploy"**
-
-### Step 3: Verify
-
-- Build command: `next build`
-- Output: server-side (karena ada API Routes)
-- Custom domain (opsional): tambahkan di Vercel settings
+> Bisa juga deploy ke Vercel (API Routes = serverless). Untuk akses hanya-di-kafe, lihat opsi jaringan lokal / geolocation gate.
 
 ---
 
-## Environment Variables
+## Login Staff
 
-| Variable | Deskripsi | Required |
+| Email | Role | Akses |
 |---|---|---|
+| `owner@warkop.com` | Owner | Semua halaman |
+| `kasir@warkop.com` | Cashier | Board kasir, Manual Order, QR, History |
+| `koki@warkop.com` | Koki | Kitchen Display |
+
+> Password diset saat membuat user di Supabase Auth.
+
+---
+
+## Riwayat Versi
+
+| Versi | Ringkasan |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase | Ya |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | API key public (anon) | Ya |
 | `SUPABASE_SERVICE_ROLE_KEY` | API key service role (rahasia!) | Ya |
@@ -879,64 +933,62 @@ git push -u origin main
 
 | Metric | Value |
 |---|---|
-| Files modified | 20 |
-| TypeScript errors | 0 |
-| Build | Passed |
-| New dependencies | 0 |
-| Breaking changes | 0 |
-
-
----
-
-## Changelog v2.3
-
-### Checkout Agreement Confirmation (1 file)
-
-- **Warning card before checkout** — Customer sees a styled warning card with an `AlertTriangle` icon explaining that orders cannot be canceled after being sent to the cashier
-- **Custom checkbox agreement** — Styled checkbox with purple check animation, customer must actively agree before the order button is enabled
-- **Disabled button until agreement** — "Pesan Sekarang" button is disabled until checkbox is checked, preventing accidental or misclicked orders
-- **Clear, concise Indonesian wording** — Simplified agreement text: _"Saya setuju, setelah dipesan, pesanan tidak dapat dibatalkan."_
-
-### Flow Comparison
-
-| Before (v2.2) | After (v2.3) |
-|---|---|
-| Click "Pesan Sekarang" -> instant submit | Warning -> centang agreement -> "Pesan Sekarang" |
-| No confirmation step | Customer actively confirms they understand |
-| Possible accidental orders | Guarded against mistaken submissions |
-
-### Tech Specs
-
-| Metric | Value |
-|---|---|
-| Files modified | 1 (`app/(customer)/checkout/page.tsx`) |
-| TypeScript errors | 0 |
-| Build | Passed |
-| Breaking changes | None |
+| v2.1 | Kitchen ETA, customer tracking, Kanban kasir, owner dashboard, activity log |
+| v2.2 | Overhaul UI/UX & kualitas kode (26 perbaikan), aksesibilitas WCAG |
+| v2.3 | Konfirmasi persetujuan sebelum checkout |
+| v2.4 | Upload gambar menu ke Supabase Storage |
+| v2.5 | Kelola variasi menu (VariationManager + API) |
+| v2.6 | Security hardening: RLS, auth guard 14 endpoint, state machine guard |
+| v2.7 | Kompatibilitas skema (`categories`, `variation_type`) + error handling |
+| v2.8 | Fix hydration checkout |
+| v2.9 | Owner: hapus menu, reset data, hapus riwayat |
+| **v3.0** | **Redesign flow pembayaran + gateway QRIS (Mayar), dark mode, geolocation gate, Docker** |
 
 ---
 
-## Changelog v2.5
+## Changelog v3.0
 
-### Menu Variations — Kelola Variasi per Menu (6 files)
+### 1. Redesign Alur Pembayaran & Status
 
-- **VariationManager component** — Komponen baru untuk kelola variasi menu: tambah, edit, hapus variasi per menu item
-- **Variations API** — `GET/POST /api/menu/variations` dan `PUT/DELETE /api/menu/variations/[id]` untuk CRUD variasi
-- **Owner dashboard** — Tombol kelola variasi di setiap baris menu, panel inline untuk tambah variasi (grup, label, extra price)
-- **Group-based selection** — Customer pilih satu opsi per grup via radio button (misal: Level Pedas, Tambahan, Ukuran)
-- **Extra price support** — Setiap opsi variasi bisa punya tambahan harga (Rp0 kalau gratis)
+- **Pemisahan status dapur & bayar** — `status` (QUEUED/PROCESSING/SERVED/CANCELLED) terpisah dari `payment_status` (PAID/UNPAID). Metode bayar disederhanakan ke **CASH** & **QRIS** (drop TRANSFER_BCA).
+- **Satu QR umum** — Ganti QR per-meja jadi satu QR kafe; customer pilih meja saat checkout.
+- **Board kasir per meja** — Order dikelompokkan per meja, tiap order punya badge bayar sendiri. Tombol **Tandai Lunas** (mark-paid) & **Selesai** (arsip) menggantikan confirm-cash/confirm-payment.
+- **Kolom `is_archived`** — Order pindah ke history hanya saat kasir menekan "Selesai".
+- Migrasi: `scripts/migrate-payment-flow.sql` + `scripts/create-payment-intents.sql`.
 
-### Owner Dashboard Changes
+### 2. Payment Gateway QRIS — Mayar
 
-| Before (v2.4) | After (v2.5) |
+- **Provider Mayar** ([lib/mayar.ts](lib/mayar.ts)) — create payment request + cek status via API resmi Mayar.
+- **Order dibuat setelah lunas** — Tabel `payment_intents` menyimpan cart sementara; order baru dibuat saat pembayaran terkonfirmasi (`settleIntent`, idempoten).
+- **Deteksi otomatis** — Polling status tiap 3 detik (lokal & produksi) + webhook (cadangan). Webhook selalu diverifikasi ulang server-side (aman walau signature tidak didokumentasikan).
+- **Legacy Midtrans** — [lib/midtrans.ts](lib/midtrans.ts) + route `payments/midtrans/*` dipertahankan (tidak aktif) untuk referensi/masa depan.
+
+### 3. Dark Mode
+
+- **ThemeContext + ThemeToggle** — Tema terang/gelap tersimpan di `localStorage`, guard `mounted` anti-hydration-mismatch. Tailwind v4 `@theme` agar semua utility ikut berganti tema.
+
+### 4. Geolocation Gate
+
+- **`useLocationCheck`** — Blokir pesanan jika customer di luar radius kafe (haversine, GPS browser). Dikontrol penuh lewat env (`NEXT_PUBLIC_LOCATION_CHECK` + koordinat + radius).
+
+### 5. Reliabilitas Data
+
+- **Fetch via API Routes** — `useMenu` & `useOrders` mengambil data dari API (service role, bypass RLS) alih-alih query Supabase langsung dari browser (fix loading stuck karena RLS). Browser client hanya untuk trigger Realtime.
+- **Auth `getUser()`** — Semua `requireAuth` & `middleware.ts` memakai `getUser()` (validasi ke auth server) menggantikan `getSession()`.
+- **Tracking per meja** — `order-tracking` + `table-track` menampilkan seluruh order 1 meja; fix harga item Rp0 di tracking.
+
+### 6. Deployment (Docker)
+
+- **Dockerfile** (3-stage, non-root) + **docker-compose.yml** + **.dockerignore** + **.env.example**. `next.config.ts` → `output: 'standalone'`.
+
+### Verifikasi
+
+| Kategori | Hasil |
 |---|---|
-| Hanya tambah/edit/hapus menu | Tambah: kelola variasi per menu (tambah/edit/hapus) |
-| Menu tanpa variasi | Customer bisa pilih level pedas, ukuran, topping, dll |
-
-### Tech Specs
-
-| Metric | Value |
-|---|---|
+| E2E customer + pembayaran | 27/27 pass |
+| E2E lifecycle staff | 25/25 pass |
+| TypeScript / Build | 0 error, passed |
+| Breaking changes | Perlu migrasi SQL (di atas) |
 | Files created | 3 (`VariationManager.tsx`, `variations/route.ts`, `variations/[id]/route.ts`) |
 | Files modified | 1 (`owner/page.tsx`) |
 | TypeScript errors | 0 |
@@ -1258,17 +1310,10 @@ Midtrans diarahkan ke `<domain>/api/payments/midtrans/webhook`.
 
 ## Developer
 
-**Ricky Rudiansyah** — BINUS University, Research Track AI & Robotika
+**Ricky Rudiansyah** — BINUS University, Reseagitrch Track AI & Robotika
 
 ---
 
 ## License
 
 MIT License — bebas digunakan dan dimodifikasi.
-
-
-
-
-
-
-

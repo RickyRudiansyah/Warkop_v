@@ -49,7 +49,7 @@ export default function RefundPolicyPage() {
         <strong className="text-text font-semibold">pembayaran ganda
         (double charge)</strong>, dana yang keliru terpotong akan kami
         kembalikan karena tidak ada transaksi yang sah. Laporkan melalui halaman{' '}
-        <Link href="/kontak" className="text-primary font-medium hover:underline">
+        <Link href="/kontak" className="text-text font-medium hover:underline">
           Kontak
         </Link>{' '}
         dengan menyertakan bukti pembayaran dan waktu transaksi, dan mohon
@@ -67,11 +67,11 @@ export default function RefundPolicyPage() {
       <h2 className="text-lg font-bold mt-8 mb-3">4. Hubungi Kami</h2>
       <p className="text-text-secondary leading-relaxed">
         Pertanyaan seputar kebijakan ini dapat diajukan melalui halaman{' '}
-        <Link href="/kontak" className="text-primary font-medium hover:underline">
+        <Link href="/kontak" className="text-text font-medium hover:underline">
           Kontak
         </Link>{' '}
         atau email{' '}
-        <a href="mailto:rumipang.id@gmail.com" className="text-primary font-medium hover:underline">
+        <a href="mailto:rumipang.id@gmail.com" className="text-text font-medium hover:underline">
           rumipang.id@gmail.com
         </a>
         .

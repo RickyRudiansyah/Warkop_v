@@ -16,7 +16,7 @@ export function StaticPage({ title, children }: { title: string; children: React
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <Link href="/order" className="text-lg font-bold text-primary">Rumipang</Link>
+        <Link href="/order" className="text-lg font-bold text-text">Rumipang</Link>
         <ThemeToggle className="ml-auto" />
       </header>
 

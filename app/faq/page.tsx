@@ -31,7 +31,7 @@ export default function FaqPage() {
       <p className="text-text-secondary leading-relaxed mb-6">
         Kumpulan pertanyaan yang paling sering ditanyakan pelanggan. Tidak
         menemukan jawaban yang Anda cari? Silakan hubungi kami melalui halaman{' '}
-        <Link href="/kontak" className="text-primary font-medium hover:underline">
+        <Link href="/kontak" className="text-text font-medium hover:underline">
           Kontak
         </Link>
         .
@@ -99,7 +99,7 @@ export default function FaqPage() {
             Setelah pesanan dikirim ke kasir, pesanan tidak dapat dibatalkan
             sendiri melalui aplikasi. Jika terjadi kendala, segera hubungi staf
             kami di lokasi atau melalui halaman{' '}
-            <Link href="/kontak" className="text-primary font-medium hover:underline">
+            <Link href="/kontak" className="text-text font-medium hover:underline">
               Kontak
             </Link>
             .
@@ -110,12 +110,12 @@ export default function FaqPage() {
           <p>
             Mohon jangan mengulang pembayaran. Hubungi kami segera melalui
             halaman{' '}
-            <Link href="/kontak" className="text-primary font-medium hover:underline">
+            <Link href="/kontak" className="text-text font-medium hover:underline">
               Kontak
             </Link>{' '}
             dengan menyertakan bukti pembayaran dan nomor pesanan. Kami akan
             memeriksa dan menindaklanjuti sesuai{' '}
-            <Link href="/refund-policy" className="text-primary font-medium hover:underline">
+            <Link href="/refund-policy" className="text-text font-medium hover:underline">
               Kebijakan Refund
             </Link>
             .
@@ -134,7 +134,7 @@ export default function FaqPage() {
           <p>
             Ketentuan lengkap mengenai pengembalian dana dapat Anda baca pada
             halaman{' '}
-            <Link href="/refund-policy" className="text-primary font-medium hover:underline">
+            <Link href="/refund-policy" className="text-text font-medium hover:underline">
               Kebijakan Refund
             </Link>
             .

@@ -124,7 +124,7 @@ export default function NewOrderPage() {
               <div className="card p-4">
                 <div className="flex justify-between font-bold text-lg mb-3">
                   <span>Total</span>
-                  <span className="text-primary">{formatCurrency(total)}</span>
+                  <span className="text-text">{formatCurrency(total)}</span>
                 </div>
                 <div className="mb-3">
                   <label className="block text-sm font-medium mb-1">Nomor Meja (opsional)</label>

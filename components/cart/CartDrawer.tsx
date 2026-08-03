@@ -58,7 +58,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                   ))}
                   <div className="border-t pt-3">
-                    <div className="flex justify-between text-lg font-bold mb-3"><span>Total</span><span className="text-primary">{formatCurrency(totalPrice)}</span></div>
+                    <div className="flex justify-between text-lg font-bold mb-3"><span>Total</span><span className="text-text">{formatCurrency(totalPrice)}</span></div>
                     <Button size="lg" className="w-full" onClick={handleCheckout}>Checkout</Button>
                   </div>
                 </>

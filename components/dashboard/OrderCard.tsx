@@ -88,7 +88,7 @@ export function OrderCard({ order, onMarkPaid, onReprint, onFinish, onStartProce
 
       <div className="border-t pt-3">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-bold text-primary">{formatCurrency(order.total_amount)}</span>
+          <span className="font-bold text-text">{formatCurrency(order.total_amount)}</span>
           <div className="flex gap-2 flex-wrap">
             {onCancel && order.status === 'QUEUED' && (
               <Button variant="danger" size="sm" onClick={onCancel} aria-label="Batalkan pesanan">Cancel</Button>
