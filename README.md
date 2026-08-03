@@ -122,6 +122,9 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Cetak ulang | Tombol printer di kartu order (khusus order lunas) |
 
 > Detail kontrak integrasi aplikasi Android: [`docs/BLUETOOTH-PRINTER.md`](docs/BLUETOOTH-PRINTER.md)
+>
+> Spesifikasi aplikasi kasir Flutter (menggantikan dashboard kasir + jembatan
+> printer): [`docs/FLUTTER-KASIR-APP.md`](docs/FLUTTER-KASIR-APP.md)
 
 ### Owner
 

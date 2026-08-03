@@ -1,17 +1,10 @@
-import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireStaff } from '@/lib/auth';
 import { enqueueReceipt } from '@/lib/print';
 
-async function requireAuth() {
-  const supabaseAuth = await createClient();
-  const { data: { user } } = await supabaseAuth.auth.getUser();
-  if (!user) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role, name').eq('id', user.id).maybeSingle();
-  return staff || null;
-}
-
 export async function GET(request: NextRequest) {
-  if (!await requireAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!await requireStaff(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const supabase = createAdminClient();
   const { searchParams } = new URL(request.url);
   const history = searchParams.get('history');
@@ -74,7 +67,7 @@ export async function POST(request: NextRequest) {
   // Sengaja hanya untuk request ber-session staff: endpoint ini juga dipakai
   // pelanggan (selalu UNPAID), jadi antrian printer tidak bisa dipicu publik.
   if (payment_status === 'PAID') {
-    const staff = await requireAuth();
+    const staff = await requireStaff(request);
     if (staff) {
       await enqueueReceipt(order.id, { trigger: 'CASHIER_PAID_ORDER', verifiedBy: staff.name });
     }

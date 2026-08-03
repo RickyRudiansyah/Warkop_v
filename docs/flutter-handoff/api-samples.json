@@ -1,0 +1,121 @@
+{
+  "_catatan": "Contoh respons ASLI dari API Rumipang (ditangkap 2026-08-04). Dipakai untuk membuat model freezed/json_serializable. Urutan key mengikuti balasan server apa adanya.",
+  "GET /api/menu": [
+    {
+      "id": "71cbcd09-c907-468d-8cc1-f35e900d3453",
+      "category_id": "2d1704b1-7b61-4785-9873-b7eb087ad1f2",
+      "name": "Es Jeruk",
+      "description": "Jeruk peras segar dingin premium",
+      "price": 8000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863471174-Es_Jeruk.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00",
+      "category": {
+        "id": "2d1704b1-7b61-4785-9873-b7eb087ad1f2",
+        "name": "Minuman Dingin",
+        "sort_order": 2
+      }
+    }
+  ],
+  "GET /api/menu/variations": [
+    {
+      "id": "15b4d949-886d-4226-9bf7-3b10bb8ff04a",
+      "menu_item_id": "2238f1fb-eb1a-4f61-b811-d197dee6a93a",
+      "variation_type": "Level Gula",
+      "label": "Extra Manis",
+      "extra_price": 0
+    }
+  ],
+  "GET /api/tables": [
+    {
+      "id": "d0f93167-6ec9-4133-ac5b-6bc52a393980",
+      "table_number": 1,
+      "label": "Meja 1",
+      "is_active": true,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    }
+  ],
+  "GET /api/orders?mode=cashier": [
+    {
+      "id": "0c48576d-a1e4-4ad4-9d68-32a52438766f",
+      "table_id": "d0f93167-6ec9-4133-ac5b-6bc52a393980",
+      "status": "QUEUED",
+      "payment_method": "CASH",
+      "total_amount": 8000,
+      "notes": "tes cash",
+      "cancel_reason": null,
+      "confirmed_at": null,
+      "estimated_ready_at": null,
+      "created_at": "2026-08-03T16:39:09.237689+00:00",
+      "payment_status": "PAID",
+      "is_archived": false,
+      "table": {
+        "id": "d0f93167-6ec9-4133-ac5b-6bc52a393980",
+        "label": "Meja 1",
+        "is_active": true,
+        "created_at": "2026-05-27T06:30:35.226326+00:00",
+        "table_number": 1
+      },
+      "items": [
+        {
+          "id": "c8774348-1098-4bac-8f89-5d396368523d",
+          "notes": null,
+          "order_id": "0c48576d-a1e4-4ad4-9d68-32a52438766f",
+          "quantity": 1,
+          "subtotal": 8000,
+          "variations": [],
+          "menu_item_id": "71cbcd09-c907-468d-8cc1-f35e900d3453",
+          "menu_item_name": "Es Jeruk",
+          "menu_item_price": 8000
+        }
+      ]
+    }
+  ],
+  "GET /api/print/jobs": {
+    "jobs": [
+      {
+        "id": "6c7e95de-1634-48d2-a504-e970ff601be5",
+        "order_id": "0c48576d-a1e4-4ad4-9d68-32a52438766f",
+        "kind": "RECEIPT",
+        "status": "PENDING",
+        "trigger": "CASH_VERIFIED",
+        "payload": {
+          "items": [
+            {
+              "name": "Es Jeruk",
+              "notes": null,
+              "quantity": 1,
+              "subtotal": 8000,
+              "unit_price": 8000,
+              "variations": []
+            }
+          ],
+          "total": 8000,
+          "footer": "Terima kasih atas kunjungan Anda!",
+          "version": 1,
+          "order_id": "0c48576d-a1e4-4ad4-9d68-32a52438766f",
+          "order_no": "38766F",
+          "paid_via": "Tunai di Kasir",
+          "issued_at": "2026-08-03T16:39:52.927Z",
+          "is_reprint": false,
+          "ordered_at": "2026-08-03T16:39:09.237689+00:00",
+          "store_name": "Rumipang",
+          "store_phone": null,
+          "table_label": "Meja 1",
+          "verified_by": "Kasir",
+          "store_address": null,
+          "payment_method": "CASH",
+          "payment_status": "PAID"
+        },
+        "text_body": "            RUMIPANG\n--------------------------------\nNo                        38766F\nMeja                      Meja 1\nWaktu          03/08/2026, 23.39\nBayar             Tunai di Kasir\nKasir                      Kasir\n--------------------------------\nEs Jeruk\n  1 x 8.000                8.000\n--------------------------------\nTOTAL                   Rp 8.000\nSTATUS                     LUNAS\n--------------------------------\n  Terima kasih atas kunjungan\n             Anda!\n     03/08/2026, 23.39 WIB",
+        "attempts": 0,
+        "last_error": null,
+        "device_id": null,
+        "created_at": "2026-08-03T16:39:52.606298+00:00",
+        "claimed_at": null,
+        "printed_at": null
+      }
+    ]
+  }
+}

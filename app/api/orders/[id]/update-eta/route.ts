@@ -1,7 +1,11 @@
 ﻿import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireStaff } from '@/lib/auth';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Route ini sebelumnya tanpa penjagaan sama sekali — siapa pun yang tahu ID
+  // order bisa mengubah estimasi waktu tanpa login.
+  if (!await requireStaff(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
   const { estimated_minutes } = await request.json();
   if (!estimated_minutes || estimated_minutes < 1 || estimated_minutes > 1440) {

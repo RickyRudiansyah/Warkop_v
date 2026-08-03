@@ -1,17 +1,10 @@
-import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireStaff } from '@/lib/auth';
 import { enqueueReceipt } from '@/lib/print';
 
-async function requireAuth() {
-  const supabaseAuth = await createClient();
-  const { data: { user } } = await supabaseAuth.auth.getUser();
-  if (!user) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role, name').eq('id', user.id).maybeSingle();
-  return staff || null;
-}
-
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const staff = await requireAuth();
+  const staff = await requireStaff(request);
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
   const supabase = createAdminClient();

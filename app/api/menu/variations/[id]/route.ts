@@ -1,16 +1,9 @@
-import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-
-async function requireAuth() {
-  const supabaseAuth = await createClient();
-  const { data: { user } } = await supabaseAuth.auth.getUser();
-  if (!user) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', user.id).maybeSingle();
-  return staff || null;
-}
+import { requireStaff } from '@/lib/auth';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!await requireAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!await requireStaff(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
   const supabase = createAdminClient();
   const body = await request.json();
@@ -22,7 +15,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!await requireAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!await requireStaff(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
   const supabase = createAdminClient();
 

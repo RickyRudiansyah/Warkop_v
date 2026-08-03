@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
-import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
+import { requireStaff } from '@/lib/auth';
 import { buildReceipt, renderReceiptText } from '@/lib/receipt';
 import { Order, PrintJobTrigger } from '@/types';
 
@@ -89,9 +90,11 @@ export type PrintAccess =
   | { kind: 'device'; deviceId: string }
   | { kind: 'staff'; role: string };
 
-// Endpoint cetak dipakai dua pihak:
-//   * aplikasi Android printer -> header  x-print-token: <PRINT_DEVICE_TOKEN>
-//   * dashboard staff          -> session Supabase biasa
+// Endpoint cetak dipakai tiga pihak:
+//   * alat cetak khusus  -> header  x-print-token: <PRINT_DEVICE_TOKEN>
+//   * aplikasi kasir     -> header  Authorization: Bearer <JWT>
+//   * dashboard web      -> cookie session Supabase
+// Dua yang terakhir sama-sama ditangani requireStaff().
 export async function requirePrintAccess(request: NextRequest): Promise<PrintAccess | null> {
   const token = request.headers.get('x-print-token');
   const expected = process.env.PRINT_DEVICE_TOKEN;
@@ -100,10 +103,7 @@ export async function requirePrintAccess(request: NextRequest): Promise<PrintAcc
     return { kind: 'device', deviceId: request.headers.get('x-print-device') || 'unknown' };
   }
 
-  const supabaseAuth = await createClient();
-  const { data: { user } } = await supabaseAuth.auth.getUser();
-  if (!user) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', user.id).maybeSingle();
+  const staff = await requireStaff(request);
   return staff ? { kind: 'staff', role: staff.role } : null;
 }
 
