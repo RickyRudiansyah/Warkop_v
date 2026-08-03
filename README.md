@@ -1141,14 +1141,29 @@ RECEIPT_COLUMNS=32           # 32 = kertas 58mm, 48 = 80mm
 npm run test:qris:direct   # cek server key & aktivasi QRIS (tanpa perlu app jalan)
 
 npm run dev                # terminal 1
-npm run test:qris          # terminal 2 — end-to-end sampai struk masuk antrian
+npm run test:qris:auto     # terminal 2 — bayar otomatis, tanpa browser (paling mudah)
+npm run test:qris          # terminal 2 — bayar manual di simulator
 ```
 
-Script mencetak `qr_string` + link QR. Bayar di simulator sandbox Midtrans
-(<https://simulator.sandbox.midtrans.com/qris/index>), lalu script akan polling
-sampai lunas dan menampilkan isi struk yang masuk antrian printer. Script ini
-memanggil endpoint Midtrans langsung, jadi tetap jalan walau halaman checkout
-customer sudah beralih ke Mayar.
+`test:qris:auto` mengisi form simulator sandbox sendiri, jadi tidak ada risiko
+salah halaman/salah field. Kalau Midtrans mengubah markup simulatornya, mode ini
+bisa berhenti bekerja — pakai `test:qris` (manual) sebagai cadangan.
+
+Script mencetak **QR image URL** (`qrUrl`) dan `qr_string`. Untuk membayar,
+buka simulator sandbox Midtrans (<https://simulator.sandbox.midtrans.com/v2/qris/index>),
+tempel **QR image URL** ke field *QR Code Image Url*, klik **Scan QR** lalu **Pay**.
+
+> **Pakai URL dengan `/v2/`.** Halaman lama (`/qris/index`, tanpa `/v2/`) masih
+> bisa membaca QR dan menampilkan Reference ID, tapi form-nya kehilangan field
+> `exploreData` sehingga tombol Pay selalu berakhir *"Transaction is unsuccessful"*
+> dan transaksi tetap `pending`.
+
+> Simulator hanya menerima **URL gambar QR**, bukan `qr_string` mentah.
+> `qr_string` dipakai aplikasi untuk merender QR sendiri (via `qrcode.react`),
+> bukan untuk ditempel ke simulator.
+
+Setelah dibayar, script akan polling sampai lunas dan menampilkan isi struk yang
+masuk antrian printer.
 
 Prasyarat sandbox: `MIDTRANS_SERVER_KEY` diawali `SB-Mid-server-`,
 `MIDTRANS_IS_PRODUCTION=false`, dan Payment Notification URL di dashboard

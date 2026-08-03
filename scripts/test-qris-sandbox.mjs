@@ -2,12 +2,14 @@
 // struk otomatis masuk antrian printer.
 //
 //   node scripts/test-qris-sandbox.mjs            # lewat aplikasi (perlu `npm run dev`)
+//   node scripts/test-qris-sandbox.mjs --pay      # sama, tapi bayar otomatis tanpa browser
 //   node scripts/test-qris-sandbox.mjs --direct   # langsung ke Midtrans (cek server key saja)
 //
 // Alur mode default:
 //   1. Ambil 1 menu + 1 meja dari API publik
 //   2. POST /api/payments/midtrans/charge  -> dapat QR sandbox
-//   3. Bayar QR-nya di simulator sandbox Midtrans (link dicetak di terminal)
+//   3. Bayar QR-nya di simulator sandbox Midtrans (link dicetak di terminal),
+//      atau otomatis kalau memakai --pay
 //   4. Script polling status sampai PAID, lalu cek print job-nya terbentuk
 
 import { readFileSync, existsSync } from 'fs';
@@ -15,7 +17,12 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SIMULATOR_URL = 'https://simulator.sandbox.midtrans.com/qris/index';
+// WAJIB pakai path /v2/. Halaman lama (tanpa /v2/) masih bisa membaca QR dan
+// menampilkan Reference ID, tapi form-nya memakai kontrak lama (`qrString`
+// bukan `exploreData`) yang sudah tidak dilayani backend — tombol Pay di sana
+// selalu berakhir "Transaction is unsuccessful" dan transaksi tetap pending.
+const SIMULATOR_BASE = 'https://simulator.sandbox.midtrans.com/v2/qris';
+const SIMULATOR_URL = SIMULATOR_BASE + '/index';
 
 function loadEnv() {
   const env = {};
@@ -35,6 +42,7 @@ function loadEnv() {
 
 const env = loadEnv();
 const DIRECT = process.argv.includes('--direct');
+const AUTO_PAY = process.argv.includes('--pay');
 const APP_URL = (env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 const SERVER_KEY = env.MIDTRANS_SERVER_KEY;
 
@@ -44,6 +52,57 @@ function fail(message) {
 }
 
 function bar() { console.log('-'.repeat(64)); }
+
+function unescapeHtml(s) {
+  return s
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#x2F;/g, '/')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+}
+
+// Bayar QR di simulator sandbox tanpa browser.
+//
+// Simulator tidak punya API resmi — script ini mengisi form HTML-nya persis
+// seperti yang dilakukan browser: langkah "Scan QR" mengembalikan form berisi
+// referenceId + exploreData, lalu keduanya dikirim balik ke /payment/gopay.
+// Kalau Midtrans mengubah markup simulatornya, mode ini bisa berhenti bekerja —
+// pembayaran manual lewat browser tetap jadi cadangan.
+async function simulatorPay(qrUrl) {
+  let scan;
+  try {
+    scan = await fetch(SIMULATOR_BASE + '/payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ qrCodeUrl: qrUrl }),
+    });
+  } catch {
+    return { ok: false, error: 'Tidak dapat menghubungi simulator sandbox' };
+  }
+  if (!scan.ok) return { ok: false, error: 'Simulator menolak scan (HTTP ' + scan.status + ')' };
+
+  const html = await scan.text();
+  const start = html.indexOf('<form');
+  const end = html.indexOf('</form>');
+  if (start === -1 || end === -1) return { ok: false, error: 'Form pembayaran tidak ditemukan di halaman simulator' };
+
+  // Bawa semua hidden field apa adanya supaya tahan terhadap penambahan field baru.
+  const body = new URLSearchParams();
+  for (const m of html.slice(start, end).matchAll(/name="([a-zA-Z]+)"[^>]*value="([\s\S]*?)"\s*\/?>/g)) {
+    body.set(m[1], unescapeHtml(m[2]));
+  }
+  if (!body.has('referenceId')) return { ok: false, error: 'Simulator tidak mengembalikan referenceId (QR tidak terbaca?)' };
+  body.set('issuer', 'gopay');
+
+  const pay = await fetch(SIMULATOR_BASE + '/payment/gopay', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  if (!pay.ok) return { ok: false, error: 'Pembayaran simulator gagal (HTTP ' + pay.status + ')' };
+  if (/unsuccessful/i.test(await pay.text())) {
+    return { ok: false, error: 'Simulator menjawab "Transaction is unsuccessful"' };
+  }
+  return { ok: true };
+}
 
 // ---- Pemeriksaan awal ----
 if (!SERVER_KEY || SERVER_KEY === 'SB-Mid-server-xxxxxxxx') {
@@ -100,7 +159,9 @@ async function runDirect() {
   console.log('  qr_string  : ' + (data.qr_string || '-'));
   bar();
   console.log('  Bayar di simulator: ' + SIMULATOR_URL);
-  console.log('  (tempel qr_string di simulator, lalu klik "Pay")');
+  console.log('  Tempel "QR image" DI ATAS ke field "QR Code Image Url",');
+  console.log('  klik "Scan QR", lalu "Pay". (Bukan qr_string — simulator');
+  console.log('  hanya menerima URL gambar QR.)');
 }
 
 // ---- Mode default: lewat aplikasi, end-to-end sampai struk ----
@@ -147,11 +208,32 @@ async function runThroughApp() {
   console.log('  QR image  : ' + (charge.qrUrl || '-'));
   console.log('  qr_string : ' + (charge.qrString || '-'));
   bar();
-  console.log('  LANGKAH BAYAR (sandbox):');
-  console.log('    1. Buka ' + SIMULATOR_URL);
-  console.log('    2. Tempel qr_string di atas, klik Scan lalu Pay');
-  console.log('    (atau buka halaman /checkout di browser dan scan QR-nya)');
-  bar();
+
+  if (AUTO_PAY) {
+    console.log('  Membayar otomatis di simulator sandbox...');
+    const paid = await simulatorPay(charge.qrUrl);
+    if (!paid.ok) {
+      console.log('  Gagal bayar otomatis: ' + paid.error);
+      console.log('  Lanjutkan manual di ' + SIMULATOR_URL);
+    } else {
+      console.log('  Pembayaran simulator terkirim.');
+    }
+    bar();
+  } else {
+    console.log('  LANGKAH BAYAR (sandbox):');
+    console.log('    1. Buka ' + SIMULATOR_URL);
+    console.log('    2. Tempel "QR image" di atas ke field "QR Code Image Url"');
+    console.log('    3. Klik "Scan QR", lalu klik "Pay"');
+    console.log('');
+    console.log('    Pastikan alamatnya mengandung "/v2/" — halaman lama');
+    console.log('    (tanpa /v2/) selalu berakhir "unsuccessful".');
+    console.log('    Simulator minta URL GAMBAR QR, bukan qr_string.');
+    console.log('');
+    console.log('    Atau jalankan ulang dengan  npm run test:qris:auto');
+    console.log('    supaya dibayar otomatis tanpa browser.');
+    bar();
+  }
+
   console.log('Menunggu pembayaran... (Ctrl+C untuk batal)\n');
 
   const deadline = Date.now() + 10 * 60 * 1000;

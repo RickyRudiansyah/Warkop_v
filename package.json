@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:qris": "node scripts/test-qris-sandbox.mjs",
+    "test:qris:auto": "node scripts/test-qris-sandbox.mjs --pay",
     "test:qris:direct": "node scripts/test-qris-sandbox.mjs --direct"
   },
   "dependencies": {
