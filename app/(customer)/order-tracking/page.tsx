@@ -119,11 +119,13 @@ export default function OrderTrackingPage() {
     : tableId ? 'Meja Anda' : null;
 
   const header = (
-    <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
-      <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-      <h1 className="text-lg font-bold text-text">Rumipang</h1>
-      {tableLabel && <p className="text-sm text-text-secondary ml-auto">{tableLabel}</p>}
-      <ThemeToggle />
+    <header className="sticky top-0 z-20 bg-brown-900 text-on-dark shadow-sm">
+      <div className="max-w-md mx-auto h-14 px-4 flex items-center gap-3">
+        <Link href="/order" aria-label="Kembali ke menu"><ArrowLeft className="w-5 h-5" /></Link>
+        <h1 className="text-base font-semibold uppercase tracking-wide">Rumipang</h1>
+        {tableLabel && <p className="text-sm opacity-80 ml-auto">{tableLabel}</p>}
+        <ThemeToggle className={tableLabel ? '' : 'ml-auto'} />
+      </div>
     </header>
   );
 

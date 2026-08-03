@@ -8,7 +8,9 @@ import { useState, useEffect } from 'react';
 
 interface CartFABProps { onClick: () => void; }
 
-// Sticky dark bottom bar (design §5.7): cart total on the left, yellow ORDER button on the right.
+// Cart bar sticky di dasar layar (DESIGN.md §5.8): background brown-950,
+// kiri jumlah item, tengah total, kanan tombol gold. Hanya tampil bila
+// keranjang terisi — slide-up saat item pertama masuk.
 export function CartFAB({ onClick }: CartFABProps) {
   const { totalItems, totalPrice } = useCart();
   const [mounted, setMounted] = useState(false);
@@ -19,30 +21,31 @@ export function CartFAB({ onClick }: CartFABProps) {
     <AnimatePresence>
       {totalItems > 0 && (
         <motion.div
-          initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-          transition={{ type: 'spring', damping: 22 }}
-          className="fixed bottom-0 left-0 right-0 z-40 px-3 pb-3 pt-2 pointer-events-none"
+          initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
+          transition={{ type: 'spring', damping: 24, duration: 0.2 }}
+          className="fixed bottom-0 left-0 right-0 z-40 bar-dark pb-safe"
         >
-          <div className="mx-auto max-w-md bar-dark rounded-2xl shadow-xl flex items-center justify-between gap-3 p-2.5 pointer-events-auto">
+          <div className="max-w-md mx-auto h-16 px-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative shrink-0">
+                <ShoppingCart className="w-5 h-5" />
+                <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-ember-600 text-cream-50 text-[10px] font-bold flex items-center justify-center">
+                  {totalItems}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide opacity-60 leading-none">
+                  {totalItems} item
+                </p>
+                <p className="font-bold text-[15px] leading-tight mt-1 truncate">{formatCurrency(totalPrice)}</p>
+              </div>
+            </div>
+
             <button
               onClick={onClick}
-              aria-label={'Lihat keranjang, ' + totalItems + ' item'}
-              className="flex items-center gap-3 pl-2 pr-1 py-1 min-w-0 active:scale-[0.98] transition"
+              className="shrink-0 bg-gold-500 text-brown-900 font-bold text-sm uppercase tracking-wide rounded-lg px-6 h-11 hover:bg-gold-400 active:scale-[0.97] transition"
             >
-              <div className="relative">
-                <div className="bg-white/10 p-2 rounded-xl"><ShoppingCart className="w-5 h-5" /></div>
-                <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-primary text-[color:var(--color-on-primary)] text-xs font-bold flex items-center justify-center">{totalItems}</span>
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-[11px] text-white/60 leading-none">Order Total</p>
-                <p className="font-bold text-[15px] leading-tight mt-0.5 truncate">{formatCurrency(totalPrice)}</p>
-              </div>
-            </button>
-            <button
-              onClick={onClick}
-              className="shrink-0 bg-primary text-[color:var(--color-on-primary)] font-bold rounded-xl px-6 py-3 text-sm tracking-wide hover:bg-primary-dark active:scale-[0.97] transition shadow-sm"
-            >
-              ORDER
+              Lihat Pesanan
             </button>
           </div>
         </motion.div>

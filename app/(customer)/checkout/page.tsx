@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { PaymentMethod, Table } from '@/types';
-import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X, Loader2 } from 'lucide-react';
+import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X, Loader2, Armchair } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -16,24 +17,28 @@ type PayState = 'idle' | 'creating' | 'waiting' | 'paid' | 'expired' | 'failed';
 
 interface QrisData {
   intentId: string;
-  link: string;
+  qrUrl: string | null;
+  qrString: string | null;
   grossAmount: number;
 }
 
 export default function CheckoutPage() {
-  const { items, removeItem, clearCart, totalPrice, setTableNumber } = useCart();
+  const { items, removeItem, clearCart, totalPrice, tableId, tableNumber, setTable } = useCart();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [submitting, setSubmitting] = useState(false);
   const [tables, setTables] = useState<Table[]>([]);
-  const [selectedTableId, setSelectedTableId] = useState<string>('');
   const [loadingTables, setLoadingTables] = useState(true);
   const [agreed, setAgreed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [qrisOpen, setQrisOpen] = useState(false);
+  const [qrImgError, setQrImgError] = useState(false);
   const [payState, setPayState] = useState<PayState>('idle');
   const [qris, setQris] = useState<QrisData | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const router = useRouter();
+
+  // Meja dipilih di header halaman menu dan disimpan di CartContext.
+  const selectedTableId = tableId ?? '';
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -54,11 +59,10 @@ export default function CheckoutPage() {
     notes: item.notes || null,
   }));
 
-  // ---- CASH: create the order immediately as UNPAID ----
+  // ---- CASH: order langsung dibuat sebagai UNPAID ----
   const submitCashOrder = async () => {
     setSubmitting(true);
     try {
-      const selectedTable = tables.find(t => t.id === selectedTableId);
       const res = await fetch('/api/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,7 +72,6 @@ export default function CheckoutPage() {
       });
       if (res.ok) {
         const order = await res.json();
-        if (selectedTable) setTableNumber(selectedTable.table_number);
         clearCart();
         toast.success('Pesanan berhasil dibuat!');
         router.push('/order-success?orderId=' + order.id + '&tableId=' + selectedTableId);
@@ -80,29 +83,28 @@ export default function CheckoutPage() {
     } catch { toast.error('Gagal membuat pesanan'); setSubmitting(false); }
   };
 
-  // ---- QRIS via Mayar: create payment request, open pay page, poll until paid ----
+  // ---- QRIS via Midtrans: charge, tampilkan QR, polling sampai settle ----
   const startQris = async () => {
     setPayState('creating');
+    setQrImgError(false);
     setQris(null);
     setQrisOpen(true);
     try {
-      const res = await fetch('/api/payments/mayar/create', {
+      const res = await fetch('/api/payments/midtrans/charge', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           table_id: selectedTableId, total_amount: totalPrice, notes: '', items: orderItemsPayload(),
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.link) {
+      if (!res.ok) {
         toast.error(data.error || 'Gagal memproses pembayaran QRIS');
         setPayState('idle');
         setQrisOpen(false);
         return;
       }
-      setQris({ intentId: data.intentId, link: data.link, grossAmount: totalPrice });
+      setQris({ intentId: data.intentId, qrUrl: data.qrUrl, qrString: data.qrString, grossAmount: data.grossAmount });
       setPayState('waiting');
-      // Open the Mayar QRIS page in a new tab (user gesture -> not popup-blocked).
-      window.open(data.link, '_blank', 'noopener');
     } catch {
       toast.error('Gagal memproses pembayaran QRIS');
       setPayState('idle');
@@ -110,19 +112,17 @@ export default function CheckoutPage() {
     }
   };
 
-  // Poll payment status while waiting.
+  // Polling status selama menunggu pembayaran.
   useEffect(() => {
     if (payState !== 'waiting' || !qris) return;
     let active = true;
     const check = async () => {
       try {
-        const res = await fetch('/api/payments/mayar/status?intentId=' + qris.intentId, { cache: 'no-store' });
+        const res = await fetch('/api/payments/midtrans/status?intentId=' + qris.intentId, { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));
         if (!active) return;
         if (data.status === 'PAID') {
           setPayState('paid');
-          const selectedTable = tables.find(t => t.id === selectedTableId);
-          if (selectedTable) setTableNumber(selectedTable.table_number);
           clearCart();
           toast.success('Pembayaran berhasil!');
           router.push('/order-success?orderId=' + data.orderId + '&tableId=' + selectedTableId);
@@ -136,12 +136,12 @@ export default function CheckoutPage() {
     const id = setInterval(check, 3000);
     check();
     return () => { active = false; clearInterval(id); };
-  }, [payState, qris, selectedTableId, tables, router, clearCart, setTableNumber]);
+  }, [payState, qris, selectedTableId, router, clearCart]);
 
-  // 30-minute local countdown (matches the Mayar payment expiry).
+  // Hitung mundur lokal 15 menit untuk kode QRIS.
   useEffect(() => {
     if (payState !== 'waiting') return;
-    setSecondsLeft(30 * 60);
+    setSecondsLeft(15 * 60);
     const id = setInterval(() => {
       setSecondsLeft(s => (s <= 1 ? 0 : s - 1));
     }, 1000);
@@ -163,14 +163,20 @@ export default function CheckoutPage() {
 
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+  const header = (
+    <header className="sticky top-0 z-20 bg-brown-900 text-on-dark shadow-sm">
+      <div className="max-w-md mx-auto h-14 px-4 flex items-center gap-3">
+        <Link href="/order" aria-label="Kembali ke menu"><ArrowLeft className="w-5 h-5" /></Link>
+        <h1 className="text-base font-semibold uppercase tracking-wide">Checkout</h1>
+        <ThemeToggle className="ml-auto" />
+      </div>
+    </header>
+  );
+
   if (!mounted) {
     return (
       <div className="min-h-screen bg-surface-2">
-        <header className="sticky top-0 z-20 bg-primary text-[color:var(--color-on-primary)] px-4 py-3 flex items-center gap-3 shadow-sm">
-          <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-          <h1 className="text-lg font-bold text-text">Rumipang</h1>
-          <ThemeToggle className="ml-auto" />
-        </header>
+        {header}
         <div className="p-4 space-y-4 max-w-md mx-auto">
           <div className="card p-4 space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (<Skeleton key={i} variant="rectangular" height="48px" />))}
@@ -183,11 +189,7 @@ export default function CheckoutPage() {
   if (items.length === 0 && !submitting && payState === 'idle') {
     return (
       <div className="min-h-screen bg-surface-2">
-        <header className="sticky top-0 z-20 bg-primary text-[color:var(--color-on-primary)] px-4 py-3 flex items-center gap-3 shadow-sm">
-          <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-          <h1 className="text-lg font-bold text-text">Rumipang</h1>
-          <ThemeToggle className="ml-auto" />
-        </header>
+        {header}
         <div className="flex flex-col items-center justify-center p-12">
           <h2 className="text-xl font-bold mb-2">Keranjang Kosong</h2>
           <Link href="/order"><Button className="mt-3">Pilih Menu</Button></Link>
@@ -198,24 +200,20 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-surface-2">
-      <header className="glass sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3">
-        <Link href="/order"><ArrowLeft className="w-5 h-5" /></Link>
-        <h1 className="text-lg font-bold text-text">Rumipang</h1>
-        <ThemeToggle className="ml-auto" />
-      </header>
+      {header}
       <div className="p-4 space-y-4 max-w-md mx-auto">
         <div className="card p-4">
-          <h2 className="font-semibold mb-3">Pesanan Anda</h2>
+          <h2 className="section-title text-base mb-3">Pesanan Anda</h2>
           {items.map((item, i) => (
-            <div key={item.menu_item.id + '-' + i} className="flex items-center justify-between py-2 border-b last:border-0">
-              <div className="flex-1">
-                <p className="font-medium">{item.menu_item.name}</p>
+            <div key={item.menu_item.id + '-' + i} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <div className="flex-1 min-w-0 pr-2">
+                <p className="font-semibold uppercase text-[15px] leading-snug">{item.menu_item.name}</p>
                 <p className="text-sm text-text-secondary">{item.quantity}x {formatCurrency(item.menu_item.price)}</p>
                 {item.selectedVariations.length > 0 && <p className="text-xs text-text-secondary">{item.selectedVariations.map(v => v.label).join(', ')}</p>}
                 {item.notes && <p className="text-xs text-text-secondary">Catatan: {item.notes}</p>}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{formatCurrency(item.subtotal)}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="font-semibold">{formatCurrency(item.subtotal)}</span>
                 <button onClick={() => removeItem(i)} className="p-1 text-danger" aria-label="Hapus"><Trash2 className="w-4 h-4" /></button>
               </div>
             </div>
@@ -223,68 +221,91 @@ export default function CheckoutPage() {
         </div>
 
         <div className="card p-4">
-          <h2 className="font-semibold mb-3">Nomor Meja</h2>
+          <h2 className="section-title text-base mb-3">Nomor Meja</h2>
           {loadingTables ? (
             <Skeleton variant="rectangular" height="44px" />
           ) : tables.length === 0 ? (
             <p className="text-sm text-text-secondary">Belum ada meja tersedia. Hubungi staff.</p>
           ) : (
-            <select
-              value={selectedTableId}
-              onChange={e => setSelectedTableId(e.target.value)}
-              className="w-full px-4 py-2.5 border rounded-lg bg-surface outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              aria-label="Pilih nomor meja"
-            >
-              <option value="">— Pilih meja —</option>
-              {tables.map(t => (
-                <option key={t.id} value={t.id}>{t.label || 'Meja ' + t.table_number}</option>
-              ))}
-            </select>
+            <>
+              <select
+                value={selectedTableId}
+                onChange={e => {
+                  const t = tables.find(x => x.id === e.target.value);
+                  setTable(t?.id ?? null, t?.table_number ?? null);
+                }}
+                className="w-full px-4 py-2.5 border border-border rounded-lg bg-surface text-text outline-none focus:border-ember-600"
+                aria-label="Pilih nomor meja"
+              >
+                <option value="">— Pilih meja —</option>
+                {tables.map(t => (
+                  <option key={t.id} value={t.id}>{t.label || 'Meja ' + t.table_number}</option>
+                ))}
+              </select>
+              {selectedTableId ? (
+                <p className="flex items-center gap-1.5 text-sm text-text-secondary mt-2">
+                  <Armchair className="w-4 h-4 text-ember-600" />
+                  Diantar ke <strong className="text-text">Meja {tableNumber}</strong>
+                </p>
+              ) : (
+                <p className="text-sm text-warning mt-2">Wajib dipilih sebelum bisa memesan.</p>
+              )}
+            </>
           )}
         </div>
 
         <div className="card p-4">
-          <h2 className="font-semibold mb-3">Metode Pembayaran</h2>
+          <h2 className="section-title text-base mb-3">Metode Pembayaran</h2>
           <div className="space-y-2">
             {(['CASH', 'QRIS'] as PaymentMethod[]).map(method => (
-              <label key={method} className={'flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ' + (paymentMethod === method ? 'border-primary bg-primary/5' : 'hover:bg-surface-3')}>
-                <input type="radio" name="payment" checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} />
-                {method === 'CASH' ? <Wallet className="w-5 h-5 text-text-secondary" /> : <QrCode className="w-5 h-5 text-text-secondary" />}
+              <label
+                key={method}
+                className={'flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ' +
+                  (paymentMethod === method ? 'border-ember-600 bg-ember-100' : 'border-border hover:bg-surface-3')}
+              >
+                <input
+                  type="radio" name="payment" checked={paymentMethod === method}
+                  onChange={() => setPaymentMethod(method)}
+                  className="accent-[color:var(--color-ember-600)]"
+                />
+                {method === 'CASH'
+                  ? <Wallet className="w-5 h-5 text-brown-500" />
+                  : <QrCode className="w-5 h-5 text-brown-500" />}
                 <span className="flex-1">{method === 'CASH' ? 'Cash (Bayar di Kasir)' : 'QRIS (Bayar Sekarang)'}</span>
               </label>
             ))}
           </div>
           <p className="text-xs text-text-secondary mt-2">
             {paymentMethod === 'CASH'
-              ? 'Pesanan langsung diproses. Bayar di kasir.'
-              : 'Scan QRIS & bayar. Pesanan otomatis diproses setelah pembayaran terkonfirmasi.'}
+              ? 'Pesanan langsung diproses. Bayar di kasir, struk dicetak setelah kasir memverifikasi.'
+              : 'Scan QRIS & bayar. Pesanan otomatis diproses dan struk langsung dicetak setelah pembayaran terkonfirmasi.'}
           </p>
         </div>
 
         <div className="card p-4">
           <div className="flex justify-between text-lg font-bold">
             <span>Total</span>
-            <span className="text-text">{formatCurrency(totalPrice)}</span>
+            <span className="text-ember-600">{formatCurrency(totalPrice)}</span>
           </div>
         </div>
 
-        <div className="card p-4 bg-warning/5 border-warning/20">
+        <div className="card p-4 bg-gold-100 border-gold-500/40">
           <div className="flex items-start gap-3 mb-3">
             <div className="p-1.5 rounded-full bg-warning/10 shrink-0 mt-0.5">
               <AlertTriangle className="w-4 h-4 text-warning" />
             </div>
             <div>
-              <p className="font-semibold text-sm">Perhatian</p>
-              <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+              <p className="font-semibold text-sm text-brown-900">Perhatian</p>
+              <p className="text-xs text-brown-900/70 mt-1 leading-relaxed">
                 Setelah pesanan dikirim ke kasir, <strong>pesanan tidak dapat dibatalkan</strong> secara langsung oleh Anda.
               </p>
             </div>
           </div>
           <label className="flex items-start gap-3 cursor-pointer group">
-            <div className={'mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ' + (agreed ? 'bg-primary border-primary' : 'border-text-secondary/40 group-hover:border-primary')}>
-              {agreed && <Check className="w-3.5 h-3.5 text-[color:var(--color-on-primary)]" />}
+            <div className={'mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ' + (agreed ? 'bg-ember-600 border-ember-600' : 'border-brown-500/40 group-hover:border-ember-600')}>
+              {agreed && <Check className="w-3.5 h-3.5 text-cream-50" />}
             </div>
-            <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
+            <span className="text-sm text-brown-900/80">
               Saya setuju, pesanan saya akan segera diproses dan <strong>tidak dapat dibatalkan setelah checkout</strong>.
             </span>
             <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="sr-only" aria-label="Setuju" />
@@ -293,7 +314,7 @@ export default function CheckoutPage() {
 
         <Button
           size="lg"
-          className="w-full"
+          className="w-full h-[52px] uppercase tracking-wide"
           loading={submitting || payState === 'creating'}
           disabled={!agreed || !selectedTableId || submitting || payState === 'creating'}
           onClick={handleCheckout}
@@ -304,36 +325,48 @@ export default function CheckoutPage() {
 
       {qrisOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => payState !== 'creating' && closeQris()} />
-          <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-sm p-6" role="dialog" aria-modal="true" aria-labelledby="qris-title">
-            <button onClick={closeQris} disabled={payState === 'creating'} className="absolute top-4 right-4 text-text-secondary disabled:opacity-40" aria-label="Tutup"><X className="w-5 h-5" /></button>
-            <h3 id="qris-title" className="text-lg font-bold mb-1 text-center">Pembayaran QRIS</h3>
+          <div className="absolute inset-0 bg-brown-950/55" onClick={() => payState !== 'creating' && closeQris()} />
+          <div className="relative bg-cream-50 rounded-2xl shadow-xl w-full max-w-sm p-6" role="dialog" aria-modal="true" aria-labelledby="qris-title">
+            <button onClick={closeQris} disabled={payState === 'creating'} className="absolute top-4 right-4 text-brown-500 disabled:opacity-40" aria-label="Tutup"><X className="w-5 h-5" /></button>
+            <h3 id="qris-title" className="text-lg font-bold uppercase mb-1 text-center text-brown-900">Pembayaran QRIS</h3>
 
             {payState === 'creating' && (
               <div className="flex flex-col items-center justify-center gap-3 py-12">
-                <Loader2 className="w-8 h-8 text-text animate-spin" />
-                <p className="text-sm text-text-secondary">Membuat kode QRIS...</p>
+                <Loader2 className="w-8 h-8 text-ember-600 animate-spin" />
+                <p className="text-sm text-[color:var(--color-text-secondary)]">Membuat kode QRIS...</p>
               </div>
             )}
 
             {payState === 'waiting' && qris && (
               <>
-                <div className="flex flex-col items-center gap-2 my-4">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center"><QrCode className="w-7 h-7 text-text" /></div>
-                  <p className="text-sm text-text-secondary text-center">Halaman pembayaran QRIS terbuka di tab baru. Scan & bayar di sana, lalu kembali ke halaman ini.</p>
+                <p className="text-sm text-[color:var(--color-text-secondary)] text-center mb-4">
+                  Scan dengan aplikasi e-wallet / m-banking apa pun.
+                </p>
+                <div className="flex justify-center mb-4">
+                  {qris.qrUrl && !qrImgError ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={qris.qrUrl} alt="Kode QRIS" className="w-56 h-56 object-contain bg-white rounded-xl p-2" onError={() => setQrImgError(true)} />
+                  ) : qris.qrString ? (
+                    <div className="bg-white rounded-xl p-3">
+                      <QRCodeSVG value={qris.qrString} size={208} />
+                    </div>
+                  ) : (
+                    <div className="w-56 h-56 flex items-center justify-center border-2 border-dashed border-border rounded-xl text-center p-4">
+                      <p className="text-sm text-[color:var(--color-text-secondary)]">Kode QRIS tidak tersedia</p>
+                    </div>
+                  )}
                 </div>
-                <div className="card p-3 mb-4 text-center bg-surface-2">
-                  <p className="text-sm text-text-secondary">Total Pembayaran</p>
-                  <p className="text-2xl font-bold text-text">{formatCurrency(qris.grossAmount)}</p>
+                <div className="rounded-xl border border-border p-3 mb-4 text-center bg-brown-100">
+                  <p className="text-sm text-[color:var(--color-text-secondary)]">Total Pembayaran</p>
+                  <p className="text-2xl font-bold text-ember-600">{formatCurrency(qris.grossAmount)}</p>
                 </div>
-                <a href={qris.link} target="_blank" rel="noopener noreferrer" className="block w-full mb-3">
-                  <Button className="w-full"><QrCode className="w-4 h-4 mr-2" />Buka Halaman Pembayaran</Button>
-                </a>
-                <div className="flex items-center justify-center gap-2 text-sm text-text-secondary mb-1">
+                <div className="flex items-center justify-center gap-2 text-sm text-[color:var(--color-text-secondary)] mb-1">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Menunggu pembayaran...</span>
                 </div>
-                <p className="text-xs text-text-secondary text-center mb-4">Berlaku {mmss(secondsLeft)} • Pesanan otomatis diproses setelah dibayar.</p>
+                <p className="text-xs text-[color:var(--color-text-secondary)] text-center mb-4">
+                  Berlaku {mmss(secondsLeft)} • Struk otomatis dicetak setelah dibayar.
+                </p>
                 <Button variant="ghost" className="w-full" onClick={closeQris}>Batal</Button>
               </>
             )}
@@ -341,8 +374,8 @@ export default function CheckoutPage() {
             {payState === 'expired' && (
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <div className="w-14 h-14 rounded-full bg-warning/10 flex items-center justify-center"><AlertTriangle className="w-7 h-7 text-warning" /></div>
-                <p className="font-semibold">Kode QRIS Kadaluarsa</p>
-                <p className="text-sm text-text-secondary">Buat kode baru untuk melanjutkan pembayaran.</p>
+                <p className="font-semibold text-brown-900">Kode QRIS Kadaluarsa</p>
+                <p className="text-sm text-[color:var(--color-text-secondary)]">Buat kode baru untuk melanjutkan pembayaran.</p>
                 <Button className="w-full mt-2" onClick={startQris}>Buat Kode Baru</Button>
                 <Button variant="ghost" className="w-full" onClick={closeQris}>Tutup</Button>
               </div>
@@ -351,8 +384,8 @@ export default function CheckoutPage() {
             {payState === 'failed' && (
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center"><X className="w-7 h-7 text-danger" /></div>
-                <p className="font-semibold">Pembayaran Dibatalkan</p>
-                <p className="text-sm text-text-secondary">Silakan coba lagi.</p>
+                <p className="font-semibold text-brown-900">Pembayaran Dibatalkan</p>
+                <p className="text-sm text-[color:var(--color-text-secondary)]">Silakan coba lagi.</p>
                 <Button className="w-full mt-2" onClick={startQris}>Coba Lagi</Button>
                 <Button variant="ghost" className="w-full" onClick={closeQris}>Tutup</Button>
               </div>

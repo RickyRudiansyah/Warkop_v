@@ -52,8 +52,14 @@ if (!SERVER_KEY || SERVER_KEY === 'SB-Mid-server-xxxxxxxx') {
 if (env.MIDTRANS_IS_PRODUCTION === 'true') {
   fail('MIDTRANS_IS_PRODUCTION=true. Script ini khusus sandbox — set ke false dulu.');
 }
+// Sebagian akun Midtrans memberi server key sandbox TANPA awalan "SB-", jadi
+// prefix tidak bisa dipakai sebagai penentu. Yang menentukan endpoint adalah
+// MIDTRANS_IS_PRODUCTION (sudah dipastikan false di atas) — key yang salah
+// lingkungan akan ditolak Midtrans dengan 401 dan terlihat jelas di output.
 if (!SERVER_KEY.startsWith('SB-Mid-server-')) {
-  fail('Server key bukan key sandbox (harus diawali "SB-Mid-server-").');
+  console.warn('  Catatan: server key tidak berawalan "SB-Mid-server-".');
+  console.warn('  Tetap dilanjutkan ke endpoint SANDBOX (MIDTRANS_IS_PRODUCTION=false).');
+  console.warn('  Kalau ini ternyata key produksi, Midtrans akan menolak dengan 401.\n');
 }
 
 const authHeader = 'Basic ' + Buffer.from(SERVER_KEY + ':').toString('base64');

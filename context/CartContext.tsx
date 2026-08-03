@@ -7,6 +7,10 @@ interface CartContextType {
   items: CartItem[];
   tableNumber: number | null;
   setTableNumber: (num: number | null) => void;
+  // UUID meja — dipilih di header halaman menu, dipakai saat membuat order.
+  // Disimpan terpisah dari tableNumber karena API butuh id, UI butuh nomor.
+  tableId: string | null;
+  setTable: (id: string | null, num: number | null) => void;
   addItem: (menu_item: MenuItem, quantity: number, selectedVariations: VariationSelection[], notes: string) => void;
   removeItem: (index: number) => void;
   updateQuantity: (index: number, quantity: number) => void;
@@ -25,10 +29,15 @@ function getStoredTable(): number | null {
   if (typeof window === 'undefined') return null;
   try { const stored = sessionStorage.getItem('warkop_table'); return stored ? parseInt(stored) : null; } catch { return null; }
 }
+function getStoredTableId(): string | null {
+  if (typeof window === 'undefined') return null;
+  try { return sessionStorage.getItem('warkop_table_id'); } catch { return null; }
+}
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(getStoredCart);
   const [tableNumber, setTableNumber] = useState<number | null>(getStoredTable);
+  const [tableId, setTableId] = useState<string | null>(getStoredTableId);
 
   useEffect(() => {
     try { sessionStorage.setItem('warkop_cart', JSON.stringify(items)); } catch {}
@@ -40,6 +49,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       else sessionStorage.removeItem('warkop_table');
     } catch {}
   }, [tableNumber]);
+
+  useEffect(() => {
+    try {
+      if (tableId) sessionStorage.setItem('warkop_table_id', tableId);
+      else sessionStorage.removeItem('warkop_table_id');
+    } catch {}
+  }, [tableId]);
+
+  const setTable = useCallback((id: string | null, num: number | null) => {
+    setTableId(id);
+    setTableNumber(num);
+  }, []);
 
   const addItem = useCallback((menu_item: MenuItem, quantity: number, selectedVariations: VariationSelection[], notes: string) => {
     const variationKey = JSON.stringify(selectedVariations.sort((a, b) => a.variation_type.localeCompare(b.variation_type)));
@@ -77,7 +98,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const totalPrice = items.reduce((sum, item) => sum + item.subtotal, 0);
 
   return (
-    <CartContext.Provider value={{ items, tableNumber, setTableNumber, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}>
+    <CartContext.Provider value={{ items, tableNumber, setTableNumber, tableId, setTable, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}>
       {children}
     </CartContext.Provider>
   );

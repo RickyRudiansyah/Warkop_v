@@ -1,24 +1,46 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand yellow — used for accent surfaces (header, + button, ORDER, active states).
-     Text/icons ON these surfaces use --color-on-primary (near-black). */
-  --color-primary: #F5C93B;
-  --color-primary-light: #F8DE79;
-  --color-primary-dark: #E3B41F;
-  --color-on-primary: #1A1A1A;
-  --color-ink: #1A1A1A;
-  --color-accent: #F5C93B;
-  --color-surface: #FFFFFF;
-  --color-surface-2: #FAFAF7;
-  --color-surface-3: #F1F0EA;
-  --color-text: #1A1A1A;
-  --color-text-secondary: #8A8A8A;
-  --color-border: #E7E4DB;
-  --color-success: #16A34A;
-  --color-warning: #E0A100;
-  --color-danger: #EF4444;
-  --color-info: #3B82F6;
+  /* ---- Warm Brown palette (DESIGN.md §2) ----------------------------------
+     Coklat = struktur, gold = identitas, ember = aksi, krem = kanvas.
+     Rasio target: 60% krem/coklat muda, 30% coklat gelap, 10% gold + ember. */
+  --color-brown-950: #1A1008;
+  --color-brown-900: #2B1D14;
+  --color-brown-800: #3B2A1C;
+  --color-brown-700: #4E3826;
+  --color-brown-500: #7A5A3C;
+  --color-brown-200: #D9C4AC;
+  --color-brown-100: #EFE3D5;
+  --color-cream-50: #FAF4EC;
+
+  --color-gold-500: #F7B733;
+  --color-gold-400: #FFC845;
+  --color-gold-100: #FBEBC4;
+
+  --color-ember-600: #C2410C;
+  --color-ember-500: #E2551A;
+  --color-ember-100: #FBE5D8;
+
+  /* ---- Semantic tokens ----------------------------------------------------
+     Dipetakan ke ramp di atas supaya komponen lama (bg-primary, text-text, ...)
+     ikut berganti tema tanpa perlu diubah satu per satu. */
+  --color-primary: #C2410C;        /* ember-600 — CTA & harga */
+  --color-primary-light: #E2551A;  /* ember-500 — hover CTA */
+  --color-primary-dark: #9A340A;   /* pressed */
+  --color-on-primary: #FAF4EC;     /* teks krem di atas ember */
+  --color-on-dark: #F5EADD;        /* teks di atas header/bottom bar coklat */
+  --color-ink: #1A1008;
+  --color-accent: #F7B733;         /* gold-500 */
+  --color-surface: #FAF4EC;        /* kartu & sheet (krem, bukan putih murni) */
+  --color-surface-2: #EFE3D5;      /* kanvas halaman */
+  --color-surface-3: #E3D2BE;      /* fill lembut / skeleton */
+  --color-text: #2B1D14;           /* text-strong */
+  --color-text-secondary: #8B7460; /* text-muted */
+  --color-border: #D9C4AC;         /* brown-200 */
+  --color-success: #3B6D11;
+  --color-warning: #B45309;
+  --color-danger: #A32D2D;
+  --color-info: #2F6690;
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-inter), system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -34,13 +56,13 @@ body {
 
 h1, h2, h3, h4 {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(250, 244, 236, 0.88);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--color-border);
@@ -48,20 +70,37 @@ h1, h2, h3, h4 {
 
   .card {
     background: var(--color-surface);
-    border-radius: 0.9rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(43, 29, 20, 0.08);
     border: 1px solid var(--color-border);
     transition: box-shadow 0.2s ease, transform 0.2s ease;
   }
   .card:hover {
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 4px 14px rgba(43, 29, 20, 0.12);
     transform: translateY(-1px);
   }
 
-  /* Fixed near-black bar (design bottom bar) — same in light & dark. */
+  /* Header & bottom bar — selalu coklat gelap di light maupun dark mode. */
   .bar-dark {
-    background: #1A1A1A;
-    color: #FFFFFF;
+    background: var(--color-brown-950);
+    color: var(--color-on-dark);
+  }
+
+  /* Judul section kategori: uppercase + garis gold 3px (DESIGN.md §3). */
+  .section-title {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--color-text);
+  }
+  .section-title::after {
+    content: '';
+    display: block;
+    width: 2.5rem;
+    height: 3px;
+    margin-top: 0.375rem;
+    border-radius: 999px;
+    background: var(--color-gold-500);
   }
 
   .scrollbar-hide {
@@ -78,6 +117,11 @@ h1, h2, h3, h4 {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* Aman dari home indicator iOS untuk bar sticky di dasar layar. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 @layer base {
@@ -90,11 +134,11 @@ h1, h2, h3, h4 {
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb {
-    background: #D8D3C4;
+    background: var(--color-brown-200);
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #C4BEA9;
+    background: var(--color-brown-500);
   }
 
   * {
@@ -112,8 +156,8 @@ h1, h2, h3, h4 {
 }
 
 @keyframes fab-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 201, 59, 0.45); }
-  50% { box-shadow: 0 0 0 12px rgba(245, 201, 59, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(194, 65, 12, 0.45); }
+  50% { box-shadow: 0 0 0 12px rgba(194, 65, 12, 0); }
 }
 
 .animate-shimmer {
@@ -126,23 +170,26 @@ h1, h2, h3, h4 {
   animation: fab-pulse 2s infinite;
 }
 
+/* ---- Dark mode (DESIGN.md §9) --------------------------------------------
+   Kanvas -> brown-950, kartu -> brown-800, teks -> text-on-dark.
+   Gold & ember tidak diubah — keduanya sudah kontras di kedua mode. */
 [data-theme="dark"] {
-  --color-primary: #F5C93B;
-  --color-primary-light: #F8DE79;
-  --color-primary-dark: #E3B41F;
-  --color-on-primary: #1A1A1A;
-  --color-ink: #0F0F0F;
-  --color-accent: #F5C93B;
-  --color-surface: #1E1E1E;
-  --color-surface-2: #141414;
-  --color-surface-3: #2A2A2A;
-  --color-text: #F3F3F0;
-  --color-text-secondary: #A0A0A0;
-  --color-border: #363636;
-  --color-success: #34D399;
-  --color-warning: #FBBF24;
-  --color-danger: #F87171;
-  --color-info: #60A5FA;
+  --color-primary: #C2410C;
+  --color-primary-light: #E2551A;
+  --color-primary-dark: #9A340A;
+  --color-on-primary: #FAF4EC;
+  --color-ink: #1A1008;
+  --color-accent: #F7B733;
+  --color-surface: #3B2A1C;
+  --color-surface-2: #1A1008;
+  --color-surface-3: #4E3826;
+  --color-text: #F5EADD;
+  --color-text-secondary: #B9A084;
+  --color-border: #4E3826;
+  --color-success: #7BB33A;
+  --color-warning: #E8A33D;
+  --color-danger: #E06A6A;
+  --color-info: #6FA8CC;
 }
 
 [data-theme="dark"] body {
@@ -150,30 +197,26 @@ h1, h2, h3, h4 {
 }
 
 [data-theme="dark"] .glass {
-  background: rgba(20, 20, 20, 0.85);
+  background: rgba(26, 16, 8, 0.88);
   border-bottom: 1px solid var(--color-border);
 }
 
 [data-theme="dark"] .card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="dark"] .card:hover {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
 }
 
 [data-theme="dark"] .animate-shimmer {
   background: linear-gradient(90deg, var(--color-surface-3) 25%, var(--color-surface-2) 50%, var(--color-surface-3) 75%);
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-track {
-  background: var(--color-surface-3);
-}
-
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #444;
+  background: var(--color-brown-700);
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--color-brown-500);
 }

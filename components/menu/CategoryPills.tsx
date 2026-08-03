@@ -1,7 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { MenuCategory } from '@/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Coffee, CupSoda, UtensilsCrossed, Cookie, GlassWater, Soup, Sandwich,
+  IceCream, Croissant, Utensils, LayoutGrid, ChevronDown, X, type LucideIcon,
+} from 'lucide-react';
 
 interface CategoryPillsProps {
   categories: MenuCategory[];
@@ -9,29 +15,147 @@ interface CategoryPillsProps {
   onSelect: (id: string | null) => void;
 }
 
-// Category tabs (design §5.3): active = bold + dark underline, inactive = muted.
+// DESIGN.md membayangkan ilustrasi line-art per kategori. Karena aset itu belum
+// ada, ikon dipilih dari nama kategori dengan pencocokan kata kunci — ganti
+// dengan ilustrasi asli kalau nanti tersedia.
+const ICON_RULES: Array<[RegExp, LucideIcon]> = [
+  [/kopi|coffee|espresso|latte/i, Coffee],
+  [/teh|tea/i, CupSoda],
+  [/es |dingin|jus|juice|minum|drink/i, GlassWater],
+  [/mie|indomie|soup|sup|kuah/i, Soup],
+  [/nasi|makan|main|food/i, UtensilsCrossed],
+  [/roti|ropang|toast|bakar/i, Sandwich],
+  [/camilan|snack|gorengan|kentang|kerupuk/i, Cookie],
+  [/dessert|manis|ice|krim/i, IceCream],
+  [/pastry|kue|cake/i, Croissant],
+];
+
+function iconFor(name: string): LucideIcon {
+  return ICON_RULES.find(([pattern]) => pattern.test(name))?.[1] ?? Utensils;
+}
+
+// Ikon bulat 56px: ring luar ember + ring dalam gold saat aktif (DESIGN.md §5.3).
+function CategoryIcon({ Icon, active }: { Icon: LucideIcon; active: boolean }) {
+  return (
+    <span
+      className={cn(
+        'w-14 h-14 rounded-full bg-cream-50 flex items-center justify-center transition',
+        active
+          ? 'ring-2 ring-ember-600 ring-offset-2 ring-offset-surface-2 shadow-[inset_0_0_0_2px_var(--color-gold-500)]'
+          : 'ring-1 ring-border opacity-70',
+      )}
+    >
+      <Icon className={cn('w-6 h-6', active ? 'text-ember-600' : 'text-brown-500')} strokeWidth={1.75} />
+    </span>
+  );
+}
+
 export function CategoryPills({ categories, selected, onSelect }: CategoryPillsProps) {
-  const tab = (active: boolean) =>
-    cn(
-      'relative px-1 py-2 text-sm whitespace-nowrap uppercase tracking-wide transition-colors active:scale-95',
-      active ? 'font-bold text-text' : 'font-medium text-text-secondary hover:text-text',
-    );
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const entries: Array<{ id: string | null; name: string; Icon: LucideIcon }> = [
+    { id: null, name: 'Semua', Icon: LayoutGrid },
+    ...categories.map(c => ({ id: c.id as string | null, name: c.name, Icon: iconFor(c.name) })),
+  ];
+
+  const pick = (id: string | null) => {
+    onSelect(id);
+    setModalOpen(false);
+  };
 
   return (
-    <div className="relative border-b border-border">
-      <div className="flex gap-5 overflow-x-auto scrollbar-hide pr-8" role="tablist" aria-label="Filter kategori">
-        <button onClick={() => onSelect(null)} role="tab" aria-selected={selected === null} className={tab(selected === null)}>
-          Semua
-          {selected === null && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-text rounded-full" />}
-        </button>
-        {categories.map(cat => (
-          <button key={cat.id} onClick={() => onSelect(cat.id)} role="tab" aria-selected={selected === cat.id} className={tab(selected === cat.id)}>
-            {cat.name}
-            {selected === cat.id && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-text rounded-full" />}
+    <>
+      <div className="relative">
+        <div className="flex gap-5 overflow-x-auto scrollbar-hide pr-12 pb-1" role="tablist" aria-label="Filter kategori">
+          {entries.map(({ id, name, Icon }) => {
+            const active = selected === id;
+            return (
+              <button
+                key={id ?? 'all'}
+                onClick={() => onSelect(id)}
+                role="tab"
+                aria-selected={active}
+                className="shrink-0 flex flex-col items-center gap-1.5 w-[68px] active:scale-95 transition"
+              >
+                <CategoryIcon Icon={Icon} active={active} />
+                <span
+                  className={cn(
+                    'text-[11px] uppercase tracking-wide text-center leading-tight line-clamp-2',
+                    active ? 'font-semibold text-text' : 'text-text-secondary',
+                  )}
+                >
+                  {name}
+                </span>
+                <span className={cn('h-[3px] w-8 rounded-full', active ? 'bg-ember-600' : 'bg-transparent')} />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Chevron pembuka All Category modal (DESIGN.md §5.3) */}
+        <div className="absolute right-0 top-0 bottom-0 pl-8 flex items-start bg-gradient-to-l from-surface-2 via-surface-2 to-transparent">
+          <button
+            onClick={() => setModalOpen(true)}
+            aria-label="Lihat semua kategori"
+            className="w-9 h-9 mt-2.5 rounded-full bg-cream-50 ring-1 ring-border flex items-center justify-center text-brown-500 active:scale-95 transition"
+          >
+            <ChevronDown className="w-4 h-4" />
           </button>
-        ))}
+        </div>
       </div>
-      <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-surface-2 to-transparent pointer-events-none" />
-    </div>
+
+      <AnimatePresence>
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-end">
+            <motion.div
+              className="absolute inset-0 bg-brown-950/55"
+              onClick={() => setModalOpen(false)}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              aria-hidden="true"
+            />
+            <motion.div
+              className="relative w-full max-h-[70vh] overflow-y-auto bg-cream-50 rounded-t-2xl"
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25 }}
+              role="dialog" aria-modal="true" aria-labelledby="all-category-title"
+            >
+              <div className="sticky top-0 bg-cream-50 border-b border-border px-4 py-3 flex items-center justify-between">
+                <h2 id="all-category-title" className="text-base font-semibold uppercase tracking-wide text-brown-900">
+                  Semua Kategori
+                </h2>
+                <button onClick={() => setModalOpen(false)} className="p-1 text-brown-500" aria-label="Tutup">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-4 p-4">
+                {entries.map(({ id, name, Icon }) => {
+                  const active = selected === id;
+                  return (
+                    <button
+                      key={id ?? 'all'}
+                      onClick={() => pick(id)}
+                      className={cn(
+                        'flex flex-col items-center gap-2 rounded-xl py-3 px-2 transition active:scale-95',
+                        active ? 'bg-gold-100' : 'hover:bg-brown-100',
+                      )}
+                    >
+                      <CategoryIcon Icon={Icon} active={active} />
+                      <span
+                        className={cn(
+                          'text-[11px] uppercase tracking-wide text-center leading-tight line-clamp-2',
+                          active ? 'font-semibold text-brown-900' : 'text-brown-500',
+                        )}
+                      >
+                        {name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

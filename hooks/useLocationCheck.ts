@@ -20,17 +20,20 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
   return R * 2 * Math.asin(Math.sqrt(a));
 }
 
+// Gate aktif hanya kalau fitur dinyalakan DAN koordinat kafe terisi.
+// Konstanta build-time, jadi nilainya sama di server maupun client.
+const GATE_ACTIVE = LOCATION_CHECK_ENABLED && !isNaN(CAFE_LAT) && !isNaN(CAFE_LNG);
+
 export function useLocationCheck() {
-  const [status, setStatus] = useState<LocationStatus>('checking');
+  // Mulai dari 'allowed' saat gate mati supaya layar "Memeriksa lokasi..." tidak
+  // sempat berkedip sebelum effect jalan — dulu ini kelihatan tiap kali halaman
+  // remount/reload.
+  const [status, setStatus] = useState<LocationStatus>(GATE_ACTIVE ? 'checking' : 'allowed');
   const [distance, setDistance] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    // Feature switched off, or coords not configured → skip check entirely.
-    if (!LOCATION_CHECK_ENABLED || isNaN(CAFE_LAT) || isNaN(CAFE_LNG)) {
-      setStatus('allowed');
-      return;
-    }
+    if (!GATE_ACTIVE) return;
 
     if (!navigator.geolocation) {
       setStatus('unavailable');
