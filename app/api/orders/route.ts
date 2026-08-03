@@ -1,11 +1,12 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { enqueueReceipt } from '@/lib/print';
 
 async function requireAuth() {
   const supabaseAuth = await createClient();
   const { data: { user } } = await supabaseAuth.auth.getUser();
   if (!user) return null;
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', user.id).maybeSingle();
+  const { data: staff } = await supabaseAuth.from('staff_users').select('role, name').eq('id', user.id).maybeSingle();
   return staff || null;
 }
 
@@ -67,6 +68,16 @@ export async function POST(request: NextRequest) {
   if (itemsError) {
     await supabase.from('orders').delete().eq('id', order.id);
     return NextResponse.json({ error: itemsError.message }, { status: 500 });
+  }
+
+  // Order manual kasir yang langsung lunas -> struk ikut dicetak.
+  // Sengaja hanya untuk request ber-session staff: endpoint ini juga dipakai
+  // pelanggan (selalu UNPAID), jadi antrian printer tidak bisa dipicu publik.
+  if (payment_status === 'PAID') {
+    const staff = await requireAuth();
+    if (staff) {
+      await enqueueReceipt(order.id, { trigger: 'CASHIER_PAID_ORDER', verifiedBy: staff.name });
+    }
   }
 
   return NextResponse.json({ ...order, items: orderItems }, { status: 201 });

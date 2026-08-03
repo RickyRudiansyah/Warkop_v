@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency, getElapsedMinutes } from '@/lib/utils';
 import { useCountdown } from '@/hooks/useCountdown';
-import { Clock, AlertCircle } from 'lucide-react';
+import { Clock, AlertCircle, Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -20,6 +20,7 @@ const statusConfig: Record<OrderStatus, { label: string; variant: 'default' | 'w
 interface OrderCardProps {
   order: Order;
   onMarkPaid?: () => void;
+  onReprint?: () => void;
   onFinish?: () => void;
   onStartProcess?: () => void;
   onServed?: () => void;
@@ -31,7 +32,7 @@ interface OrderCardProps {
   isLoading?: boolean;
 }
 
-export function OrderCard({ order, onMarkPaid, onFinish, onStartProcess, onServed, onCancel, showEtaSelector, onSetEta, onUpdateEta, etaMinutes, isLoading }: OrderCardProps) {
+export function OrderCard({ order, onMarkPaid, onReprint, onFinish, onStartProcess, onServed, onCancel, showEtaSelector, onSetEta, onUpdateEta, etaMinutes, isLoading }: OrderCardProps) {
   const elapsed = getElapsedMinutes(order.created_at);
   const config = statusConfig[order.status] || { label: order.status, variant: 'default' as const };
   const { formatted: etaFormatted, isOverdue, isWarning } = useCountdown(order.estimated_ready_at || null);
@@ -93,7 +94,14 @@ export function OrderCard({ order, onMarkPaid, onFinish, onStartProcess, onServe
               <Button variant="danger" size="sm" onClick={onCancel} aria-label="Batalkan pesanan">Cancel</Button>
             )}
             {onMarkPaid && order.payment_status === 'UNPAID' && (
-              <Button variant="success" size="sm" onClick={onMarkPaid} disabled={isLoading} loading={isLoading}>Tandai Lunas</Button>
+              <Button variant="success" size="sm" onClick={onMarkPaid} disabled={isLoading} loading={isLoading}>
+                Verifikasi & Cetak Struk
+              </Button>
+            )}
+            {onReprint && order.payment_status === 'PAID' && (
+              <Button variant="ghost" size="sm" onClick={onReprint} disabled={isLoading} aria-label="Cetak ulang struk">
+                <Printer className="w-4 h-4" />
+              </Button>
             )}
           </div>
         </div>

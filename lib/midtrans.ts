@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/server';
+import { enqueueReceipt } from '@/lib/print';
 
 export const MIDTRANS_BASE_URL =
   process.env.MIDTRANS_IS_PRODUCTION === 'true'
@@ -216,5 +217,11 @@ export async function settleIntent(intentId: string, transactionId?: string): Pr
   }
 
   await supabase.from('payment_intents').update({ order_id: order.id }).eq('id', intentId);
+
+  // QRIS sudah dibayar -> struk langsung masuk antrian printer Bluetooth.
+  // enqueueReceipt tidak pernah throw, jadi kegagalan cetak tidak membatalkan
+  // pembayaran yang sudah settle.
+  await enqueueReceipt(order.id, { trigger: 'QRIS_SETTLED' });
+
   return order.id;
 }

@@ -117,7 +117,7 @@ CREATE TABLE staff_users (
   id UUID PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('cashier', 'koki', 'owner')),
+  role TEXT NOT NULL CHECK (role IN ('cashier', 'owner')),
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -148,10 +148,6 @@ INSERT INTO auth.users (
  '{"provider":"email","providers":["email"]}', '{"name":"Owner"}',
  now(), now(), '', '', '', ''),
 ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
- 'koki@warkop.com', crypt('freecoffee123', gen_salt('bf')), now(),
- '{"provider":"email","providers":["email"]}', '{"name":"Koki"}',
- now(), now(), '', '', '', ''),
-('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
  'kasir@warkop.com', crypt('janganngutang123', gen_salt('bf')), now(),
  '{"provider":"email","providers":["email"]}', '{"name":"Kasir"}',
  now(), now(), '', '', '', '')
@@ -162,7 +158,7 @@ SELECT gen_random_uuid(), id,
   jsonb_build_object('sub', id::text, 'email', email),
   'email', email, now(), now(), now()
 FROM auth.users
-WHERE email IN ('owner@warkop.com','koki@warkop.com','kasir@warkop.com')
+WHERE email IN ('owner@warkop.com','kasir@warkop.com')
 AND id NOT IN (SELECT user_id FROM auth.identities);
 
 -- ============================================================
@@ -170,8 +166,6 @@ AND id NOT IN (SELECT user_id FROM auth.identities);
 -- ============================================================
 INSERT INTO staff_users (id, email, name, role)
 SELECT id, email, 'Owner', 'owner'  FROM auth.users WHERE email = 'owner@warkop.com'
-UNION ALL
-SELECT id, email, 'Koki',  'koki'   FROM auth.users WHERE email = 'koki@warkop.com'
 UNION ALL
 SELECT id, email, 'Kasir', 'cashier' FROM auth.users WHERE email = 'kasir@warkop.com';
 
@@ -360,7 +354,6 @@ UNION ALL SELECT 'Staff: '       || COUNT(*)::text FROM staff_users
 UNION ALL SELECT ''
 UNION ALL SELECT '=== AKUN LOGIN ==='
 UNION ALL SELECT 'owner@warkop.com  / Vonzy123_'
-UNION ALL SELECT 'koki@warkop.com   / freecoffee123'
 UNION ALL SELECT 'kasir@warkop.com  / janganngutang123'
 UNION ALL SELECT ''
 UNION ALL SELECT '=== NEXT: jalankan >>> node scripts/upload-images.mjs <<< untuk upload gambar ===';

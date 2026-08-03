@@ -31,13 +31,15 @@
 - [Changelog v2.7](#changelog-v27)
 - [Changelog v2.8](#changelog-v28)
 - [Changelog v2.9](#changelog-v29)
+- [Changelog v3.0](#changelog-v30)
 - [Developer](#developer)
 
 ---
 
 ## Overview
 
-Rumipang Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil-menengah. Customer cukup scan QR di meja, pilih menu, dan bayar tanpa perlu antri ke kasir. Staff (kasir, koki, owner) mengelola pesanan melalui dashboard masing-masing.
+Rumipang Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil-menengah. Customer cukup scan QR di meja, pilih menu, dan bayar tanpa perlu antri ke kasir. Staff (kasir, owner) mengelola pesanan melalui dashboard masing-masing, dan struk
+lunas otomatis dicetak ke printer thermal Bluetooth lewat aplikasi Android companion.
 
 Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan seluruh stack diganti menjadi **full Next.js 16** menggunakan App Router dan API Routes sebagai backend — sehingga hanya 1 project, 1 repo, 1 deploy.
 
@@ -93,7 +95,9 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 | Toast notifications | Notifikasi untuk setiap aksi (konfirmasi, cancel, dll) |
 | Activity logging | Log aktivitas kasir tercatat di database |
 
-### Koki (Kitchen Display)
+### Kitchen Display (dipegang Kasir)
+
+> Sejak v3.0 role `koki` dihapus. Halaman Dapur diakses kasir & owner lewat menu **Dapur**.
 
 | Fitur | Deskripsi |
 |---|---|
@@ -107,7 +111,20 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 | Tombol Sudah Diantar | Ubah status ke SERVED |
 | Pengelompokan | Antrian vs Sedang Diproses |
 | Toast notifications | Notifikasi untuk setiap aksi |
-| Activity logging | Log aktivitas koki tercatat di database |
+| Activity logging | Log aktivitas tercatat di database |
+
+### Printer Struk (Bluetooth)
+
+| Fitur | Deskripsi |
+|---|---|
+| QRIS auto-print | Struk otomatis masuk antrian cetak begitu Midtrans menyatakan settlement |
+| Cash butuh verifikasi | Struk baru dicetak setelah kasir menekan "Verifikasi & Cetak Struk" |
+| Antrian cetak | Halaman `/dashboard/printer` — status job, pratinjau struk, cetak ulang |
+| Anti dobel-cetak | Satu struk otomatis per order (unique index), aman dari webhook + poll bersamaan |
+| Auto-requeue | Job yang tidak di-ACK aplikasi Android dalam 2 menit kembali ke antrian |
+| Cetak ulang | Tombol printer di kartu order (khusus order lunas) |
+
+> Detail kontrak integrasi aplikasi Android: [`docs/BLUETOOTH-PRINTER.md`](docs/BLUETOOTH-PRINTER.md)
 
 ### Owner
 
@@ -131,7 +148,7 @@ Versi 2.x merupakan rebuild total dari versi pertama (React + FastAPI), dengan s
 | Halaman login terpusat | Semua staff login di halaman yang sama |
 | Auto-redirect | Redirect otomatis ke halaman sesuai role setelah login |
 | Proteksi halaman | Server-side `middleware.ts` untuk auth guard |
-| Role-based access | Cashier, Koki, Owner dengan akses berbeda |
+| Role-based access | Cashier & Owner dengan akses berbeda |
 | Session persisten | Session persisten via Supabase Auth cookie |
 | Logout | Logout dari semua halaman |
 
@@ -313,10 +330,28 @@ staff_users (
   id UUID PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('cashier', 'koki', 'owner')),
+  role TEXT NOT NULL CHECK (role IN ('cashier', 'owner')),
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ
 )
+
+-- Print Jobs (antrian cetak struk ke printer Bluetooth)
+print_jobs (
+  id UUID PRIMARY KEY,
+  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+  kind TEXT CHECK (kind IN ('RECEIPT', 'REPRINT')),
+  status TEXT CHECK (status IN ('PENDING', 'PRINTING', 'PRINTED', 'FAILED')),
+  trigger TEXT,
+  payload JSONB,          -- snapshot struk terstruktur
+  text_body TEXT,         -- teks siap kirim ke printer ESC/POS
+  attempts INTEGER,
+  last_error TEXT,
+  device_id TEXT,
+  created_at TIMESTAMPTZ,
+  claimed_at TIMESTAMPTZ,
+  printed_at TIMESTAMPTZ
+)
+-- UNIQUE (order_id) WHERE kind = 'RECEIPT'  -> anti dobel-cetak
 
 -- Activity Logs
 activity_logs (
@@ -362,9 +397,20 @@ activity_logs (
 | POST | `/api/orders` | Public | Buat order baru |
 | PATCH | `/api/orders/[id]/confirm-cash` | cashier | Konfirmasi bayar cash |
 | PATCH | `/api/orders/[id]/confirm-payment` | cashier | Konfirmasi QRIS/Transfer |
-| PATCH | `/api/orders/[id]/status` | cashier/koki | Update status |
+| PATCH | `/api/orders/[id]/status` | cashier | Update status |
 | PATCH | `/api/orders/[id]/cancel` | cashier | Cancel order |
-| PATCH | `/api/orders/[id]/update-eta` | koki | Update estimasi waktu |
+| PATCH | `/api/orders/[id]/update-eta` | cashier | Update estimasi waktu |
+| PATCH | `/api/orders/[id]/mark-paid` | cashier | Verifikasi bayar cash + antrikan struk |
+
+### Print (Struk Bluetooth)
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/print/jobs?claim=1` | Device token / staff | Ambil & kunci job cetak |
+| GET | `/api/print/jobs` | Device token / staff | 50 job terakhir |
+| POST | `/api/print/jobs` | Staff | Cetak ulang struk |
+| PATCH | `/api/print/jobs/[id]/ack` | Device token / staff | Konfirmasi PRINTED / FAILED |
+| POST | `/api/print/jobs/[id]/retry` | Staff | Antrikan ulang job gagal |
 
 ### Tables
 
@@ -407,36 +453,48 @@ Tambah ke keranjang (CartFAB badge update)
        ↓
 Checkout → Review pesanan → Pilih metode pembayaran
        ↓
-Submit Order → API → Supabase
+       ├── QRIS ──→ Scan & bayar → Midtrans settlement
+       │              ↓
+       │            Order dibuat LUNAS + struk otomatis ke antrian printer
+       │
+       └── CASH ──→ Order dibuat BELUM BAYAR (langsung masuk dapur)
+                      ↓
+                    Pelanggan bayar di kasir
+                      ↓
+                    Kasir klik "Verifikasi & Cetak Struk"
+                      ↓
+                    Struk masuk antrian printer
        ↓
-Halaman sukses → Link ke tracking pesanan
+Aplikasi Android tarik antrian → cetak ke printer Bluetooth
        ↓
-Cashier Dashboard (Kanban realtime)
-       ↓
-Kasir konfirmasi pembayaran → CONFIRMED
-       ↓
-Kitchen Display → Koki set ETA → Mulai Proses
+Dapur (Kitchen Display) → set ETA → Mulai Proses
        ↓
 Countdown berjalan → Update ETA jika perlu
        ↓
-Koki tekan "Sudah Diantar" → SERVED ✅
+Tekan "Sudah Diantar" → SERVED ✅
+       ↓
+Kasir tekan "Selesai" → order pindah ke History
 ```
 
 ---
 
 ## Alur Status Order
 
+Status dapur dan status pembayaran dipisah sejak v2.x:
+
 ```
-Customer submit order
-       ↓
-PENDING_CASH ──(kasir konfirmasi cash)──→ CONFIRMED
-PENDING_PAYMENT ──(kasir konfirmasi QRIS/Transfer)──→ CONFIRMED
-       ↓
-CONFIRMED ──(koki set ETA + mulai proses)──→ PROCESSING
+status (dapur):     QUEUED → PROCESSING → SERVED        (atau CANCELLED)
+payment_status:     UNPAID → PAID
+
+QUEUED ──(set ETA + mulai proses)──→ PROCESSING
        ↓
 PROCESSING ──(countdown berjalan, bisa update ETA)──→ SERVED ✅
 
-Bisa cancel dari: PENDING_CASH, PENDING_PAYMENT, CONFIRMED → CANCELLED
+QRIS : order lahir langsung PAID (order hanya dibuat setelah Midtrans settle)
+CASH : order lahir UNPAID → PAID saat kasir verifikasi
+
+Struk dicetak tepat pada transisi menjadi PAID.
+Bisa cancel selama status masih QUEUED → CANCELLED
 ```
 
 ### Status Detail
@@ -511,7 +569,8 @@ npm run dev
 | `http://localhost:3000/login` | Staff Login | Public |
 | `http://localhost:3000/dashboard/cashier` | Dashboard Kasir | Cashier, Owner |
 | `http://localhost:3000/dashboard/cashier/new-order` | Manual Order | Cashier, Owner |
-| `http://localhost:3000/dashboard/kitchen` | Kitchen Display | Koki |
+| `http://localhost:3000/dashboard/kitchen` | Kitchen Display (Dapur) | Cashier, Owner |
+| `http://localhost:3000/dashboard/printer` | Antrian Printer Struk | Cashier, Owner |
 | `http://localhost:3000/dashboard/owner` | Owner Dashboard | Owner |
 | `http://localhost:3000/dashboard/qr` | QR Generator | Cashier, Owner |
 | `http://localhost:3000/dashboard/history` | Order History | Staff |
@@ -541,12 +600,11 @@ npm run dev
 
 1. Klik **"Authentication"** → **"Users"**
 2. Klik **"Add user"** → **"Create new user"**
-3. Buat 3 user:
+3. Buat 2 user:
 
 | Email | Password | Role |
 |---|---|---|
 | `kasir@warkop.com` | `password123` | cashier |
-| `koki@warkop.com` | `password123` | koki |
 | `owner@warkop.com` | `password123` | owner |
 
 4. Setelah buat user, copy **User ID** (UUID) masing-masing
@@ -556,7 +614,6 @@ npm run dev
 ```sql
 INSERT INTO staff_users (id, email, name, role) VALUES
   ('UUID_KASIR', 'kasir@warkop.com', 'Kasir 1', 'cashier'),
-  ('UUID_KOKI', 'koki@warkop.com', 'Koki 1', 'koki'),
   ('UUID_OWNER', 'owner@warkop.com', 'Owner 1', 'owner');
 ```
 
@@ -584,8 +641,9 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
 | Email | Password | Role | Akses |
 |---|---|---|---|
 | `owner@warkop.com` | (set di Auth) | Owner | Semua halaman |
-| `cashier@warkop.com` | (set di Auth) | Kasir | Dashboard Kasir, Manual Order, QR Generator |
-| `koki@warkop.com` | (set di Auth) | Koki | Kitchen Display |
+| `cashier@warkop.com` | (set di Auth) | Kasir | Dashboard Kasir, Dapur, Manual Order, Printer, QR Generator, History |
+
+> Role `koki` sudah dihapus sejak v3.0 — Kitchen Display sekarang dipegang kasir.
 
 > Password dikonfigurasi saat membuat user di Supabase Auth Dashboard.
 
@@ -631,8 +689,16 @@ git push -u origin main
 | `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase | Ya |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | API key public (anon) | Ya |
 | `SUPABASE_SERVICE_ROLE_KEY` | API key service role (rahasia!) | Ya |
+| `MIDTRANS_SERVER_KEY` | Server key Midtrans (`SB-Mid-server-…` untuk sandbox) | Untuk QRIS |
+| `MIDTRANS_IS_PRODUCTION` | `false` = sandbox, `true` = produksi | Untuk QRIS |
+| `PRINT_DEVICE_TOKEN` | Token aplikasi Android printer (header `x-print-token`) | Untuk printer |
+| `RECEIPT_STORE_NAME` | Nama toko di kop struk (default: Rumipang) | Tidak |
+| `RECEIPT_STORE_ADDRESS` | Alamat di kop struk | Tidak |
+| `RECEIPT_STORE_PHONE` | Nomor telepon di kop struk | Tidak |
+| `RECEIPT_FOOTER` | Kalimat penutup struk | Tidak |
+| `RECEIPT_COLUMNS` | Lebar struk: `32` (58mm) atau `48` (80mm) | Tidak |
 
-> ⚠️ **PENTING:** Jangan pernah commit `SUPABASE_SERVICE_ROLE_KEY` ke repository. Gunakan `.env` lokal dan Vercel environment variables.
+> ⚠️ **PENTING:** Jangan pernah commit `SUPABASE_SERVICE_ROLE_KEY`, `MIDTRANS_SERVER_KEY`, atau `PRINT_DEVICE_TOKEN` ke repository. Gunakan `.env` lokal dan Vercel environment variables.
 
 ---
 
@@ -650,7 +716,8 @@ git push -u origin main
 | Login | `/login` | Public | Staff login |
 | Cashier Dashboard | `/dashboard/cashier` | Cashier, Owner | Kanban order aktif |
 | Manual Order | `/dashboard/cashier/new-order` | Cashier, Owner | Input order manual |
-| Kitchen Display | `/dashboard/kitchen` | Koki | Display pesanan + ETA |
+| Kitchen Display | `/dashboard/kitchen` | Cashier, Owner | Display pesanan + ETA |
+| Printer Struk | `/dashboard/printer` | Cashier, Owner | Antrian cetak + pratinjau struk |
 | Owner Dashboard | `/dashboard/owner` | Owner | Statistik + kelola menu |
 | QR Generator | `/dashboard/qr` | Cashier, Owner | Generate QR per meja |
 | Order History | `/dashboard/history` | Staff | Riwayat order |
@@ -678,6 +745,12 @@ git push -u origin main
 | Variations | GET, POST, PUT, DELETE | CRUD variasi menu |
 | Upload | POST | Upload gambar ke Storage |
 | Health | GET | Health check |
+| Payments/midtrans/charge | POST | Buat QRIS Midtrans |
+| Payments/midtrans/status | GET | Cek status pembayaran |
+| Payments/midtrans/webhook | POST | Notifikasi Midtrans |
+| Print/jobs | GET, POST | Antrian cetak + cetak ulang |
+| Print/jobs/[id]/ack | PATCH | Konfirmasi hasil cetak |
+| Print/jobs/[id]/retry | POST | Antrikan ulang job gagal |
 
 ### Components (10 komponen)
 
@@ -1085,6 +1158,101 @@ git push -u origin main
 | TypeScript errors | 0 |
 | Build | Passed |
 | Breaking changes | None |
+
+---
+
+## Changelog v3.0
+
+### Hapus Role Koki + Cetak Struk ke Printer Bluetooth
+
+**Breaking change** — jalankan dua migrasi SQL sebelum deploy:
+
+```sql
+-- 1. Hapus role koki (user koki lama otomatis jadi cashier)
+scripts/remove-koki-role.sql
+-- 2. Tabel antrian cetak struk
+scripts/create-print-jobs.sql
+```
+
+#### Role koki dihapus
+
+| Sebelum | Sesudah |
+|---|---|
+| 3 role: cashier, koki, owner | 2 role: cashier, owner |
+| Koki dikunci hanya di `/dashboard/kitchen` | Kasir & owner punya menu **Dapur** ke halaman yang sama |
+| `staff_users.role CHECK (cashier, koki, owner)` | `CHECK (cashier, owner)` |
+
+Migrasi memindahkan user `koki` yang sudah ada menjadi `cashier`, jadi akun lama
+tetap bisa login. Riwayat `activity_logs` dengan `actor_role = 'koki'` dibiarkan
+apa adanya.
+
+#### Alur cetak struk
+
+```
+QRIS  -> pelanggan scan & bayar
+      -> Midtrans settlement (webhook / status poll)
+      -> order dibuat LUNAS + print job otomatis   [trigger: QRIS_SETTLED]
+      -> aplikasi Android tarik job -> cetak Bluetooth
+
+CASH  -> pelanggan checkout (order masuk dapur, status BELUM BAYAR)
+      -> pelanggan bayar di kasir
+      -> kasir klik "Verifikasi & Cetak Struk"
+      -> print job dibuat                          [trigger: CASH_VERIFIED]
+      -> aplikasi Android tarik job -> cetak Bluetooth
+```
+
+Struk **tidak pernah** dicetak untuk order yang belum lunas.
+
+#### Endpoint baru
+
+| Method | Endpoint | Auth | Fungsi |
+|---|---|---|---|
+| GET | `/api/print/jobs?claim=1&limit=5` | Token perangkat / staff | Ambil & kunci job PENDING jadi PRINTING |
+| GET | `/api/print/jobs` | Token perangkat / staff | 50 job terakhir untuk monitoring |
+| POST | `/api/print/jobs` | Staff | Cetak ulang struk sebuah order |
+| PATCH | `/api/print/jobs/[id]/ack` | Token perangkat / staff | Konfirmasi PRINTED / FAILED |
+| POST | `/api/print/jobs/[id]/retry` | Staff | Kembalikan job gagal ke antrian |
+
+#### Env baru
+
+```env
+PRINT_DEVICE_TOKEN=          # token aplikasi Android (header x-print-token)
+RECEIPT_STORE_NAME=Rumipang
+RECEIPT_STORE_ADDRESS=
+RECEIPT_STORE_PHONE=
+RECEIPT_FOOTER=Terima kasih atas kunjungan Anda!
+RECEIPT_COLUMNS=32           # 32 = kertas 58mm, 48 = 80mm
+```
+
+#### Testing QRIS (Midtrans Sandbox)
+
+```bash
+npm run test:qris:direct   # cek server key & aktivasi QRIS (tanpa perlu app jalan)
+
+npm run dev                # terminal 1
+npm run test:qris          # terminal 2 — end-to-end sampai struk masuk antrian
+```
+
+Script mencetak `qr_string` + link QR. Bayar di simulator sandbox Midtrans
+(<https://simulator.sandbox.midtrans.com/qris/index>), lalu script akan polling
+sampai lunas dan menampilkan isi struk yang masuk antrian printer.
+
+Prasyarat sandbox: `MIDTRANS_SERVER_KEY` diawali `SB-Mid-server-`,
+`MIDTRANS_IS_PRODUCTION=false`, dan Payment Notification URL di dashboard
+Midtrans diarahkan ke `<domain>/api/payments/midtrans/webhook`.
+
+#### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files created | 8 (`lib/receipt.ts`, `lib/print.ts`, 3 route printer, `dashboard/printer/page.tsx`, 2 SQL migrasi) |
+| Files modified | 13 |
+| Tabel baru | `print_jobs` |
+| Anti dobel-cetak | Unique index `print_jobs (order_id) WHERE kind='RECEIPT'` |
+| Lebar struk | 32 kolom (58mm), konfigurabel |
+| TypeScript errors | 0 |
+| Build | Passed |
+| Breaking changes | Role `koki` dihapus — perlu migrasi SQL |
 
 ---
 

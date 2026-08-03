@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:qris": "node scripts/test-qris-sandbox.mjs",
+    "test:qris:direct": "node scripts/test-qris-sandbox.mjs --direct"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

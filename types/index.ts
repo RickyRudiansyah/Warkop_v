@@ -79,11 +79,14 @@ export interface VariationSelection {
   extra_price: number;
 }
 
+// Kitchen Display sekarang dipegang kasir — role 'koki' sudah dihapus.
+export type StaffRole = 'cashier' | 'owner';
+
 export interface StaffUser {
   id: string;
   email: string;
   name: string;
-  role: 'cashier' | 'koki' | 'owner';
+  role: StaffRole;
   is_active: boolean;
   created_at: string;
 }
@@ -97,6 +100,29 @@ export interface ActivityLog {
   target_id: string | null;
   detail: Record<string, unknown> | null;
   created_at: string;
+}
+
+// ---- Antrian cetak struk (printer Bluetooth via aplikasi Android) ----
+
+export type PrintJobKind = 'RECEIPT' | 'REPRINT';
+export type PrintJobStatus = 'PENDING' | 'PRINTING' | 'PRINTED' | 'FAILED';
+export type PrintJobTrigger = 'QRIS_SETTLED' | 'CASH_VERIFIED' | 'CASHIER_PAID_ORDER' | 'STAFF_REPRINT';
+
+export interface PrintJob {
+  id: string;
+  order_id: string;
+  kind: PrintJobKind;
+  status: PrintJobStatus;
+  trigger: PrintJobTrigger | null;
+  // Snapshot struk — bentuknya `Receipt` dari lib/receipt.
+  payload: Record<string, unknown>;
+  text_body: string;
+  attempts: number;
+  last_error: string | null;
+  device_id: string | null;
+  created_at: string;
+  claimed_at: string | null;
+  printed_at: string | null;
 }
 
 export interface CartItem {

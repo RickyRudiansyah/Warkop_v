@@ -16,8 +16,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && staffProfile) {
-      if (staffProfile.role === 'koki') router.push('/dashboard/kitchen');
-      else if (staffProfile.role === 'owner') router.push('/dashboard/owner');
+      if (staffProfile.role === 'owner') router.push('/dashboard/owner');
       else router.push('/dashboard/cashier');
     }
   }, [staffProfile, loading, router]);

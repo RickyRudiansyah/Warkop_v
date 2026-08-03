@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS staff_users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('cashier', 'koki', 'owner')),
+  role TEXT NOT NULL CHECK (role IN ('cashier', 'owner')),
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );

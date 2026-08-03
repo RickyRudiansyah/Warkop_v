@@ -76,7 +76,12 @@ export default function CashierPage() {
     try {
       const res = await fetch('/api/orders/' + id + '/mark-paid', { method: 'PATCH' });
       if (res.ok) {
-        toast.success('Pesanan ditandai lunas');
+        const data = await res.json().catch(() => ({}));
+        toast.success('Pembayaran diverifikasi', {
+          description: data.print_queued === false
+            ? 'Struk gagal masuk antrian — cek halaman Printer'
+            : 'Struk dikirim ke printer Bluetooth',
+        });
         await logActivity('mark_paid', 'order', id, {});
       } else {
         const err = await res.json().catch(() => ({}));
@@ -84,6 +89,23 @@ export default function CashierPage() {
       }
     } catch { toast.error('Gagal menghubungi server'); }
     setProcessingId(null);
+  };
+
+  const handleReprint = async (id: string) => {
+    try {
+      const res = await fetch('/api/print/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: id, verified_by: staffProfile?.name ?? null }),
+      });
+      if (res.ok) {
+        toast.success('Struk dikirim ulang ke printer');
+        await logActivity('reprint_receipt', 'order', id, {});
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal cetak ulang struk');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
   };
 
   const openCancelModal = (id: string) => {
@@ -140,6 +162,7 @@ export default function CashierPage() {
                           order={order}
                           isLoading={processingId === order.id}
                           onMarkPaid={() => handleMarkPaid(order.id)}
+                          onReprint={() => handleReprint(order.id)}
                           onCancel={() => openCancelModal(order.id)}
                         />
                       </motion.div>

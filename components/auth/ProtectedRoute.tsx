@@ -4,10 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import { Spinner } from '@/components/ui/Spinner';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { StaffRole } from '@/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ('cashier' | 'koki' | 'owner')[];
+  allowedRoles?: StaffRole[];
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -22,7 +23,6 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     }
     if (!loading && user && staffProfile && allowedRoles && !allowedRoles.includes(staffProfile.role)) {
       if (staffProfile.role === 'cashier') router.push('/dashboard/cashier');
-      else if (staffProfile.role === 'koki') router.push('/dashboard/kitchen');
       else router.push('/dashboard/owner');
     }
   }, [user, staffProfile, loading, router, rolesKey.current]);
