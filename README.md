@@ -1,12 +1,13 @@
-# Rumipang Ordering System v3.0
+# Rumipang Ordering System v3.1
 
-> Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pilih menu, bayar (Cash atau QRIS otomatis), tanpa antri ke kasir.
+> Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pilih menu, bayar (Cash atau QRIS otomatis), tanpa antri ke kasir. Struk lunas otomatis cetak ke printer Bluetooth.
 
 ![Tech Stack](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)
 ![Database](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=flat-square&logo=supabase)
 ![Styling](https://img.shields.io/badge/Styling-Tailwind%20CSS%20v4-06B6D4?style=flat-square&logo=tailwindcss)
 ![Payment](https://img.shields.io/badge/Payment-Mayar%20QRIS-6B3FA0?style=flat-square)
+![Printer](https://img.shields.io/badge/Printer-Bluetooth%20ESC%2FPOS-555?style=flat-square)
 ![Deploy](https://img.shields.io/badge/Deploy-Docker-2496ED?style=flat-square&logo=docker)
 
 ---
@@ -26,28 +27,27 @@
 - [Environment Variables](#environment-variables)
 - [Cara Menjalankan Lokal](#cara-menjalankan-lokal)
 - [Setup Supabase](#setup-supabase)
-- [Deployment (Docker)](#deployment-docker)
 - [Login Staff](#login-staff)
+- [Deployment (Docker)](#deployment-docker)
 - [Riwayat Versi](#riwayat-versi)
-- [Changelog v3.0](#changelog-v30)
-- [Deployment ke Vercel](#deployment-ke-vercel)
-- [Environment Variables](#environment-variables)
-- [Struktur Project](#struktur-project)
+- [Changelog v2.1](#changelog-v21)
+- [Changelog v2.2](#changelog-v22)
 - [Changelog v2.3](#changelog-v23)
+- [Changelog v2.4](#changelog-v24)
+- [Changelog v2.5](#changelog-v25)
 - [Changelog v2.6](#changelog-v26)
 - [Changelog v2.7](#changelog-v27)
 - [Changelog v2.8](#changelog-v28)
 - [Changelog v2.9](#changelog-v29)
 - [Changelog v3.0](#changelog-v30)
+- [Changelog v3.1](#changelog-v31)
 - [Developer](#developer)
 
 ---
 
 ## Overview
 
-Rumipang Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil–menengah. Customer scan **satu QR umum**, pilih meja saat checkout, pilih menu, lalu bayar via **Cash** (bayar di kasir) atau **QRIS** (otomatis terdeteksi tanpa konfirmasi kasir). Staff (kasir, koki, owner) mengelola pesanan lewat dashboard masing-masing.
-Rumipang Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil-menengah. Customer cukup scan QR di meja, pilih menu, dan bayar tanpa perlu antri ke kasir. Staff (kasir, owner) mengelola pesanan melalui dashboard masing-masing, dan struk
-lunas otomatis dicetak ke printer thermal Bluetooth lewat aplikasi Android companion.
+Rumipang Ordering adalah sistem pemesanan digital berbasis QR Code untuk warung/kafe skala kecil–menengah. Customer scan **satu QR umum**, pilih meja saat checkout, pilih menu, lalu bayar via **Cash** (bayar di kasir) atau **QRIS** (otomatis terdeteksi tanpa konfirmasi kasir). Staff (kasir, owner) mengelola pesanan lewat dashboard masing-masing, dan struk pembayaran yang lunas otomatis dicetak ke printer thermal Bluetooth lewat aplikasi Android companion.
 
 Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 repo, 1 deploy. Database, Auth, Realtime, dan Storage memakai Supabase.
 
@@ -56,6 +56,8 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 - **Satu QR umum** untuk seluruh kafe (bukan per-meja). Nomor meja dipilih customer saat checkout.
 - **Pemisahan status dapur & status bayar.** `status` (dapur) = `QUEUED → PROCESSING → SERVED`; `payment_status` = `PAID | UNPAID`.
 - **QRIS otomatis** lewat gateway **Mayar** — order baru masuk dapur setelah pembayaran benar-benar terkonfirmasi (verifikasi server-side).
+- **Dua role staff** — `cashier` & `owner`. Role `koki` sudah dihapus; Kitchen Display sekarang dipegang kasir & owner lewat menu **Dapur**.
+- **Struk otomatis ke printer Bluetooth** — begitu sebuah order jadi `PAID` (QRIS settle atau kasir verifikasi cash), struknya masuk antrian dan ditarik aplikasi Android companion.
 - **Data-fetch via API Routes** (service role, bypass RLS) — browser tidak query Supabase langsung untuk data, hanya untuk trigger Realtime.
 - **Dark mode**, **geolocation gate** (opsional), dan **Docker-ready**.
 
@@ -84,17 +86,18 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 |---|---|
 | Board per meja | Order aktif dikelompokkan per meja, tiap order tampil status bayar sendiri |
 | Realtime updates | Update order via Supabase Realtime |
-| Tandai Lunas | Ubah `UNPAID → PAID` untuk order Cash |
+| Verifikasi bayar cash | Tombol **"Verifikasi & Cetak Struk"** — ubah `UNPAID → PAID` sekaligus antrikan struk ke printer |
 | Cancel order | Batalkan order yang masih `QUEUED` (belum diproses) |
 | Selesai (arsip) | Pindahkan semua order 1 meja ke history (saat semua `SERVED` + `PAID`) |
 | Manual order (POS) | Input order manual untuk pelanggan yang tidak scan |
+| Cetak ulang struk | Tombol printer di kartu order (khusus order yang sudah lunas) |
 | QR Generator | Generate + download satu QR umum kafe |
 | Order history | Riwayat order (arsip + dibatalkan) |
 | Activity logging | Aktivitas kasir tercatat di database |
 
 ### Kitchen Display (dipegang Kasir)
 
-> Sejak v3.0 role `koki` dihapus. Halaman Dapur diakses kasir & owner lewat menu **Dapur**.
+> Sejak v3.1 role `koki` dihapus. Halaman Dapur diakses kasir & owner lewat menu **Dapur**.
 
 | Fitur | Deskripsi |
 |---|---|
@@ -104,23 +107,14 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Update ETA | Perpanjang estimasi saat proses berjalan |
 | Mulai Proses / Sudah Diantar | `QUEUED → PROCESSING → SERVED` |
 | Badge pembayaran | Menampilkan Lunas / Belum Bayar |
-| Kitchen display | Tampilan ticket pesanan secara realtime |
-| Set ETA | Pilih estimasi waktu selesai (5/10/15/20/25/30 menit) saat mulai proses |
-| Countdown timer | Timer realtime yang berjalan setiap detik |
-| Update ETA | Perpanjang estimasi waktu saat proses berjalan (+5/10/15 menit) |
-| Warning warna | Hijau (> 3 menit), Kuning (< 3 menit), Merah + pulse (overdue) |
-| Overdue badge | Label "OVERDUE" + berapa menit terlambat |
-| Tombol Mulai Proses | Ubah status ke PROCESSING |
-| Tombol Sudah Diantar | Ubah status ke SERVED |
 | Pengelompokan | Antrian vs Sedang Diproses |
-| Toast notifications | Notifikasi untuk setiap aksi |
 | Activity logging | Log aktivitas tercatat di database |
 
 ### Printer Struk (Bluetooth)
 
 | Fitur | Deskripsi |
 |---|---|
-| QRIS auto-print | Struk otomatis masuk antrian cetak begitu Midtrans menyatakan settlement |
+| QRIS auto-print | Struk otomatis masuk antrian cetak begitu pembayaran QRIS settle (Mayar/Midtrans) |
 | Cash butuh verifikasi | Struk baru dicetak setelah kasir menekan "Verifikasi & Cetak Struk" |
 | Antrian cetak | Halaman `/dashboard/printer` — status job, pratinjau struk, cetak ulang |
 | Anti dobel-cetak | Satu struk otomatis per order (unique index), aman dari webhook + poll bersamaan |
@@ -147,10 +141,6 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 |---|---|
 | Login terpusat | Semua staff login di `/login`, auto-redirect sesuai role |
 | Proteksi server-side | `middleware.ts` + `getUser()` (validasi ke auth server) di setiap API |
-| Role-based access | Cashier, Koki, Owner dengan akses berbeda |
-| Halaman login terpusat | Semua staff login di halaman yang sama |
-| Auto-redirect | Redirect otomatis ke halaman sesuai role setelah login |
-| Proteksi halaman | Server-side `middleware.ts` untuk auth guard |
 | Role-based access | Cashier & Owner dengan akses berbeda |
 | Session persisten | Session persisten via Supabase Auth cookie |
 | Logout | Logout dari semua halaman |
@@ -167,7 +157,8 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Database | Supabase (PostgreSQL + Storage) |
 | Auth | Supabase Auth (`@supabase/ssr`) |
 | Realtime | Supabase Realtime |
-| Payment (QRIS) | **Mayar** (aktif) · Midtrans (legacy, tidak dipakai) |
+| Payment (QRIS) | **Mayar** (checkout customer) · **Midtrans** (dipertahankan — `settleIntent` dipakai bersama, dipakai untuk testing sandbox) |
+| Printer | Thermal Bluetooth (ESC/POS, 58mm/32-kolom) via aplikasi Android companion |
 | Animation | Framer Motion |
 | Icons | Lucide React |
 | Toast | Sonner |
@@ -193,7 +184,8 @@ warkop-app/
 │   │   └── dashboard/
 │   │       ├── cashier/page.tsx              # Board kasir (grup per meja)
 │   │       ├── cashier/new-order/page.tsx    # Manual order (POS)
-│   │       ├── kitchen/page.tsx              # Kitchen display (ETA)
+│   │       ├── kitchen/page.tsx              # Kitchen display / Dapur (ETA)
+│   │       ├── printer/page.tsx              # Antrian cetak struk + pratinjau
 │   │       ├── owner/page.tsx                # Owner dashboard
 │   │       ├── qr/page.tsx                   # QR umum + kelola meja
 │   │       └── history/page.tsx              # Riwayat order
@@ -212,7 +204,7 @@ warkop-app/
 │   │   ├── orders/table-track/route.ts       # GET tracking semua order 1 meja (public)
 │   │   ├── orders/[id]/route.ts              # GET detail, DELETE
 │   │   ├── orders/[id]/status/route.ts       # PATCH QUEUED→PROCESSING→SERVED
-│   │   ├── orders/[id]/mark-paid/route.ts    # PATCH UNPAID→PAID
+│   │   ├── orders/[id]/mark-paid/route.ts    # PATCH UNPAID→PAID + antrikan struk
 │   │   ├── orders/[id]/archive/route.ts      # PATCH is_archived=true (Selesai)
 │   │   ├── orders/[id]/cancel/route.ts       # PATCH cancel
 │   │   ├── orders/[id]/track/route.ts        # GET tracking 1 order (public)
@@ -220,7 +212,12 @@ warkop-app/
 │   │   ├── payments/mayar/create/route.ts    # POST buat payment request QRIS
 │   │   ├── payments/mayar/status/route.ts    # GET poll status (settle → buat order)
 │   │   ├── payments/mayar/webhook/route.ts   # POST notifikasi Mayar (verify ulang)
-│   │   ├── payments/midtrans/*               # (legacy) charge/status/webhook
+│   │   ├── payments/midtrans/charge/route.ts # POST buat charge QRIS (dipakai script test sandbox)
+│   │   ├── payments/midtrans/status/route.ts # GET poll status Midtrans
+│   │   ├── payments/midtrans/webhook/route.ts# POST notifikasi Midtrans
+│   │   ├── print/jobs/route.ts               # GET (claim/monitor), POST cetak ulang
+│   │   ├── print/jobs/[id]/ack/route.ts      # PATCH konfirmasi hasil cetak
+│   │   ├── print/jobs/[id]/retry/route.ts    # POST antrikan ulang job gagal
 │   │   ├── tables/route.ts                   # GET/POST/DELETE meja
 │   │   ├── tables/[number]/route.ts          # GET meja by nomor
 │   │   └── upload/route.ts                    # POST upload gambar ke Storage
@@ -232,7 +229,7 @@ warkop-app/
 │   ├── cart/CartFAB.tsx · CartDrawer.tsx     # Floating cart + bottom sheet
 │   ├── dashboard/
 │   │   ├── DashboardLayout.tsx               # Shell dashboard staff
-│   │   ├── OrderCard.tsx                     # Kartu order + ETA + badge bayar
+│   │   ├── OrderCard.tsx                     # Kartu order + ETA + badge bayar + cetak ulang
 │   │   └── VariationManager.tsx              # CRUD variasi menu
 │   ├── menu/MenuItemCard.tsx · MenuItemSheet.tsx · CategoryPills.tsx
 │   └── ui/Button · Badge · Spinner · Skeleton · EmptyState · ThemeToggle
@@ -248,13 +245,20 @@ warkop-app/
 ├── lib/
 │   ├── supabase/client.ts · server.ts        # Browser & admin/server client
 │   ├── mayar.ts                              # Provider Mayar (create + status)
-│   ├── midtrans.ts                           # Provider Midtrans + settleIntent (shared)
+│   ├── midtrans.ts                           # Provider Midtrans + settleIntent (shared, memicu cetak struk)
+│   ├── print.ts                              # Antrian cetak: enqueue, klaim job, auth perangkat
+│   ├── receipt.ts                            # Bentuk struk (JSON + teks ESC/POS)
 │   └── utils.ts                              # formatCurrency, cn, dll
 ├── types/index.ts · database.ts             # TypeScript interfaces
+├── docs/
+│   └── BLUETOOTH-PRINTER.md                  # Kontrak integrasi aplikasi Android printer
 ├── scripts/
 │   ├── complete-schema.sql                   # Full DDL + seed + auth
 │   ├── migrate-payment-flow.sql              # Migrasi status/payment_status/method
 │   ├── create-payment-intents.sql            # Tabel payment_intents (QRIS)
+│   ├── remove-koki-role.sql                  # Hapus role koki (migrasi ke cashier)
+│   ├── create-print-jobs.sql                 # Tabel print_jobs (antrian cetak)
+│   ├── test-qris-sandbox.mjs                 # Uji QRIS end-to-end via Midtrans sandbox
 │   ├── full-reset-seed.sql · reset-and-seed.sql · seed-menu.sql
 │   └── fix-*.sql · upload-images.mjs
 ├── middleware.ts                            # Auth guard server-side
@@ -309,52 +313,26 @@ payment_intents (
   created_at TIMESTAMPTZ, paid_at TIMESTAMPTZ
 )
 
-staff_users ( id UUID PK, email UNIQUE, name, role CHECK(cashier|koki|owner), is_active, created_at )
+staff_users ( id UUID PK, email UNIQUE, name, role CHECK(cashier|owner), is_active, created_at )
+
+-- Antrian cetak struk ke printer Bluetooth
+print_jobs (
+  id UUID PK,
+  order_id UUID → orders (ON DELETE CASCADE),
+  kind      TEXT,   -- RECEIPT | REPRINT
+  status    TEXT,   -- PENDING | PRINTING | PRINTED | FAILED
+  trigger   TEXT,   -- QRIS_SETTLED | CASH_VERIFIED | CASHIER_PAID_ORDER | STAFF_REPRINT
+  payload   JSONB,  -- snapshot struk terstruktur
+  text_body TEXT,   -- teks siap kirim ke printer ESC/POS
+  attempts INT, last_error TEXT, device_id TEXT,
+  created_at TIMESTAMPTZ, claimed_at TIMESTAMPTZ, printed_at TIMESTAMPTZ
+)
+-- UNIQUE (order_id) WHERE kind = 'RECEIPT'  -> anti dobel-cetak
 
 activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target_id, detail JSONB, created_at )
 ```
 
-> **Migrasi:** jalankan `scripts/migrate-payment-flow.sql` (status/payment_status) lalu `scripts/create-payment-intents.sql` (tabel QRIS). Untuk fitur "Selesai" kasir: `ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;`
--- Staff Users
-staff_users (
-  id UUID PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('cashier', 'owner')),
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ
-)
-
--- Print Jobs (antrian cetak struk ke printer Bluetooth)
-print_jobs (
-  id UUID PRIMARY KEY,
-  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
-  kind TEXT CHECK (kind IN ('RECEIPT', 'REPRINT')),
-  status TEXT CHECK (status IN ('PENDING', 'PRINTING', 'PRINTED', 'FAILED')),
-  trigger TEXT,
-  payload JSONB,          -- snapshot struk terstruktur
-  text_body TEXT,         -- teks siap kirim ke printer ESC/POS
-  attempts INTEGER,
-  last_error TEXT,
-  device_id TEXT,
-  created_at TIMESTAMPTZ,
-  claimed_at TIMESTAMPTZ,
-  printed_at TIMESTAMPTZ
-)
--- UNIQUE (order_id) WHERE kind = 'RECEIPT'  -> anti dobel-cetak
-
--- Activity Logs
-activity_logs (
-  id UUID PRIMARY KEY,
-  actor_email TEXT NOT NULL,
-  actor_role TEXT NOT NULL,
-  action TEXT NOT NULL,
-  target_type TEXT,
-  target_id TEXT,
-  detail JSONB,
-  created_at TIMESTAMPTZ
-)
-```
+> **Migrasi (urutan):** `scripts/migrate-payment-flow.sql` + `scripts/create-payment-intents.sql` (status split & QRIS) → `scripts/remove-koki-role.sql` (hapus role koki) → `scripts/create-print-jobs.sql` (antrian printer). Untuk fitur "Selesai" kasir: `ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;`
 
 ---
 
@@ -387,34 +365,22 @@ activity_logs (
 | GET | `/api/orders/[id]/track` | Public | Tracking 1 order |
 | GET | `/api/orders/table-track?tableId=` | Public | Tracking semua order 1 meja |
 | PATCH | `/api/orders/[id]/status` | staff | QUEUED→PROCESSING→SERVED (+ETA) |
-| PATCH | `/api/orders/[id]/mark-paid` | staff | UNPAID→PAID |
+| PATCH | `/api/orders/[id]/mark-paid` | staff | UNPAID→PAID + antrikan struk |
 | PATCH | `/api/orders/[id]/archive` | staff | is_archived=true (Selesai) |
 | PATCH | `/api/orders/[id]/cancel` | staff | Cancel (tolak jika SERVED/CANCELLED) |
 | PATCH | `/api/orders/[id]/update-eta` | staff | Perpanjang ETA |
-| GET | `/api/orders` | cashier/owner | Ambil order aktif |
-| GET | `/api/orders?history=1` | cashier/owner | Ambil semua order |
-| GET | `/api/orders/history` | cashier/owner | Ambil order SERVED/CANCELLED |
-| GET | `/api/orders/[id]` | cashier/owner | Detail order |
-| GET | `/api/orders/[id]/track` | Public | Tracking status (customer) |
-| POST | `/api/orders` | Public | Buat order baru |
-| PATCH | `/api/orders/[id]/confirm-cash` | cashier | Konfirmasi bayar cash |
-| PATCH | `/api/orders/[id]/confirm-payment` | cashier | Konfirmasi QRIS/Transfer |
-| PATCH | `/api/orders/[id]/status` | cashier | Update status |
-| PATCH | `/api/orders/[id]/cancel` | cashier | Cancel order |
-| PATCH | `/api/orders/[id]/update-eta` | cashier | Update estimasi waktu |
-| PATCH | `/api/orders/[id]/mark-paid` | cashier | Verifikasi bayar cash + antrikan struk |
 
 ### Print (Struk Bluetooth)
 
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
-| GET | `/api/print/jobs?claim=1` | Device token / staff | Ambil & kunci job cetak |
-| GET | `/api/print/jobs` | Device token / staff | 50 job terakhir |
-| POST | `/api/print/jobs` | Staff | Cetak ulang struk |
-| PATCH | `/api/print/jobs/[id]/ack` | Device token / staff | Konfirmasi PRINTED / FAILED |
-| POST | `/api/print/jobs/[id]/retry` | Staff | Antrikan ulang job gagal |
+| GET | `/api/print/jobs?claim=1&limit=5` | Token perangkat / staff | Ambil & kunci job PENDING jadi PRINTING |
+| GET | `/api/print/jobs` | Token perangkat / staff | 50 job terakhir untuk monitoring |
+| POST | `/api/print/jobs` | Staff | Cetak ulang struk sebuah order |
+| PATCH | `/api/print/jobs/[id]/ack` | Token perangkat / staff | Konfirmasi PRINTED / FAILED |
+| POST | `/api/print/jobs/[id]/retry` | Staff | Kembalikan job gagal ke antrian |
 
-### Payments (Mayar — aktif)
+### Payments — Mayar (aktif, dipakai checkout customer)
 
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
@@ -422,7 +388,15 @@ activity_logs (
 | GET | `/api/payments/mayar/status?intentId=` | Public | Poll status (settle → buat order PAID) |
 | POST | `/api/payments/mayar/webhook` | Public | Notifikasi Mayar (verifikasi ulang server-side) |
 
-> Endpoint `/api/payments/midtrans/*` masih ada sebagai legacy tapi tidak dipakai.
+### Payments — Midtrans (dipertahankan: shared settle + testing sandbox)
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| POST | `/api/payments/midtrans/charge` | Public | Buat charge QRIS — dipakai `npm run test:qris` |
+| GET | `/api/payments/midtrans/status?intentId=` | Public | Poll status (settle lewat `settleIntent` yang sama dengan Mayar) |
+| POST | `/api/payments/midtrans/webhook` | Public | Notifikasi Midtrans |
+
+> `settleIntent()` di `lib/midtrans.ts` dipakai bersama oleh kedua provider untuk membuat order + mengantrikan struk begitu pembayaran settle — jadi cetak struk otomatis tetap jalan terlepas dari provider mana yang memprosesnya.
 
 ### Tables · Upload · Activity · Health
 
@@ -448,44 +422,24 @@ Buka menu → pilih item → variasi + qty + catatan → keranjang
       ↓
 Checkout → pilih MEJA + metode bayar + setuju ketentuan
       ↓
- ┌─ CASH ────────────────→ Order dibuat UNPAID + QUEUED
+ ┌─ CASH ────────────────→ Order dibuat UNPAID + QUEUED (langsung masuk dapur)
+ │                              ↓
+ │                         Pelanggan bayar di kasir
+ │                              ↓
+ │                         Kasir klik "Verifikasi & Cetak Struk" → PAID
+ │                              ↓
+ │                         Struk masuk antrian printer
+ │
  └─ QRIS (Mayar) ────────→ Halaman QRIS → scan & bayar
-                              ↓ (poll otomatis)
+                              ↓ (poll otomatis / webhook)
                            Terkonfirmasi → Order dibuat PAID + QUEUED
+                              ↓
+                           Struk otomatis masuk antrian printer
       ↓
-Kitchen: QUEUED → (set ETA) PROCESSING → SERVED
+Aplikasi Android tarik antrian printer → cetak ke printer Bluetooth
       ↓
-Kasir: Tandai Lunas (jika Cash) → Selesai (arsip ke history)
-Customer scan QR di meja
-       ↓
-Buka halaman menu (/order?table=N)
-       ↓
-Browse menu → Klik item → Pilih variasi + qty + catatan
-       ↓
-Tambah ke keranjang (CartFAB badge update)
-       ↓
-Checkout → Review pesanan → Pilih metode pembayaran
-       ↓
-       ├── QRIS ──→ Scan & bayar → Midtrans settlement
-       │              ↓
-       │            Order dibuat LUNAS + struk otomatis ke antrian printer
-       │
-       └── CASH ──→ Order dibuat BELUM BAYAR (langsung masuk dapur)
-                      ↓
-                    Pelanggan bayar di kasir
-                      ↓
-                    Kasir klik "Verifikasi & Cetak Struk"
-                      ↓
-                    Struk masuk antrian printer
-       ↓
-Aplikasi Android tarik antrian → cetak ke printer Bluetooth
-       ↓
-Dapur (Kitchen Display) → set ETA → Mulai Proses
-       ↓
-Countdown berjalan → Update ETA jika perlu
-       ↓
-Tekan "Sudah Diantar" → SERVED ✅
-       ↓
+Dapur: QUEUED → (set ETA) PROCESSING → SERVED
+      ↓
 Kasir tekan "Selesai" → order pindah ke History
 ```
 
@@ -494,7 +448,7 @@ Kasir tekan "Selesai" → order pindah ke History
 ## Alur Status Order
 
 ```
-QUEUED ──(koki set ETA + mulai)──→ PROCESSING ──(sudah diantar)──→ SERVED
+QUEUED ──(set ETA + mulai proses)──→ PROCESSING ──(sudah diantar)──→ SERVED
    │                                                                  │
    └────────────(kasir cancel, hanya saat QUEUED)───→ CANCELLED       │
                                                                        ↓
@@ -503,12 +457,12 @@ QUEUED ──(koki set ETA + mulai)──→ PROCESSING ──(sudah diantar)─
 
 | Status | Deskripsi | Aksi |
 |---|---|---|
-| `QUEUED` | Masuk antrian dapur | Mulai Proses (ETA), Cancel, Tandai Lunas (jika UNPAID) |
+| `QUEUED` | Masuk antrian dapur | Mulai Proses (ETA), Cancel, Verifikasi Bayar (jika UNPAID) |
 | `PROCESSING` | Sedang dimasak | Sudah Diantar, Update ETA |
-| `SERVED` | Sudah diantar | Tandai Lunas (jika UNPAID), Selesai (arsip) |
+| `SERVED` | Sudah diantar | Verifikasi Bayar (jika UNPAID), Selesai (arsip) |
 | `CANCELLED` | Dibatalkan | — (masuk history) |
 
-Pembayaran: `UNPAID` (Cash belum dibayar) · `PAID` (QRIS lunas otomatis / kasir tandai lunas).
+Pembayaran: `UNPAID` (Cash belum dibayar) · `PAID` (QRIS lunas otomatis / kasir verifikasi). Struk dicetak tepat pada transisi menjadi `PAID`.
 
 ---
 
@@ -522,13 +476,13 @@ Order **tidak** dibuat sampai pembayaran benar-benar terkonfirmasi, jadi tidak a
 3. Halaman QRIS Mayar terbuka → customer scan & bayar (OVO/DANA/GoPay/bank apa pun)
 4. App polling GET /api/payments/mayar/status tiap 3 detik
       → server cek GET https://api.mayar.id/hl/v2/transactions/{id}
-      → status "paid"? settleIntent() buat order PAID + QUEUED (idempoten)
+      → status "paid"? settleIntent() buat order PAID + QUEUED (idempoten) + antrikan struk
 5. App redirect ke order-success → order muncul di board dapur
 ```
 
 - **Deteksi otomatis** lewat polling (jalan di lokal & produksi) + webhook (cadangan di produksi).
 - **Keamanan:** webhook Mayar tidak dipercaya sendiri — selalu diverifikasi ulang lewat status API terautentikasi sebelum settle.
-- **Idempoten:** `settleIntent` memakai conditional lock `PENDING → PAID`, jadi polling + webhook tidak akan membuat order ganda.
+- **Idempoten:** `settleIntent` memakai conditional lock `PENDING → PAID`, jadi polling + webhook tidak akan membuat order ganda atau struk ganda.
 
 ---
 
@@ -549,39 +503,26 @@ Membatasi pemesanan hanya untuk customer yang berada di sekitar kafe (via GPS br
 ## Environment Variables
 
 | Variable | Deskripsi | Wajib |
-Status dapur dan status pembayaran dipisah sejak v2.x:
-
-```
-status (dapur):     QUEUED → PROCESSING → SERVED        (atau CANCELLED)
-payment_status:     UNPAID → PAID
-
-QUEUED ──(set ETA + mulai proses)──→ PROCESSING
-       ↓
-PROCESSING ──(countdown berjalan, bisa update ETA)──→ SERVED ✅
-
-QRIS : order lahir langsung PAID (order hanya dibuat setelah Midtrans settle)
-CASH : order lahir UNPAID → PAID saat kasir verifikasi
-
-Struk dicetak tepat pada transisi menjadi PAID.
-Bisa cancel selama status masih QUEUED → CANCELLED
-```
-
-### Status Detail
-
-| Status | Deskripsi | Aksi Tersedia |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase | Ya |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | API key public (anon) | Ya |
 | `SUPABASE_SERVICE_ROLE_KEY` | API key service role (rahasia!) | Ya |
 | `NEXT_PUBLIC_APP_URL` | Base URL app (untuk redirect) | Ya |
-| `MAYAR_API_KEY` | API key Mayar (QRIS) | Untuk QRIS |
+| `MAYAR_API_KEY` | API key Mayar — QRIS customer | Untuk QRIS |
 | `MAYAR_IS_PRODUCTION` | `true`=api.mayar.id, `false`=api.mayar.club | Untuk QRIS |
+| `MIDTRANS_SERVER_KEY` | Server key Midtrans (`SB-Mid-server-…` untuk sandbox) | Untuk testing sandbox |
+| `MIDTRANS_IS_PRODUCTION` | `false` = sandbox, `true` = produksi | Untuk testing sandbox |
+| `PRINT_DEVICE_TOKEN` | Token aplikasi Android printer (header `x-print-token`) | Untuk printer |
+| `RECEIPT_STORE_NAME` | Nama toko di kop struk (default: Rumipang) | Tidak |
+| `RECEIPT_STORE_ADDRESS` | Alamat di kop struk | Tidak |
+| `RECEIPT_STORE_PHONE` | Nomor telepon di kop struk | Tidak |
+| `RECEIPT_FOOTER` | Kalimat penutup struk | Tidak |
+| `RECEIPT_COLUMNS` | Lebar struk: `32` (58mm) atau `48` (80mm) | Tidak |
 | `NEXT_PUBLIC_LOCATION_CHECK` | Aktifkan geolocation gate | Tidak |
-| `NEXT_PUBLIC_CAFE_LAT/LNG` | Koordinat kafe | Jika gate aktif |
+| `NEXT_PUBLIC_CAFE_LAT` / `LNG` | Koordinat kafe | Jika gate aktif |
 | `NEXT_PUBLIC_CAFE_RADIUS_METERS` | Radius izin (m) | Tidak |
-| `MIDTRANS_SERVER_KEY` / `MIDTRANS_IS_PRODUCTION` | (Legacy) Midtrans | Tidak |
 
-> ⚠️ `SUPABASE_SERVICE_ROLE_KEY`, `MAYAR_API_KEY`, dan `MIDTRANS_SERVER_KEY` **server-only** — jangan pernah commit. Variabel `NEXT_PUBLIC_*` di-bake saat build (untuk Docker lewat `--build-arg`).
+> ⚠️ **PENTING:** `SUPABASE_SERVICE_ROLE_KEY`, `MAYAR_API_KEY`, `MIDTRANS_SERVER_KEY`, dan `PRINT_DEVICE_TOKEN` **server-only** — jangan pernah commit. Variabel `NEXT_PUBLIC_*` di-bake saat build (untuk Docker lewat `--build-arg`).
 
 ---
 
@@ -594,8 +535,7 @@ npm install
 # 2. Siapkan environment
 cp .env.example .env      # lalu isi kredensial
 
-# 3. Jalankan migrasi SQL di Supabase (SQL Editor):
-#    scripts/complete-schema.sql (baru) ATAU migrate-payment-flow.sql + create-payment-intents.sql
+# 3. Jalankan migrasi SQL di Supabase (SQL Editor) — lihat urutan di Database Schema
 
 # 4. Dev server
 npm run dev               # http://localhost:3000
@@ -603,15 +543,6 @@ npm run dev               # http://localhost:3000
 
 | URL | Halaman | Akses |
 |---|---|---|
-| `/order` | Menu customer | Public |
-| `/checkout` | Checkout | Public |
-| `/order-tracking?tableId=xxx` | Lacak pesanan | Public |
-| `/login` | Staff login | Public |
-| `/dashboard/cashier` | Board kasir | Cashier, Owner |
-| `/dashboard/kitchen` | Kitchen display | Koki |
-| `/dashboard/owner` | Owner dashboard | Owner |
-| `/dashboard/qr` | QR umum + kelola meja | Cashier, Owner |
-| `/dashboard/history` | Riwayat order | Staff |
 | `http://localhost:3000/order?table=1` | Menu Customer | Public |
 | `http://localhost:3000/checkout` | Checkout | Public |
 | `http://localhost:3000/order-success` | Order Success | Public |
@@ -629,9 +560,6 @@ npm run dev               # http://localhost:3000
 
 ## Setup Supabase
 
-1. Buat project di [Supabase Dashboard](https://supabase.com/dashboard) (region Singapore).
-2. **SQL Editor** → jalankan `scripts/complete-schema.sql` (atau migrasi bertahap di atas).
-3. **Authentication → Users** → buat user staff, lalu insert ke `staff_users`:
 ### Step 1: Buat Project
 
 1. Buka [Supabase Dashboard](https://supabase.com/dashboard)
@@ -646,8 +574,8 @@ npm run dev               # http://localhost:3000
 
 1. Di dashboard Supabase, klik **"SQL Editor"**
 2. Klik **"New query"**
-3. Copy-paste seluruh isi file `supabase-schema.sql`
-4. Klik **"Run"**
+3. Copy-paste seluruh isi file `supabase-schema.sql`, klik **"Run"**
+4. Lanjutkan dengan migrasi tambahan sesuai urutan di [Database Schema](#database-schema) (payment flow → QRIS → hapus koki → print jobs)
 
 ### Step 3: Buat User Staff
 
@@ -661,23 +589,18 @@ npm run dev               # http://localhost:3000
 | `owner@warkop.com` | `password123` | owner |
 
 4. Setelah buat user, copy **User ID** (UUID) masing-masing
-5. Di **"Table Editor"** → pilih tabel `staff_users` → **"Insert row"**
-6. Atau jalankan SQL:
+5. Di **"Table Editor"** → pilih tabel `staff_users` → **"Insert row"**, atau jalankan SQL:
 
 ```sql
 INSERT INTO staff_users (id, email, name, role) VALUES
   ('UUID_KASIR', 'kasir@warkop.com', 'Kasir 1', 'cashier'),
-  ('UUID_KOKI',  'koki@warkop.com',  'Koki 1',  'koki'),
   ('UUID_OWNER', 'owner@warkop.com', 'Owner 1', 'owner');
 ```
 
-4. **Project Settings → API** → salin `Project URL`, `anon`, dan `service_role` ke `.env`.
-5. **Storage** → bucket `menu-images` sudah dibuat oleh schema SQL (public read, staff write).
 ### Step 4: Ambil Credentials
 
-1. Klik **"Project Settings"** (ikon gear)
-2. Klik **"API"**
-3. Copy:
+1. Klik **"Project Settings"** (ikon gear) → **"API"**
+2. Copy:
    - **Project URL** → `https://xxxx.supabase.co`
    - **anon public** → `eyJhbG...`
    - **service_role** → `eyJhbG...` (rahasia!)
@@ -690,18 +613,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
 ```
 
+> **Storage:** bucket `menu-images` sudah dibuat oleh schema SQL (public read, staff write).
+
 ---
 
 ## Login Staff
 
-| Email | Password | Role | Akses |
-|---|---|---|---|
-| `owner@warkop.com` | (set di Auth) | Owner | Semua halaman |
-| `cashier@warkop.com` | (set di Auth) | Kasir | Dashboard Kasir, Dapur, Manual Order, Printer, QR Generator, History |
+| Email | Role | Akses |
+|---|---|---|
+| `owner@warkop.com` | Owner | Semua halaman |
+| `kasir@warkop.com` | Cashier | Board kasir, Dapur, Manual Order, Printer, QR, History |
 
-> Role `koki` sudah dihapus sejak v3.0 — Kitchen Display sekarang dipegang kasir.
-
-> Password dikonfigurasi saat membuat user di Supabase Auth Dashboard.
+> Password dikonfigurasi saat membuat user di Supabase Auth Dashboard. Role `koki` sudah dihapus sejak v3.1 — Kitchen Display sekarang dipegang kasir & owner.
 
 ---
 
@@ -717,123 +640,29 @@ docker compose up -d --build
 curl http://localhost:3000/api/health
 ```
 
-- `Dockerfile` — 3 stage (deps → builder → runner non-root). `NEXT_PUBLIC_*` di-pass sebagai `--build-arg`; secret server (service role, Mayar key) di runtime.
+- `Dockerfile` — 3 stage (deps → builder → runner non-root). `NEXT_PUBLIC_*` di-pass sebagai `--build-arg`; secret server (service role, Mayar/Midtrans key, print token) di runtime.
 - `docker-compose.yml` — meneruskan env dari `.env`, healthcheck, `restart: unless-stopped`.
-- **Produksi QRIS:** set Payment Notification URL di dashboard Mayar ke `https://<domain>/api/payments/mayar/webhook`.
+- **Produksi QRIS:** set Payment Notification URL di dashboard Mayar ke `https://<domain>/api/payments/mayar/webhook` (dan di Midtrans ke `.../api/payments/midtrans/webhook` jika masih dipakai).
 
 > Bisa juga deploy ke Vercel (API Routes = serverless). Untuk akses hanya-di-kafe, lihat opsi jaringan lokal / geolocation gate.
-
----
-
-## Login Staff
-
-| Email | Role | Akses |
-|---|---|---|
-| `owner@warkop.com` | Owner | Semua halaman |
-| `kasir@warkop.com` | Cashier | Board kasir, Manual Order, QR, History |
-| `koki@warkop.com` | Koki | Kitchen Display |
-
-> Password diset saat membuat user di Supabase Auth.
 
 ---
 
 ## Riwayat Versi
 
 | Versi | Ringkasan |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase | Ya |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | API key public (anon) | Ya |
-| `SUPABASE_SERVICE_ROLE_KEY` | API key service role (rahasia!) | Ya |
-| `MIDTRANS_SERVER_KEY` | Server key Midtrans (`SB-Mid-server-…` untuk sandbox) | Untuk QRIS |
-| `MIDTRANS_IS_PRODUCTION` | `false` = sandbox, `true` = produksi | Untuk QRIS |
-| `PRINT_DEVICE_TOKEN` | Token aplikasi Android printer (header `x-print-token`) | Untuk printer |
-| `RECEIPT_STORE_NAME` | Nama toko di kop struk (default: Rumipang) | Tidak |
-| `RECEIPT_STORE_ADDRESS` | Alamat di kop struk | Tidak |
-| `RECEIPT_STORE_PHONE` | Nomor telepon di kop struk | Tidak |
-| `RECEIPT_FOOTER` | Kalimat penutup struk | Tidak |
-| `RECEIPT_COLUMNS` | Lebar struk: `32` (58mm) atau `48` (80mm) | Tidak |
-
-> ⚠️ **PENTING:** Jangan pernah commit `SUPABASE_SERVICE_ROLE_KEY`, `MIDTRANS_SERVER_KEY`, atau `PRINT_DEVICE_TOKEN` ke repository. Gunakan `.env` lokal dan Vercel environment variables.
-
----
-
-## Struktur Project
-
-### Pages (12 halaman)
-
-| Halaman | Route | Role | Deskripsi |
-|---|---|---|---|
-| Home | `/` | Public | Redirect ke `/order` |
-| Menu | `/order?table=N` | Public | Halaman menu customer |
-| Checkout | `/checkout` | Public | Checkout pesanan |
-| Order Success | `/order-success` | Public | Konfirmasi sukses |
-| Order Tracking | `/order-tracking?orderId=xxx` | Public | Lacak pesanan realtime |
-| Login | `/login` | Public | Staff login |
-| Cashier Dashboard | `/dashboard/cashier` | Cashier, Owner | Kanban order aktif |
-| Manual Order | `/dashboard/cashier/new-order` | Cashier, Owner | Input order manual |
-| Kitchen Display | `/dashboard/kitchen` | Cashier, Owner | Display pesanan + ETA |
-| Printer Struk | `/dashboard/printer` | Cashier, Owner | Antrian cetak + pratinjau struk |
-| Owner Dashboard | `/dashboard/owner` | Owner | Statistik + kelola menu |
-| QR Generator | `/dashboard/qr` | Cashier, Owner | Generate QR per meja |
-| Order History | `/dashboard/history` | Staff | Riwayat order |
-
-### API Routes (22 endpoints)
-
-| Resource | Endpoints | Deskripsi |
-|---|---|---|
-| Menu | GET, POST | List + create menu |
-| Menu/[id] | PUT, DELETE | Update + delete menu |
-| Menu/[id]/sold-out | PATCH | Toggle sold out |
-| Menu/categories | GET | List kategori |
-| Orders | GET, POST | List + create order |
-| Orders/history | GET | Order SERVED/CANCELLED |
-| Orders/[id] | GET | Detail order |
-| Orders/[id]/track | GET | Tracking (customer) |
-| Orders/[id]/status | PATCH | Update status |
-| Orders/[id]/cancel | PATCH | Cancel order |
-| Orders/[id]/confirm-cash | PATCH | Konfirmasi cash |
-| Orders/[id]/confirm-payment | PATCH | Konfirmasi QRIS/Transfer |
-| Orders/[id]/update-eta | PATCH | Update ETA (kitchen) |
-| Tables | GET | List meja |
-| Tables/[number] | GET | Meja by nomor |
-| Activity-logs | GET, POST | Activity logging |
-| Variations | GET, POST, PUT, DELETE | CRUD variasi menu |
-| Upload | POST | Upload gambar ke Storage |
-| Health | GET | Health check |
-| Payments/midtrans/charge | POST | Buat QRIS Midtrans |
-| Payments/midtrans/status | GET | Cek status pembayaran |
-| Payments/midtrans/webhook | POST | Notifikasi Midtrans |
-| Print/jobs | GET, POST | Antrian cetak + cetak ulang |
-| Print/jobs/[id]/ack | PATCH | Konfirmasi hasil cetak |
-| Print/jobs/[id]/retry | POST | Antrikan ulang job gagal |
-
-### Components (10 komponen)
-
-| Komponen | Lokasi | Deskripsi |
-|---|---|---|
-| Button | `components/ui/` | Button dengan variants + loading |
-| Badge | `components/ui/` | Status badge |
-| Spinner | `components/ui/` | Loading spinner |
-| Skeleton | `components/ui/` | Loading placeholder |
-| EmptyState | `components/ui/` | Empty state |
-| MenuItemCard | `components/menu/` | Card menu item |
-| MenuItemSheet | `components/menu/` | Bottom sheet detail |
-| CategoryPills | `components/menu/` | Filter kategori |
-| CartFAB | `components/cart/` | Floating cart button |
-| CartDrawer | `components/cart/` | Bottom sheet cart |
-| DashboardLayout | `components/dashboard/` | Dashboard shell |
-| VariationManager | `components/dashboard/` | Kelola variasi menu (CRUD) |
-| OrderCard | `components/dashboard/` | Order card + ETA |
-| ProtectedRoute | `components/auth/` | Route guard |
-
-### Context & Hooks
-
-| Module | Lokasi | Deskripsi |
-|---|---|---|
-| AuthContext | `context/` | Auth state + Supabase auth |
-| CartContext | `context/` | Cart state + sessionStorage |
-| useMenu | `hooks/` | Menu data + variations |
-| useOrders | `hooks/` | Orders + Supabase Realtime |
-| useCountdown | `hooks/` | Countdown timer |
+|---|---|
+| v2.1 | Kitchen ETA, customer tracking, Kanban kasir, owner dashboard, activity log |
+| v2.2 | Overhaul UI/UX & kualitas kode (26 perbaikan), aksesibilitas WCAG |
+| v2.3 | Konfirmasi persetujuan sebelum checkout |
+| v2.4 | Upload gambar menu ke Supabase Storage |
+| v2.5 | Kelola variasi menu (VariationManager + API) |
+| v2.6 | Security hardening: RLS, auth guard 14 endpoint, state machine guard |
+| v2.7 | Kompatibilitas skema (`categories`, `variation_type`) + error handling |
+| v2.8 | Fix hydration checkout |
+| v2.9 | Owner: hapus menu, reset data, hapus riwayat |
+| v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS Mayar, dark mode, geolocation gate, Docker |
+| v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
 
 ---
 
@@ -841,7 +670,7 @@ curl http://localhost:3000/api/health
 
 ### New Features
 
-- **Kitchen ETA System** — Koki bisa set estimasi waktu, countdown realtime, update ETA, overdue warning
+- **Kitchen ETA System** — Set estimasi waktu, countdown realtime, update ETA, overdue warning
 - **Customer Order Tracking** — Customer bisa lacak status pesanan + ETA secara realtime
 - **Cart FAB + Drawer** — Floating cart button + bottom sheet cart dengan animasi
 - **Cart Persistence** — Keranjang tersimpan di sessionStorage, survive page refresh
@@ -874,7 +703,6 @@ curl http://localhost:3000/api/health
 - **Cashier page** — Kanban layout, toast, activity log
 - **Owner page** — Comprehensive dashboard dengan stats, rekap, top menu, recent orders
 
-
 ---
 
 ## Changelog v2.2
@@ -894,7 +722,7 @@ curl http://localhost:3000/api/health
 
 - **`clearCart()` no longer clears table number** — Customer can clear cart to start fresh without losing table assignment
 - **Theme consistency across all components** — `MenuItemCard`, `CategoryPills`, `EmptyState`, `Badge`, `DashboardLayout` all now use CSS theme variables instead of hardcoded `bg-white`, `text-gray-*` classes
-- **OrderCard animations** — Frameworks Motion enter/exit animations (`motion.div` with `opacity`/`y` transitions) for smooth card appearance
+- **OrderCard animations** — Framer Motion enter/exit animations (`motion.div` with `opacity`/`y` transitions) for smooth card appearance
 - **Skeleton loading everywhere** — Added skeleton placeholders in checkout page and order tracking page (was blank spinner only)
 - **Loading state prop** — `OrderCard` now has `isLoading` prop; buttons show spinner + disabled state during API calls
 - **Persistent customer headers** — All customer pages (checkout, order-success, order-tracking) now have consistent sticky header with "Rumipang" + back button + "Meja X" indicator
@@ -933,66 +761,26 @@ curl http://localhost:3000/api/health
 
 | Metric | Value |
 |---|---|
-| v2.1 | Kitchen ETA, customer tracking, Kanban kasir, owner dashboard, activity log |
-| v2.2 | Overhaul UI/UX & kualitas kode (26 perbaikan), aksesibilitas WCAG |
-| v2.3 | Konfirmasi persetujuan sebelum checkout |
-| v2.4 | Upload gambar menu ke Supabase Storage |
-| v2.5 | Kelola variasi menu (VariationManager + API) |
-| v2.6 | Security hardening: RLS, auth guard 14 endpoint, state machine guard |
-| v2.7 | Kompatibilitas skema (`categories`, `variation_type`) + error handling |
-| v2.8 | Fix hydration checkout |
-| v2.9 | Owner: hapus menu, reset data, hapus riwayat |
-| **v3.0** | **Redesign flow pembayaran + gateway QRIS (Mayar), dark mode, geolocation gate, Docker** |
+| Files modified | 20 |
+| Improvements | 26 |
+| Breaking changes | None |
 
 ---
 
-## Changelog v3.0
+## Changelog v2.3
 
-### 1. Redesign Alur Pembayaran & Status
+### Konfirmasi Persetujuan Sebelum Checkout (1 file)
 
-- **Pemisahan status dapur & bayar** — `status` (QUEUED/PROCESSING/SERVED/CANCELLED) terpisah dari `payment_status` (PAID/UNPAID). Metode bayar disederhanakan ke **CASH** & **QRIS** (drop TRANSFER_BCA).
-- **Satu QR umum** — Ganti QR per-meja jadi satu QR kafe; customer pilih meja saat checkout.
-- **Board kasir per meja** — Order dikelompokkan per meja, tiap order punya badge bayar sendiri. Tombol **Tandai Lunas** (mark-paid) & **Selesai** (arsip) menggantikan confirm-cash/confirm-payment.
-- **Kolom `is_archived`** — Order pindah ke history hanya saat kasir menekan "Selesai".
-- Migrasi: `scripts/migrate-payment-flow.sql` + `scripts/create-payment-intents.sql`.
+> ⚠️ Isi asli changelog ini hilang saat merge branch sebelumnya — baris di bawah direkonstruksi dari perilaku yang masih terverifikasi ada di `app/(customer)/checkout/page.tsx`, bukan salinan teks aslinya.
 
-### 2. Payment Gateway QRIS — Mayar
+- Sebelum submit pesanan, customer wajib mencentang persetujuan bahwa pesanan **tidak dapat dibatalkan** setelah checkout.
+- Tombol checkout nonaktif sampai kotak centang dicentang dan meja dipilih.
 
-- **Provider Mayar** ([lib/mayar.ts](lib/mayar.ts)) — create payment request + cek status via API resmi Mayar.
-- **Order dibuat setelah lunas** — Tabel `payment_intents` menyimpan cart sementara; order baru dibuat saat pembayaran terkonfirmasi (`settleIntent`, idempoten).
-- **Deteksi otomatis** — Polling status tiap 3 detik (lokal & produksi) + webhook (cadangan). Webhook selalu diverifikasi ulang server-side (aman walau signature tidak didokumentasikan).
-- **Legacy Midtrans** — [lib/midtrans.ts](lib/midtrans.ts) + route `payments/midtrans/*` dipertahankan (tidak aktif) untuk referensi/masa depan.
+### Tech Specs
 
-### 3. Dark Mode
-
-- **ThemeContext + ThemeToggle** — Tema terang/gelap tersimpan di `localStorage`, guard `mounted` anti-hydration-mismatch. Tailwind v4 `@theme` agar semua utility ikut berganti tema.
-
-### 4. Geolocation Gate
-
-- **`useLocationCheck`** — Blokir pesanan jika customer di luar radius kafe (haversine, GPS browser). Dikontrol penuh lewat env (`NEXT_PUBLIC_LOCATION_CHECK` + koordinat + radius).
-
-### 5. Reliabilitas Data
-
-- **Fetch via API Routes** — `useMenu` & `useOrders` mengambil data dari API (service role, bypass RLS) alih-alih query Supabase langsung dari browser (fix loading stuck karena RLS). Browser client hanya untuk trigger Realtime.
-- **Auth `getUser()`** — Semua `requireAuth` & `middleware.ts` memakai `getUser()` (validasi ke auth server) menggantikan `getSession()`.
-- **Tracking per meja** — `order-tracking` + `table-track` menampilkan seluruh order 1 meja; fix harga item Rp0 di tracking.
-
-### 6. Deployment (Docker)
-
-- **Dockerfile** (3-stage, non-root) + **docker-compose.yml** + **.dockerignore** + **.env.example**. `next.config.ts` → `output: 'standalone'`.
-
-### Verifikasi
-
-| Kategori | Hasil |
+| Metric | Value |
 |---|---|
-| E2E customer + pembayaran | 27/27 pass |
-| E2E lifecycle staff | 25/25 pass |
-| TypeScript / Build | 0 error, passed |
-| Breaking changes | Perlu migrasi SQL (di atas) |
-| Files created | 3 (`VariationManager.tsx`, `variations/route.ts`, `variations/[id]/route.ts`) |
-| Files modified | 1 (`owner/page.tsx`) |
-| TypeScript errors | 0 |
-| Build | Passed |
+| Files modified | 1 (`app/(customer)/checkout/page.tsx`) |
 | Breaking changes | None |
 
 ---
@@ -1019,6 +807,27 @@ curl http://localhost:3000/api/health
 |---|---|
 | Files modified | 2 (`owner/page.tsx`, `supabase-schema.sql`) |
 | Files created | 1 (`app/api/upload/route.ts`) |
+| TypeScript errors | 0 |
+| Build | Passed |
+| Breaking changes | None |
+
+---
+
+## Changelog v2.5
+
+### Kelola Variasi Menu — VariationManager (6 files)
+
+> ⚠️ Isi asli changelog ini hilang saat merge branch sebelumnya — baris di bawah direkonstruksi dari metadata yang tersisa (tabel Tech Specs) dan endpoint yang terverifikasi masih berjalan hari ini.
+
+- Owner bisa CRUD variasi per menu (grup + label + harga tambahan) lewat komponen `VariationManager`
+- Endpoint baru: `GET/POST /api/menu/variations`, `PUT/DELETE /api/menu/variations/[id]`
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files created | 3 (`VariationManager.tsx`, `variations/route.ts`, `variations/[id]/route.ts`) |
+| Files modified | 1 (`owner/page.tsx`) |
 | TypeScript errors | 0 |
 | Build | Passed |
 | Breaking changes | None |
@@ -1054,6 +863,8 @@ curl http://localhost:3000/api/health
 | `PATCH /api/orders/[id]/cancel` | No auth | Staff only |
 | `PATCH /api/orders/[id]/confirm-cash` | No auth | Staff only |
 | `PATCH /api/orders/[id]/confirm-payment` | No auth | Staff only |
+
+> Endpoint `confirm-cash`/`confirm-payment` di atas kemudian digantikan oleh `mark-paid` pada redesign alur pembayaran v3.0.
 
 #### State Machine Guards
 
@@ -1145,6 +956,8 @@ curl http://localhost:3000/api/health
 | Order Creation | OK |
 | TypeScript | 0 errors |
 
+> Baris "Login (kasir/koki/owner)" adalah catatan historis dari saat role `koki` masih ada — dihapus di v3.1.
+
 #### Tech Specs
 
 | Metric | Value |
@@ -1215,6 +1028,52 @@ curl http://localhost:3000/api/health
 
 ## Changelog v3.0
 
+### 1. Redesign Alur Pembayaran & Status
+
+- **Pemisahan status dapur & bayar** — `status` (QUEUED/PROCESSING/SERVED/CANCELLED) terpisah dari `payment_status` (PAID/UNPAID). Metode bayar disederhanakan ke **CASH** & **QRIS** (drop TRANSFER_BCA).
+- **Satu QR umum** — Ganti QR per-meja jadi satu QR kafe; customer pilih meja saat checkout.
+- **Board kasir per meja** — Order dikelompokkan per meja, tiap order punya badge bayar sendiri. Tombol **Tandai Lunas** (mark-paid) & **Selesai** (arsip) menggantikan confirm-cash/confirm-payment.
+- **Kolom `is_archived`** — Order pindah ke history hanya saat kasir menekan "Selesai".
+- Migrasi: `scripts/migrate-payment-flow.sql` + `scripts/create-payment-intents.sql`.
+
+### 2. Payment Gateway QRIS — Mayar
+
+- **Provider Mayar** ([lib/mayar.ts](lib/mayar.ts)) — create payment request + cek status via API resmi Mayar.
+- **Order dibuat setelah lunas** — Tabel `payment_intents` menyimpan cart sementara; order baru dibuat saat pembayaran terkonfirmasi (`settleIntent`, idempoten).
+- **Deteksi otomatis** — Polling status tiap 3 detik (lokal & produksi) + webhook (cadangan). Webhook selalu diverifikasi ulang server-side (aman walau signature tidak didokumentasikan).
+- **Provider Midtrans** — [lib/midtrans.ts](lib/midtrans.ts) + route `payments/midtrans/*` dipertahankan; `settleIntent` di dalamnya dipakai bersama Mayar, dan endpoint charge-nya dipakai script pengujian sandbox (lihat [Changelog v3.1](#changelog-v31)).
+
+### 3. Dark Mode
+
+- **ThemeContext + ThemeToggle** — Tema terang/gelap tersimpan di `localStorage`, guard `mounted` anti-hydration-mismatch. Tailwind v4 `@theme` agar semua utility ikut berganti tema.
+
+### 4. Geolocation Gate
+
+- **`useLocationCheck`** — Blokir pesanan jika customer di luar radius kafe (haversine, GPS browser). Dikontrol penuh lewat env (`NEXT_PUBLIC_LOCATION_CHECK` + koordinat + radius).
+
+### 5. Reliabilitas Data
+
+- **Fetch via API Routes** — `useMenu` & `useOrders` mengambil data dari API (service role, bypass RLS) alih-alih query Supabase langsung dari browser (fix loading stuck karena RLS). Browser client hanya untuk trigger Realtime.
+- **Auth `getUser()`** — Semua `requireAuth` & `middleware.ts` memakai `getUser()` (validasi ke auth server) menggantikan `getSession()`.
+- **Tracking per meja** — `order-tracking` + `table-track` menampilkan seluruh order 1 meja; fix harga item Rp0 di tracking.
+
+### 6. Deployment (Docker)
+
+- **Dockerfile** (3-stage, non-root) + **docker-compose.yml** + **.dockerignore** + **.env.example**. `next.config.ts` → `output: 'standalone'`.
+
+### Verifikasi
+
+| Kategori | Hasil |
+|---|---|
+| E2E customer + pembayaran | 27/27 pass |
+| E2E lifecycle staff | 25/25 pass |
+| TypeScript / Build | 0 error, passed |
+| Breaking changes | Perlu migrasi SQL (`migrate-payment-flow.sql` + `create-payment-intents.sql`) |
+
+---
+
+## Changelog v3.1
+
 ### Hapus Role Koki + Cetak Struk ke Printer Bluetooth
 
 **Breaking change** — jalankan dua migrasi SQL sebelum deploy:
@@ -1241,8 +1100,8 @@ apa adanya.
 #### Alur cetak struk
 
 ```
-QRIS  -> pelanggan scan & bayar
-      -> Midtrans settlement (webhook / status poll)
+QRIS  -> pelanggan scan & bayar (Mayar atau Midtrans)
+      -> settlement (webhook / status poll) via settleIntent()
       -> order dibuat LUNAS + print job otomatis   [trigger: QRIS_SETTLED]
       -> aplikasi Android tarik job -> cetak Bluetooth
 
@@ -1287,7 +1146,9 @@ npm run test:qris          # terminal 2 — end-to-end sampai struk masuk antria
 
 Script mencetak `qr_string` + link QR. Bayar di simulator sandbox Midtrans
 (<https://simulator.sandbox.midtrans.com/qris/index>), lalu script akan polling
-sampai lunas dan menampilkan isi struk yang masuk antrian printer.
+sampai lunas dan menampilkan isi struk yang masuk antrian printer. Script ini
+memanggil endpoint Midtrans langsung, jadi tetap jalan walau halaman checkout
+customer sudah beralih ke Mayar.
 
 Prasyarat sandbox: `MIDTRANS_SERVER_KEY` diawali `SB-Mid-server-`,
 `MIDTRANS_IS_PRODUCTION=false`, dan Payment Notification URL di dashboard
@@ -1310,7 +1171,7 @@ Midtrans diarahkan ke `<domain>/api/payments/midtrans/webhook`.
 
 ## Developer
 
-**Ricky Rudiansyah** — BINUS University, Reseagitrch Track AI & Robotika
+**Ricky Rudiansyah** — BINUS University, Research Track AI & Robotika
 
 ---
 
