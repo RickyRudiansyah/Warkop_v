@@ -23,18 +23,25 @@ export function MenuItemCard({ item, onOpenDetail, onQuickAdd, quantityInCart, o
   const hasVariations = (item.variations?.length ?? 0) > 0;
 
   return (
-    <div className="card overflow-hidden flex flex-col">
+    // h-full: semua kartu dalam satu baris grid jadi setinggi kartu tertinggi.
+    <div className="card h-full overflow-hidden flex flex-col">
+      {/*
+        shrink-0 + gambar absolute: sebagai flex item, tinggi elemen ini ditentukan
+        flex-basis (ukuran konten), sehingga tinggi asli gambar akan menimpa
+        aspect-square dan bikin kartu tidak simetris. Dengan gambar dikeluarkan
+        dari alur normal (absolute), rasio 1:1-lah yang menentukan tinggi.
+      */}
       <button
         onClick={() => onOpenDetail(item)}
         disabled={soldOut}
-        className="relative block w-full aspect-square bg-surface-3 disabled:cursor-not-allowed"
+        className="relative block w-full aspect-square shrink-0 overflow-hidden bg-surface-3 disabled:cursor-not-allowed"
         aria-label={'Lihat detail ' + item.name}
       >
         {item.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+          <img src={item.image_url} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center">
             <Utensils className="w-8 h-8 text-text-secondary/40" />
           </div>
         )}
@@ -53,13 +60,14 @@ export function MenuItemCard({ item, onOpenDetail, onQuickAdd, quantityInCart, o
         </button>
         <p className="mt-1 text-[15px] font-bold text-text">{formatCurrency(item.price)}</p>
 
-        <div className="mt-2.5 pt-0.5">
+        {/* mt-auto: tombol ADD selalu rata bawah walau judul 1 atau 2 baris. */}
+        <div className="mt-auto pt-2.5">
           {quantityInCart > 0 && !soldOut ? (
-            <div className="flex items-center justify-between h-10 rounded-lg bg-ember-100 px-1.5">
+            <div className="flex items-center justify-between h-10 rounded-lg bg-ember-soft px-1.5">
               <button
                 onClick={onDecrement}
                 aria-label={'Kurangi ' + item.name}
-                className="w-8 h-8 rounded-md flex items-center justify-center text-ember-600 active:scale-95 transition"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-ember-ink active:scale-95 transition"
               >
                 <Minus className="w-4 h-4" strokeWidth={2.5} />
               </button>
@@ -67,7 +75,7 @@ export function MenuItemCard({ item, onOpenDetail, onQuickAdd, quantityInCart, o
               <button
                 onClick={onIncrement}
                 aria-label={'Tambah ' + item.name}
-                className="w-8 h-8 rounded-md flex items-center justify-center text-ember-600 active:scale-95 transition"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-ember-ink active:scale-95 transition"
               >
                 <Plus className="w-4 h-4" strokeWidth={2.5} />
               </button>
@@ -81,7 +89,7 @@ export function MenuItemCard({ item, onOpenDetail, onQuickAdd, quantityInCart, o
                 'w-full h-10 rounded-lg border-[1.5px] text-[14px] font-semibold uppercase tracking-wide transition active:scale-[0.98]',
                 soldOut
                   ? 'border-border text-text-secondary cursor-not-allowed'
-                  : 'border-ember-600 text-ember-600 hover:bg-ember-100',
+                  : 'border-ember-ink text-ember-ink hover:bg-ember-soft',
               )}
             >
               {soldOut ? 'Habis' : 'Add'}

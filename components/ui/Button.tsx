@@ -17,7 +17,7 @@ export function Button({ variant = 'primary', size = 'md', loading, className, c
     success: 'bg-success text-white hover:opacity-90 focus:ring-success',
     dark: 'bg-brown-950 text-on-dark hover:bg-brown-900 focus:ring-brown-900 shadow-sm',
     // DESIGN.md §5.6 — tombol ADD di kartu produk: outline ember, background transparan.
-    'outline-ember': 'bg-transparent border-[1.5px] border-ember-600 text-ember-600 hover:bg-ember-100 focus:ring-ember-600',
+    'outline-ember': 'bg-transparent border-[1.5px] border-ember-ink text-ember-ink hover:bg-ember-soft focus:ring-ember-ink',
     // DESIGN.md §5.8 — tombol aksi di cart bar coklat.
     gold: 'bg-gold-500 text-brown-900 hover:bg-gold-400 focus:ring-gold-500 shadow-sm',
   };

@@ -56,7 +56,7 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
             aria-hidden="true"
           />
           <motion.div
-            className="relative w-full bg-cream-50 rounded-t-2xl max-h-[88vh] flex flex-col"
+            className="relative w-full bg-surface rounded-t-2xl max-h-[88vh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -67,19 +67,20 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
           >
             <div className="flex-1 overflow-y-auto">
               <div className="relative">
-                <div className="aspect-square w-full bg-brown-100 rounded-t-2xl overflow-hidden">
+                {/* Gambar absolute supaya rasio 1:1 tidak ditimpa tinggi asli gambar. */}
+                <div className="relative aspect-square w-full bg-surface-3 rounded-t-2xl overflow-hidden">
                   {item.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                    <img src={item.image_url} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Utensils className="w-12 h-12 text-brown-500/40" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Utensils className="w-12 h-12 text-text-secondary/40" />
                     </div>
                   )}
                 </div>
                 <button
                   onClick={onClose}
-                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-cream-50 shadow-md flex items-center justify-center text-brown-900 active:scale-95 transition"
+                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-surface shadow-md flex items-center justify-center text-text active:scale-95 transition"
                   aria-label="Tutup"
                 >
                   <X className="w-5 h-5" />
@@ -88,10 +89,10 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
 
               <div className="p-4 space-y-5">
                 <div>
-                  <h2 id="menu-item-sheet-title" className="text-xl font-bold uppercase leading-tight text-brown-900">
+                  <h2 id="menu-item-sheet-title" className="text-xl font-bold uppercase leading-tight text-text">
                     {item.name}
                   </h2>
-                  <p className="mt-1 text-lg font-bold text-ember-600">{formatCurrency(item.price)}</p>
+                  <p className="mt-1 text-lg font-bold text-ember-ink">{formatCurrency(item.price)}</p>
                   {item.description && (
                     <p className="mt-2 text-[15px] leading-relaxed text-[color:var(--color-text-secondary)]">
                       {item.description}
@@ -101,7 +102,7 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
 
                 {Object.entries(groupedVariations).map(([group, vars]) => (
                   <div key={group}>
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-brown-900 mb-2">{group}</h3>
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-text mb-2">{group}</h3>
                     <div className="space-y-2">
                       {vars.map(v => {
                         const checked = selectedVariations[group]?.label === v.label;
@@ -110,7 +111,7 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
                             key={v.id}
                             className={cn(
                               'flex items-center justify-between p-3 rounded-lg border cursor-pointer transition',
-                              checked ? 'border-ember-600 bg-ember-100' : 'border-border hover:bg-brown-100',
+                              checked ? 'border-ember-ink bg-ember-soft' : 'border-border hover:bg-surface-3',
                             )}
                           >
                             <div className="flex items-center gap-2.5">
@@ -124,10 +125,10 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
                                 }))}
                                 className="accent-[color:var(--color-ember-600)]"
                               />
-                              <span className="text-[15px] text-brown-900">{v.label}</span>
+                              <span className="text-[15px] text-text">{v.label}</span>
                             </div>
                             {v.extra_price > 0 && (
-                              <span className="text-sm font-medium text-ember-600">+{formatCurrency(v.extra_price)}</span>
+                              <span className="text-sm font-medium text-ember-ink">+{formatCurrency(v.extra_price)}</span>
                             )}
                           </label>
                         );
@@ -137,12 +138,12 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
                 ))}
 
                 <div>
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-brown-900 mb-2">Catatan untuk dapur</h3>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-text mb-2">Catatan untuk dapur</h3>
                   <textarea
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
                     placeholder="Contoh: Tidak pakai gula"
-                    className="w-full p-3 rounded-lg border border-border bg-cream-50 text-brown-900 placeholder:text-[color:var(--color-text-secondary)] resize-none outline-none focus:border-ember-600"
+                    className="w-full p-3 rounded-lg border border-border bg-surface text-text placeholder:text-[color:var(--color-text-secondary)] resize-none outline-none focus:border-ember-ink"
                     rows={2}
                   />
                 </div>
@@ -151,27 +152,27 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-brown-900 active:scale-95 transition"
+                      className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-text active:scale-95 transition"
                       aria-label="Kurangi"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="text-lg font-semibold w-8 text-center tabular-nums text-brown-900">{quantity}</span>
+                    <span className="text-lg font-semibold w-8 text-center tabular-nums text-text">{quantity}</span>
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-brown-900 active:scale-95 transition"
+                      className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-text active:scale-95 transition"
                       aria-label="Tambah"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  <span className="text-xl font-bold text-brown-900">{formatCurrency(total)}</span>
+                  <span className="text-xl font-bold text-text">{formatCurrency(total)}</span>
                 </div>
               </div>
             </div>
 
             {/* CTA sticky di dasar sheet (DESIGN.md §5.7) */}
-            <div className="border-t border-border bg-cream-50 p-4 pb-safe">
+            <div className="border-t border-border bg-surface p-4 pb-safe">
               <button
                 onClick={() => onAdd(item, quantity, Object.values(selectedVariations), notes)}
                 className="w-full h-[52px] rounded-[10px] bg-ember-600 text-cream-50 font-bold text-base uppercase tracking-wide hover:bg-ember-500 active:scale-[0.98] transition"

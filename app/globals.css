@@ -21,6 +21,18 @@
   --color-ember-500: #E2551A;
   --color-ember-100: #FBE5D8;
 
+  /* Fill lembut untuk state terpilih. Berbeda dari ember-100/gold-100 yang
+     nilainya tetap: token ini ikut gelap di dark mode, supaya teks bertoken
+     tema (--color-text) tetap terbaca di atasnya. */
+  --color-ember-soft: #FBE5D8;
+  --color-gold-soft: #FBEBC4;
+
+  /* Ember ketika dipakai sebagai TEKS/BORDER di atas permukaan bertema.
+     ember-600 hanya 2.64:1 di atas kartu gelap (gagal WCAG AA), jadi di dark
+     mode dipakai versi lebih terang: 5.78:1 di kartu, 7.90:1 di kanvas.
+     Untuk ember sebagai FILL (tombol) tetap pakai --color-ember-600. */
+  --color-ember-ink: #C2410C;
+
   /* ---- Semantic tokens ----------------------------------------------------
      Dipetakan ke ramp di atas supaya komponen lama (bg-primary, text-text, ...)
      ikut berganti tema tanpa perlu diubah satu per satu. */
@@ -180,6 +192,9 @@ h1, h2, h3, h4 {
   --color-on-primary: #FAF4EC;
   --color-ink: #1A1008;
   --color-accent: #F7B733;
+  --color-ember-soft: #55240F;
+  --color-gold-soft: #4A3A16;
+  --color-ember-ink: #FB8B3C;
   --color-surface: #3B2A1C;
   --color-surface-2: #1A1008;
   --color-surface-3: #4E3826;

@@ -211,7 +211,7 @@ export default function OrderPage() {
             key={selectedCategory + '-' + searchQuery}
           >
             {filteredItems.map(item => (
-              <motion.div key={item.id} variants={itemAnim}>
+              <motion.div key={item.id} variants={itemAnim} className="h-full">
                 <MenuItemCard
                   item={item}
                   quantityInCart={cartQtyFor(item.id)}

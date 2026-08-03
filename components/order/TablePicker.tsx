@@ -38,6 +38,8 @@ export function TablePicker() {
         aria-label={chosen ? 'Ganti meja, sekarang meja ' + tableNumber : 'Pilih nomor meja'}
         className={cn(
           'flex items-center gap-1.5 rounded-b-2xl rounded-t-md px-4 py-2 -mt-3 shadow-md transition active:scale-95',
+          // Ember & gold nilainya tetap di kedua tema, jadi teksnya juga harus
+          // warna tetap — bukan token tema yang ikut berubah terang/gelap.
           chosen ? 'bg-ember-600 text-cream-50' : 'bg-gold-500 text-brown-900 animate-fab-pulse',
         )}
       >
@@ -58,16 +60,16 @@ export function TablePicker() {
               aria-hidden="true"
             />
             <motion.div
-              className="relative w-full max-h-[70vh] overflow-y-auto bg-cream-50 rounded-t-2xl"
+              className="relative w-full max-h-[70vh] overflow-y-auto bg-surface rounded-t-2xl"
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25 }}
               role="dialog" aria-modal="true" aria-labelledby="table-picker-title"
             >
-              <div className="sticky top-0 bg-cream-50 border-b border-border px-4 py-3 flex items-center justify-between">
-                <h2 id="table-picker-title" className="text-base font-semibold uppercase tracking-wide text-brown-900">
+              <div className="sticky top-0 bg-surface border-b border-border px-4 py-3 flex items-center justify-between">
+                <h2 id="table-picker-title" className="text-base font-semibold uppercase tracking-wide text-text">
                   Pilih Nomor Meja
                 </h2>
-                <button onClick={() => setOpen(false)} className="p-1 text-brown-500" aria-label="Tutup">
+                <button onClick={() => setOpen(false)} className="p-1 text-text-secondary" aria-label="Tutup">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -98,8 +100,8 @@ export function TablePicker() {
                           className={cn(
                             'relative h-16 rounded-xl border text-center transition active:scale-95 flex flex-col items-center justify-center gap-0.5',
                             active
-                              ? 'border-ember-600 bg-ember-100 text-brown-900'
-                              : 'border-border bg-cream-50 text-brown-900 hover:bg-brown-100',
+                              ? 'border-ember-ink bg-ember-soft text-text'
+                              : 'border-border bg-surface text-text hover:bg-surface-3',
                           )}
                         >
                           {active && (
@@ -107,7 +109,7 @@ export function TablePicker() {
                               <Check className="w-2.5 h-2.5" strokeWidth={3} />
                             </span>
                           )}
-                          <Armchair className={cn('w-4 h-4', active ? 'text-ember-600' : 'text-brown-500')} />
+                          <Armchair className={cn('w-4 h-4', active ? 'text-ember-ink' : 'text-text-secondary')} />
                           <span className="text-[13px] font-semibold uppercase leading-none">
                             {t.label || 'Meja ' + t.table_number}
                           </span>

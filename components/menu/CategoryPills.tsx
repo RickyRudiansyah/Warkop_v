@@ -39,13 +39,13 @@ function CategoryIcon({ Icon, active }: { Icon: LucideIcon; active: boolean }) {
   return (
     <span
       className={cn(
-        'w-14 h-14 rounded-full bg-cream-50 flex items-center justify-center transition',
+        'w-14 h-14 rounded-full bg-surface flex items-center justify-center transition',
         active
-          ? 'ring-2 ring-ember-600 ring-offset-2 ring-offset-surface-2 shadow-[inset_0_0_0_2px_var(--color-gold-500)]'
+          ? 'ring-2 ring-ember-ink ring-offset-2 ring-offset-surface-2 shadow-[inset_0_0_0_2px_var(--color-gold-500)]'
           : 'ring-1 ring-border opacity-70',
       )}
     >
-      <Icon className={cn('w-6 h-6', active ? 'text-ember-600' : 'text-brown-500')} strokeWidth={1.75} />
+      <Icon className={cn('w-6 h-6', active ? 'text-ember-ink' : 'text-text-secondary')} strokeWidth={1.75} />
     </span>
   );
 }
@@ -86,7 +86,7 @@ export function CategoryPills({ categories, selected, onSelect }: CategoryPillsP
                 >
                   {name}
                 </span>
-                <span className={cn('h-[3px] w-8 rounded-full', active ? 'bg-ember-600' : 'bg-transparent')} />
+                <span className={cn('h-[3px] w-8 rounded-full', active ? 'bg-ember-ink' : 'bg-transparent')} />
               </button>
             );
           })}
@@ -97,7 +97,7 @@ export function CategoryPills({ categories, selected, onSelect }: CategoryPillsP
           <button
             onClick={() => setModalOpen(true)}
             aria-label="Lihat semua kategori"
-            className="w-9 h-9 mt-2.5 rounded-full bg-cream-50 ring-1 ring-border flex items-center justify-center text-brown-500 active:scale-95 transition"
+            className="w-9 h-9 mt-2.5 rounded-full bg-surface ring-1 ring-border flex items-center justify-center text-text-secondary active:scale-95 transition"
           >
             <ChevronDown className="w-4 h-4" />
           </button>
@@ -114,16 +114,16 @@ export function CategoryPills({ categories, selected, onSelect }: CategoryPillsP
               aria-hidden="true"
             />
             <motion.div
-              className="relative w-full max-h-[70vh] overflow-y-auto bg-cream-50 rounded-t-2xl"
+              className="relative w-full max-h-[70vh] overflow-y-auto bg-surface rounded-t-2xl"
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25 }}
               role="dialog" aria-modal="true" aria-labelledby="all-category-title"
             >
-              <div className="sticky top-0 bg-cream-50 border-b border-border px-4 py-3 flex items-center justify-between">
-                <h2 id="all-category-title" className="text-base font-semibold uppercase tracking-wide text-brown-900">
+              <div className="sticky top-0 bg-surface border-b border-border px-4 py-3 flex items-center justify-between">
+                <h2 id="all-category-title" className="text-base font-semibold uppercase tracking-wide text-text">
                   Semua Kategori
                 </h2>
-                <button onClick={() => setModalOpen(false)} className="p-1 text-brown-500" aria-label="Tutup">
+                <button onClick={() => setModalOpen(false)} className="p-1 text-text-secondary" aria-label="Tutup">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -136,14 +136,14 @@ export function CategoryPills({ categories, selected, onSelect }: CategoryPillsP
                       onClick={() => pick(id)}
                       className={cn(
                         'flex flex-col items-center gap-2 rounded-xl py-3 px-2 transition active:scale-95',
-                        active ? 'bg-gold-100' : 'hover:bg-brown-100',
+                        active ? 'bg-gold-soft' : 'hover:bg-surface-3',
                       )}
                     >
                       <CategoryIcon Icon={Icon} active={active} />
                       <span
                         className={cn(
                           'text-[11px] uppercase tracking-wide text-center leading-tight line-clamp-2',
-                          active ? 'font-semibold text-brown-900' : 'text-brown-500',
+                          active ? 'font-semibold text-text' : 'text-text-secondary',
                         )}
                       >
                         {name}
