@@ -10,37 +10,82 @@ langsung**. Semua lewat REST API. Supabase SDK hanya untuk login & realtime.
 
 ## 0. Yang sudah beres di sisi web
 
-**Bearer auth sudah aktif** (4 Agustus 2026). Endpoint staff sekarang menerima
-`Authorization: Bearer <JWT>`. Terverifikasi: Bearer → 200, cookie web → 200,
-tanpa auth → 401, token palsu → 401.
+**Bearer auth sudah aktif** (4 Agustus 2026). Seluruh endpoint staff — termasuk
+`POST /api/upload` — menerima `Authorization: Bearer <JWT>`. Terverifikasi:
+Bearer → 200, cookie web → 200, tanpa auth → 401, token palsu → 401.
 
 Jadi §0 di dokumen backend sudah tidak memblokir apa pun.
 
+Yang sudah bisa dipakai aplikasi **sekarang juga**, tanpa menunggu backend lain:
+
+| Endpoint | Status |
+|---|---|
+| `GET/POST /api/orders`, `mark-paid`, `cancel`, `archive`, `status` | ✅ siap |
+| `GET/POST/PATCH /api/print/jobs...` | ✅ siap |
+| `POST /api/menu` · `PUT /api/menu/:id` · `DELETE /api/menu/:id` | ✅ siap (uji: buat → ubah → hapus lolos) |
+| `POST /api/upload` | ✅ siap (uji: Bearer → 200 + URL) |
+| `GET /api/menu` · `/api/menu/variations` · `/api/tables` | ✅ siap (publik) |
+
 ---
 
-## 1. Yang sebaiknya TIDAK dibangun di aplikasi
+## 1. Pembagian pengelolaan menu — SUDAH DIPUTUSKAN
 
-### 1.1 CRUD menu lengkap — biarkan di web
+**Keputusan pemilik (4 Agustus 2026): menu dikelola dari aplikasi saja.**
+Tambah / ubah harga / hapus menu **sudah dihapus dari dashboard web**, jadi
+aplikasi adalah satu-satunya tempat. Tidak ada lagi jalur cadangan lewat browser.
 
-Dashboard web **sudah punya** manajemen menu lengkap: tambah, edit, hapus,
-unggah gambar, kelola variasi. Membangun ulang semuanya di tablet berarti dua
-tempat yang harus dirawat, dan justru bagian yang paling menyiksa di layar
-sentuh: mengetik deskripsi panjang dan mengunggah foto produk.
-
-**Yang dibangun di aplikasi hanya operasi harian:**
-
-| Aksi | Di aplikasi? | Alasan |
+| Aksi | Di mana | Catatan |
 |---|---|---|
-| Ubah harga | ✅ ya | Sering, mendesak, satu angka |
-| Toggle sold out | ✅ ya | Paling sering dipakai, harus cepat |
-| Isi/ubah HPP | ✅ ya | Owner mengisinya sambil melihat menu |
-| Tambah menu baru | ❌ web | Butuh foto + deskripsi + variasi |
-| Hapus menu | ❌ web | Jarang, berisiko, perlu layar lebar |
-| Unggah gambar | ❌ web | Sudah jalan di web |
-| Kelola variasi | ❌ web | Form bertingkat, tidak cocok di tablet |
+| Tambah menu | **aplikasi** | Termasuk fotonya — lihat §1.1 |
+| Ubah harga | **aplikasi** | |
+| Isi/ubah HPP | **aplikasi** | |
+| Toggle sold out | **aplikasi** | |
+| Hapus menu | **aplikasi** | |
+| Unggah foto | **aplikasi** | Endpoint sudah siap — lihat §1.1 |
+| **Kelola variasi** | **web** | Satu-satunya yang tersisa di web |
 
-Kalau nanti terbukti owner tidak pernah membuka web sama sekali, CRUD penuh bisa
-ditambahkan belakangan — tapi jangan dibangun di awal atas dasar dugaan.
+Variasi sengaja **tetap di web** karena aplikasi belum punya fiturnya, sementara
+menu Rumipang punya ~293 variasi (Extra Topping, Level Pedas, Porsi, Rasa,
+Suhu). Halaman owner web sekarang hanya menampilkan daftar menu baca-saja
+dengan satu tombol: **Variasi**.
+
+> Konsekuensi yang perlu disadari: kalau tablet rusak atau hilang, **tidak ada
+> cara lain menambah atau mengubah menu** sampai tablet pulih. Ini pilihan sadar,
+> bukan kelalaian.
+
+### 1.1 Unggah foto menu — WAJIB ada di aplikasi
+
+Grid menu pelanggan itu **foto-first** (gambar 1:1 mendominasi kartu). Menu yang
+ditambahkan tanpa foto akan tampil dengan ikon garpu-sendok abu-abu dan terlihat
+jelas belum jadi.
+
+Endpoint sudah disiapkan dan **terverifikasi menerima Bearer**:
+
+```
+POST /api/upload
+Authorization: Bearer <JWT>
+Content-Type: multipart/form-data
+
+field  : file   (satu berkas gambar)
+batas  : harus image/*, maksimal 5 MB
+balasan: 200 { "url": "https://....supabase.co/storage/v1/object/public/menu-images/<nama>.jpg" }
+         400 { "error": "File harus berupa gambar" | "Ukuran file maksimal 5MB" }
+         401 { "error": "Unauthorized" }
+```
+
+Alurnya di aplikasi:
+
+1. Pengguna memilih/memotret gambar
+2. `POST /api/upload` → dapat `url`
+3. Kirim `url` itu sebagai `image_url` pada `POST /api/menu`
+
+Saran praktis: **kompres di sisi aplikasi sebelum unggah.** Foto kamera tablet
+biasanya 3–8 MB dan akan ditolak server. Turunkan ke sisi terpanjang ~1200 px
+dan kualitas JPEG ~80 — hasilnya biasanya di bawah 500 KB dan masih tajam untuk
+grid. Foto menu yang ada sekarang berkisar 100–260 KB.
+
+Rasio yang dipakai UI adalah **1:1**. Kalau memungkinkan, sediakan pemotongan
+persegi sebelum unggah supaya foto tidak terpotong sembarangan di grid.
 
 ### 1.2 Jangan kirim `cost_price_snapshot` dari aplikasi
 
@@ -210,6 +255,7 @@ Mengikuti urutan backend, karena tiap layar butuh endpointnya lebih dulu.
 
 | Tahap | Layar | Menunggu backend |
 |---|---|---|
+| 0 | **Unggah foto di layar tambah menu** (§1.1) | — sudah siap, bisa dikerjakan sekarang |
 | 1 | Harga & sold-out cepat + isi HPP | `cost_price` + `PATCH /api/menu/:id` |
 | 2 | Pemilih tema | `app_settings` + endpoint tema |
 | 3 | Stok bahan + peringatan | `ingredients` + `stock_movements` |

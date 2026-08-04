@@ -1,17 +1,16 @@
-import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireStaff } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
-  const supabaseAuth = await createClient();
-  const { data: { user } } = await supabaseAuth.auth.getUser();
-  if (!user) {
+  // Sebelumnya route ini memeriksa cookie sesi secara inline, sehingga menolak
+  // token Bearer dari aplikasi kasir. Sekarang memakai penjaga bersama yang
+  // menerima keduanya — penting karena penambahan menu (termasuk fotonya)
+  // dilakukan dari aplikasi.
+  if (!await requireStaff(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: staff } = await supabaseAuth.from('staff_users').select('role').eq('id', user.id).maybeSingle();
-  if (!staff) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
 

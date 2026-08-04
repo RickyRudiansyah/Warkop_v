@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatCurrency } from '@/lib/utils';
 import { MenuItem as MenuItemType, Order } from '@/types';
-import { Plus, Edit2, Save, X, ToggleRight, ToggleLeft, TrendingUp, DollarSign, ShoppingCart, AlertTriangle, Image as ImageIcon, List, Trash2 } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingCart, AlertTriangle, List, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type TimeFilter = 'today' | '7days' | 'all';
@@ -24,19 +24,10 @@ export default function OwnerPage() {
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingItem, setEditingItem] = useState<MenuItemType | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', price: '', description: '', image_url: '' });
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm] = useState({ name: '', price: '', description: '', image_url: '' });
-  const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
-  const [uploadingAddImage, setUploadingAddImage] = useState(false);
-  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
-  const [uploadingEditImage, setUploadingEditImage] = useState(false);
   const [variationMenuId, setVariationMenuId] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
-  const [deletingMenuId, setDeletingMenuId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<{ open: boolean; type: 'delete-menu' | 'reset-all'; menuId?: string; menuName?: string }>({ open: false, type: 'delete-menu' });
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; type: 'reset-all' }>({ open: false, type: 'reset-all' });
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -88,102 +79,6 @@ export default function OwnerPage() {
     });
   });
   topMenu.sort((a, b) => b.count - a.count);
-
-  const uploadImage = async (file: File): Promise<string | null> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (res.ok) {
-        const data = await res.json();
-        return data.url;
-      }
-      const err = await res.json();
-      toast.error(err.error || 'Gagal upload gambar');
-    } catch {
-      toast.error('Gagal upload gambar');
-    }
-    return null;
-  };
-
-  const handleAddImage = async (file: File) => {
-    setUploadingAddImage(true);
-    const url = await uploadImage(file);
-    if (url) {
-      setAddForm(p => ({ ...p, image_url: url }));
-    }
-    setUploadingAddImage(false);
-  };
-
-  const handleEditImage = async (file: File) => {
-    setUploadingEditImage(true);
-    const url = await uploadImage(file);
-    if (url) {
-      setEditForm(p => ({ ...p, image_url: url }));
-    }
-    setUploadingEditImage(false);
-  };
-
-  const toggleSoldOut = async (id: string) => {
-    const res = await fetch('/api/menu/' + id + '/sold-out', { method: 'PATCH' });
-    if (res.ok) {
-      setMenuItems(prev => prev.map(item => item.id === id ? { ...item, is_sold_out: !item.is_sold_out } : item));
-      toast.success('Status menu diperbarui');
-    }
-  };
-
-  const handleAdd = async () => {
-    if (!addForm.name || !addForm.price) return;
-    const res = await fetch('/api/menu', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: addForm.name, price: parseInt(addForm.price), description: addForm.description || null, image_url: addForm.image_url || null }),
-    });
-    if (res.ok) {
-      const newItem = await res.json();
-      setMenuItems(prev => [...prev, newItem]);
-      setShowAddForm(false);
-      setAddForm({ name: '', price: '', description: '', image_url: '' });
-      setAddImagePreview(null);
-      toast.success('Menu berhasil ditambahkan');
-    }
-  };
-
-  const handleEdit = async () => {
-    if (!editingItem || !editForm.name || !editForm.price) return;
-    const res = await fetch('/api/menu/' + editingItem.id, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editForm.name, price: parseInt(editForm.price), description: editForm.description || null, image_url: editForm.image_url || null }),
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setMenuItems(prev => prev.map(item => item.id === editingItem.id ? updated : item));
-      setEditingItem(null);
-      setEditImagePreview(null);
-      toast.success('Menu berhasil diperbarui');
-    }
-  };
-
-  const openDeleteMenuModal = (id: string, name: string) => {
-    setConfirmModal({ open: true, type: 'delete-menu', menuId: id, menuName: name });
-  };
-
-  const handleDeleteMenu = async () => {
-    if (!confirmModal.menuId) return;
-    setDeletingMenuId(confirmModal.menuId);
-    try {
-      const res = await fetch('/api/menu/' + confirmModal.menuId, { method: 'DELETE' });
-      if (res.ok) {
-        setMenuItems(prev => prev.filter(item => item.id !== confirmModal.menuId));
-        toast.success(confirmModal.menuName + ' berhasil dihapus');
-      } else {
-        toast.error('Gagal menghapus menu');
-      }
-    } catch { toast.error('Gagal menghubungi server'); }
-    setDeletingMenuId(null);
-    setConfirmModal({ open: false, type: 'delete-menu' });
-  };
 
   const handleResetData = async () => {
     setResetting(true);
@@ -300,106 +195,19 @@ export default function OwnerPage() {
       </div>
 
       <div className="card p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Kelola Menu</h3>
-          <Button size="sm" onClick={() => setShowAddForm(!showAddForm)}><Plus className="w-4 h-4 mr-1" /> Tambah</Button>
+        {/*
+          Tambah/ubah/hapus menu dipindah sepenuhnya ke aplikasi kasir. Yang
+          tersisa di sini hanya daftar baca-saja + pengelolaan VARIASI, karena
+          aplikasi belum punya fitur variasi dan menu ini punya ratusan variasi
+          (Extra Topping, Level Pedas, Porsi, Rasa, Suhu).
+        */}
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold">Variasi Menu</h3>
         </div>
-
-        {showAddForm && (
-          <div className="bg-surface-2 p-4 rounded-lg mb-4 space-y-3">
-            <input placeholder="Nama menu" value={addForm.name} onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
-            <input placeholder="Harga" type="number" value={addForm.price} onChange={e => setAddForm(p => ({ ...p, price: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
-            <input placeholder="Deskripsi (opsional)" value={addForm.description} onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
-            <div>
-              <label className="block text-sm font-medium mb-1">Gambar Menu</label>
-              {addImagePreview ? (
-                <div className="relative w-full h-40 rounded-lg overflow-hidden border">
-                  <img src={addImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => { setAddImagePreview(null); setAddForm(p => ({ ...p, image_url: '' })); }}
-                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
-                    aria-label="Hapus gambar"
-                  ><X className="w-4 h-4" /></button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-surface-2">
-                  {uploadingAddImage ? (
-                    <Spinner size="sm" />
-                  ) : (
-                    <>
-                      <ImageIcon className="w-8 h-8 text-text-secondary mb-1" />
-                      <span className="text-sm text-text-secondary">Klik untuk upload gambar</span>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setAddImagePreview(URL.createObjectURL(file));
-                        handleAddImage(file);
-                      }
-                    }}
-                  />
-                </label>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleAdd}>Simpan</Button>
-              <Button variant="ghost" onClick={() => setShowAddForm(false)}>Batal</Button>
-            </div>
-          </div>
-        )}
-
-        {editingItem && (
-          <div className="bg-surface-2 p-4 rounded-lg mb-4 space-y-3">
-            <input placeholder="Nama menu" value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
-            <input placeholder="Harga" type="number" value={editForm.price} onChange={e => setEditForm(p => ({ ...p, price: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
-            <input placeholder="Deskripsi (opsional)" value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border rounded-lg bg-surface" />
-            <div>
-              <label className="block text-sm font-medium mb-1">Gambar Menu</label>
-              {editImagePreview ? (
-                <div className="relative w-full h-40 rounded-lg overflow-hidden border">
-                  <img src={editImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => { setEditImagePreview(null); setEditForm(p => ({ ...p, image_url: '' })); }}
-                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
-                    aria-label="Hapus gambar"
-                  ><X className="w-4 h-4" /></button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-surface-2">
-                  {uploadingEditImage ? (
-                    <Spinner size="sm" />
-                  ) : (
-                    <>
-                      <ImageIcon className="w-8 h-8 text-text-secondary mb-1" />
-                      <span className="text-sm text-text-secondary">Klik untuk upload gambar</span>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setEditImagePreview(URL.createObjectURL(file));
-                        handleEditImage(file);
-                      }
-                    }}
-                  />
-                </label>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleEdit}><Save className="w-4 h-4 mr-1" /> Update</Button>
-              <Button variant="ghost" onClick={() => setEditingItem(null)}><X className="w-4 h-4 mr-1" /> Batal</Button>
-            </div>
-          </div>
-        )}
+        <p className="text-sm text-text-secondary mb-4">
+          Tambah, ubah harga, dan hapus menu dilakukan lewat aplikasi kasir.
+          Halaman ini untuk mengelola variasi tiap menu.
+        </p>
 
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -420,19 +228,12 @@ export default function OwnerPage() {
                   <td className="px-4 py-3">{item.is_sold_out ? <Badge variant="danger">Sold Out</Badge> : <Badge variant="success">Tersedia</Badge>}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => setVariationMenuId(variationMenuId === item.id ? null : item.id)} aria-label="Kelola variasi"><List className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => { setEditingItem(item); setEditForm({ name: item.name, price: String(item.price), description: item.description || '', image_url: item.image_url || '' }); setEditImagePreview(item.image_url || null); }}><Edit2 className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => toggleSoldOut(item.id)}>
-                        {item.is_sold_out ? <ToggleRight className="w-4 h-4 text-success" /> : <ToggleLeft className="w-4 h-4" />}
-                      </Button>
                       <Button
-                        variant="ghost"
+                        variant={variationMenuId === item.id ? 'secondary' : 'ghost'}
                         size="sm"
-                        onClick={() => openDeleteMenuModal(item.id, item.name)}
-                        disabled={deletingMenuId === item.id}
-                        aria-label={'Hapus ' + item.name}
+                        onClick={() => setVariationMenuId(variationMenuId === item.id ? null : item.id)}
                       >
-                        {deletingMenuId === item.id ? <Spinner size="sm" /> : <Trash2 className="w-4 h-4 text-danger" />}
+                        <List className="w-4 h-4 mr-1" />Variasi
                       </Button>
                     </div>
                   </td>
@@ -458,20 +259,17 @@ export default function OwnerPage() {
 
       {confirmModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmModal({ open: false, type: 'delete-menu' })} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmModal({ open: false, type: 'reset-all' })} />
           <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-sm p-6" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
-            <h3 id="confirm-dialog-title" className="text-lg font-bold mb-2">
-              {confirmModal.type === 'reset-all' ? 'Reset Semua Data?' : 'Hapus Menu?'}
-            </h3>
+            <h3 id="confirm-dialog-title" className="text-lg font-bold mb-2">Reset Semua Data?</h3>
             <p className="text-sm text-text-secondary mb-4">
-              {confirmModal.type === 'reset-all'
-                ? 'Semua order (aktif & riwayat) dan activity log akan dihapus permanen. Menu, meja, kategori, dan staff tetap aman. Tindakan ini TIDAK BISA dibatalkan!'
-                : `"${confirmModal.menuName}" akan dihapus permanen. Variasi akan ikut terhapus. Order lama tetap ada tapi tanpa nama menu. Lanjutkan?`}
+              Semua order (aktif &amp; riwayat) dan activity log akan dihapus permanen.
+              Menu, meja, kategori, dan staff tetap aman. Tindakan ini TIDAK BISA dibatalkan!
             </p>
             <div className="flex gap-2 justify-end">
-              <Button variant="ghost" onClick={() => setConfirmModal({ open: false, type: 'delete-menu' })}>Batal</Button>
-              <Button variant="danger" onClick={confirmModal.type === 'reset-all' ? handleResetData : handleDeleteMenu}>
-                {confirmModal.type === 'reset-all' ? 'Reset Semua' : 'Hapus'}
+              <Button variant="ghost" onClick={() => setConfirmModal({ open: false, type: 'reset-all' })}>Batal</Button>
+              <Button variant="danger" onClick={handleResetData} loading={resetting} disabled={resetting}>
+                Reset Semua
               </Button>
             </div>
           </div>
