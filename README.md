@@ -527,6 +527,53 @@ Membatasi pemesanan hanya untuk customer yang berada di sekitar kafe (via GPS br
 
 > ⚠️ **PENTING:** `SUPABASE_SERVICE_ROLE_KEY`, `MAYAR_API_KEY`, `MIDTRANS_SERVER_KEY`, dan `PRINT_DEVICE_TOKEN` **server-only** — jangan pernah commit. Variabel `NEXT_PUBLIC_*` di-bake saat build (untuk Docker lewat `--build-arg`).
 
+### Beralih QRIS Sandbox ↔ Produksi
+
+Hanya **dua** variabel yang menentukan, dan keduanya **wajib diganti bersamaan**:
+
+| | Sandbox (uji coba) | Produksi (uang asli) |
+|---|---|---|
+| `MIDTRANS_SERVER_KEY` | Server key dari dashboard mode **Sandbox** | Server key dari dashboard mode **Production** |
+| `MIDTRANS_IS_PRODUCTION` | `false` | `true` |
+
+Key sandbox dan produksi adalah **kredensial yang berbeda**, dan bentuknya tidak
+bisa dijadikan patokan — sebagian akun memberi key sandbox tanpa awalan `SB-`.
+Mengganti flag saja tanpa mengganti key menghasilkan:
+
+```
+401 — Unknown Merchant server_key/id
+```
+
+#### Langkah ke PRODUKSI
+
+1. Dashboard Midtrans → toggle ke **Production** → Settings → Access Keys →
+   salin **Server Key**
+2. Pastikan **QRIS sudah aktif** untuk akun produksi (butuh persetujuan Midtrans;
+   aktivasi sandbox tidak otomatis berlaku di produksi)
+3. Settings → **Payment Notification URL** → isi
+   `https://<domain>/api/payments/midtrans/webhook`
+   *(pengaturan sandbox dan produksi terpisah — mengisi salah satu tidak
+   mengisi yang lain)*
+4. Ganti kedua variabel di Vercel → **Redeploy** (variabel env baru terbaca
+   setelah deploy ulang)
+5. Uji dengan nominal kecil memakai e-wallet asli. Simulator sandbox **tidak
+   berlaku** di produksi.
+
+#### Langkah kembali ke SANDBOX
+
+Kebalikannya: ambil server key dari toggle **Sandbox**, set
+`MIDTRANS_IS_PRODUCTION=false`, redeploy. Bayar lewat
+<https://simulator.sandbox.midtrans.com/v2/qris/index>.
+
+> Sebagai pengaman, `npm run test:qris` **menolak jalan** saat
+> `MIDTRANS_IS_PRODUCTION=true`, supaya script uji tidak pernah membuat transaksi
+> dengan uang asli.
+
+Data kedua lingkungan **terpisah total**. Transaksi yang dibuat di sandbox tidak
+bisa dicek dari produksi (dan sebaliknya), jadi `payment_intents` berstatus
+`PENDING` sisa uji coba tidak akan pernah bisa diselesaikan setelah pindah ke
+produksi — abaikan saja atau bersihkan lewat tombol **Reset Data** di dashboard owner.
+
 ---
 
 ## Cara Menjalankan Lokal
