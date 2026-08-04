@@ -1,0 +1,294 @@
+id,menu_item_id,variation_type,label,extra_price
+2492f555-0513-4a78-a185-c01afe935e22,a75156dc-8c1d-48e4-b856-8babed4f3ac7,Extra Topping,Coklat,3000
+74ee2bf3-adcb-4647-9b9a-f95277087ec1,a75156dc-8c1d-48e4-b856-8babed4f3ac7,Extra Topping,Keju,5000
+ae0071d4-86ef-4910-b922-03485a8f7243,a75156dc-8c1d-48e4-b856-8babed4f3ac7,Extra Topping,Nutella,8000
+14b1cba3-2862-4b31-8764-5b2a073148d8,a75156dc-8c1d-48e4-b856-8babed4f3ac7,Extra Topping,Milo,6000
+f5b897d5-ddb9-44c6-bd79-f93910974386,a75156dc-8c1d-48e4-b856-8babed4f3ac7,Extra Topping,Kacang,4000
+d3bf4a28-4ac0-4ad3-96dd-a45b9a0f0a5a,a75156dc-8c1d-48e4-b856-8babed4f3ac7,Extra Topping,Strawberry,6000
+4f4a1c5d-2962-4114-af7f-a9fcaa917aea,a75156dc-8c1d-48e4-b856-8babed4f3ac7,Extra Topping,Chocochrunchy,6000
+4722fc3c-b52d-435a-9cf3-4e0599c978fb,a75156dc-8c1d-48e4-b856-8babed4f3ac7,Extra Topping,Cheese Sauce,5000
+6b0c0dc2-b11b-4d52-b692-5de0bf0ee82a,f1187d0a-d9b8-4682-b595-657b8cab0770,Extra Topping,Coklat,3000
+5dc4f4c8-e665-4b02-94d6-27af0c15b0f6,f1187d0a-d9b8-4682-b595-657b8cab0770,Extra Topping,Keju,5000
+8124a8b1-b17e-483f-bdef-855ad38999fd,f1187d0a-d9b8-4682-b595-657b8cab0770,Extra Topping,Nutella,8000
+53fbf1b0-7c3d-4a8e-91c5-0d57e86fa83c,f1187d0a-d9b8-4682-b595-657b8cab0770,Extra Topping,Milo,6000
+1d138fbb-efed-41b9-92d6-6aec698caf46,f1187d0a-d9b8-4682-b595-657b8cab0770,Extra Topping,Kacang,4000
+32544cc1-546c-4c32-8d01-4f4760b89472,f1187d0a-d9b8-4682-b595-657b8cab0770,Extra Topping,Strawberry,6000
+2c1d44f1-875e-4fd8-b824-ec92e13f4c17,f1187d0a-d9b8-4682-b595-657b8cab0770,Extra Topping,Chocochrunchy,6000
+50da82d2-6376-449c-bfdf-474acd862134,f1187d0a-d9b8-4682-b595-657b8cab0770,Extra Topping,Cheese Sauce,5000
+4175f15e-b73b-434a-b630-4b50d8be4e88,2265d3ae-4a91-4d37-84d7-dfa780509177,Extra Topping,Coklat,3000
+d0a6a084-ea27-4f86-8c6b-b22fe8ad3050,2265d3ae-4a91-4d37-84d7-dfa780509177,Extra Topping,Keju,5000
+865a3ca2-d23a-41cd-aa5e-511be39f36e6,2265d3ae-4a91-4d37-84d7-dfa780509177,Extra Topping,Nutella,8000
+653df169-5749-4cf0-8b5f-11d99de4a4a6,2265d3ae-4a91-4d37-84d7-dfa780509177,Extra Topping,Milo,6000
+3cf6ab20-d6fd-493c-80a3-e52293e3f24f,2265d3ae-4a91-4d37-84d7-dfa780509177,Extra Topping,Kacang,4000
+7b68840f-92c2-41db-bd16-ad5dd1afdf2a,2265d3ae-4a91-4d37-84d7-dfa780509177,Extra Topping,Strawberry,6000
+975c6a55-7c2d-49a7-bc99-be57af428126,2265d3ae-4a91-4d37-84d7-dfa780509177,Extra Topping,Chocochrunchy,6000
+d82aa26c-5334-43d2-82be-5a4577cb626c,2265d3ae-4a91-4d37-84d7-dfa780509177,Extra Topping,Cheese Sauce,5000
+0a61ddc5-9ffa-4083-a70f-f3f2f017e015,8fdd4ae7-aa16-4db6-8fdd-68da3513fb11,Extra Topping,Coklat,3000
+3610669d-a55e-4c66-8eaf-fb24d1f65197,8fdd4ae7-aa16-4db6-8fdd-68da3513fb11,Extra Topping,Keju,5000
+a4520b2b-3b8b-4a38-b5fa-07b25733bbd3,8fdd4ae7-aa16-4db6-8fdd-68da3513fb11,Extra Topping,Nutella,8000
+c51d45d8-1c05-4722-b62c-ee3604b70f3c,8fdd4ae7-aa16-4db6-8fdd-68da3513fb11,Extra Topping,Milo,6000
+8fa443e2-5302-4eae-ab6c-3dc029066deb,8fdd4ae7-aa16-4db6-8fdd-68da3513fb11,Extra Topping,Kacang,4000
+4929afdf-b4d7-4ba3-92dc-0a5e53980f6f,8fdd4ae7-aa16-4db6-8fdd-68da3513fb11,Extra Topping,Strawberry,6000
+5dc40a46-0ac2-4a35-ace0-76e46a12017f,8fdd4ae7-aa16-4db6-8fdd-68da3513fb11,Extra Topping,Chocochrunchy,6000
+e74c6632-4cf2-488c-809b-0d65743a3fce,8fdd4ae7-aa16-4db6-8fdd-68da3513fb11,Extra Topping,Cheese Sauce,5000
+9c2d2c68-4049-41ac-8729-bd60e6b9477c,c50a5a19-4fad-4bc6-b8bc-d55666e88916,Extra Topping,Coklat,3000
+fc881a7b-4b57-4806-bca8-ba2096171b12,c50a5a19-4fad-4bc6-b8bc-d55666e88916,Extra Topping,Keju,5000
+8a1be4fb-0653-4f92-aa54-f1c12346dbe3,c50a5a19-4fad-4bc6-b8bc-d55666e88916,Extra Topping,Nutella,8000
+abc1f4ad-39c8-4938-9263-7f83df939587,c50a5a19-4fad-4bc6-b8bc-d55666e88916,Extra Topping,Milo,6000
+e5577857-2f7c-4775-b72e-ee029397c302,c50a5a19-4fad-4bc6-b8bc-d55666e88916,Extra Topping,Kacang,4000
+b25863e2-b162-4634-9fd2-ecda9daa0e9b,c50a5a19-4fad-4bc6-b8bc-d55666e88916,Extra Topping,Strawberry,6000
+59300b1d-7e2e-480a-99c0-f60b39e6b801,c50a5a19-4fad-4bc6-b8bc-d55666e88916,Extra Topping,Chocochrunchy,6000
+31427240-3ae9-41dc-98ab-f501c7447624,c50a5a19-4fad-4bc6-b8bc-d55666e88916,Extra Topping,Cheese Sauce,5000
+be92a788-d345-4f72-ac85-73dd3eba6e72,b9f90342-48a9-4e29-857e-d67414416a8f,Extra Topping,Coklat,3000
+5445859c-b66a-4e8f-ae09-a3b4460129c5,b9f90342-48a9-4e29-857e-d67414416a8f,Extra Topping,Keju,5000
+ffb6fa01-457d-41e3-8f2d-26bf76efd7c3,b9f90342-48a9-4e29-857e-d67414416a8f,Extra Topping,Nutella,8000
+224b5450-b6dd-46c1-9a0c-494f5f8b7dc1,b9f90342-48a9-4e29-857e-d67414416a8f,Extra Topping,Milo,6000
+760f4ce9-b753-40cc-a096-5868407ede8e,b9f90342-48a9-4e29-857e-d67414416a8f,Extra Topping,Kacang,4000
+c8e46a04-ed4b-46fd-9976-bd8c601fda32,b9f90342-48a9-4e29-857e-d67414416a8f,Extra Topping,Strawberry,6000
+57da0377-4c6b-49f3-bd72-2f230fc91794,b9f90342-48a9-4e29-857e-d67414416a8f,Extra Topping,Chocochrunchy,6000
+e48cf27c-02ab-4d91-a6d5-e5d604498c9d,b9f90342-48a9-4e29-857e-d67414416a8f,Extra Topping,Cheese Sauce,5000
+c4ddfa61-7600-4857-b02b-bc5d662039c7,c042c219-e679-42ef-ade9-91558a7dc13c,Extra Topping,Coklat,3000
+9b64e4c3-3135-473a-b52b-84ab91d23644,c042c219-e679-42ef-ade9-91558a7dc13c,Extra Topping,Keju,5000
+5f483cff-3c62-4d4f-8b39-d60e70a91f85,c042c219-e679-42ef-ade9-91558a7dc13c,Extra Topping,Nutella,8000
+679fcbfc-c80f-4150-bacc-16d7b6a77c36,c042c219-e679-42ef-ade9-91558a7dc13c,Extra Topping,Milo,6000
+ef667520-e32f-4115-8c7f-8ba464c12bdc,c042c219-e679-42ef-ade9-91558a7dc13c,Extra Topping,Kacang,4000
+bf70fea5-d322-4cdc-9e4e-33a09ce16069,c042c219-e679-42ef-ade9-91558a7dc13c,Extra Topping,Strawberry,6000
+db3126d1-73f7-4459-b6ef-7eaecfd76b56,c042c219-e679-42ef-ade9-91558a7dc13c,Extra Topping,Chocochrunchy,6000
+403d93c8-73bf-4f33-b6e3-a1ac9414d72c,c042c219-e679-42ef-ade9-91558a7dc13c,Extra Topping,Cheese Sauce,5000
+bdb57af5-6bea-431d-8944-a2e7783e3bcd,f3048154-7699-4ddf-9499-51a443d88043,Extra Topping,Coklat,3000
+a4af4dcf-4b67-42ce-abf8-e9ae8dbe45c0,f3048154-7699-4ddf-9499-51a443d88043,Extra Topping,Keju,5000
+4d1e9237-2eb4-4800-8ff8-dda64f496c8f,f3048154-7699-4ddf-9499-51a443d88043,Extra Topping,Nutella,8000
+533daa02-ba5f-435b-af90-127f3b208d74,f3048154-7699-4ddf-9499-51a443d88043,Extra Topping,Milo,6000
+1299fb45-2739-4a8c-b452-e3f9ed590035,f3048154-7699-4ddf-9499-51a443d88043,Extra Topping,Kacang,4000
+47aef50f-56e4-4baf-83f9-3c37a85b672a,f3048154-7699-4ddf-9499-51a443d88043,Extra Topping,Strawberry,6000
+545d1774-ad83-46b8-9f85-5237d150c0bf,f3048154-7699-4ddf-9499-51a443d88043,Extra Topping,Chocochrunchy,6000
+61b4c212-909d-43ae-b3f6-f3ff3a5d29cf,f3048154-7699-4ddf-9499-51a443d88043,Extra Topping,Cheese Sauce,5000
+b93bb6d6-2b43-41a9-82d2-dc75d76db405,a5214110-2d90-47ea-b4df-4b6052b8efdf,Extra Topping,Coklat,3000
+e21b25fc-7d79-482a-a50c-03917c65c5d9,a5214110-2d90-47ea-b4df-4b6052b8efdf,Extra Topping,Keju,5000
+4f0fcb7c-9863-4997-ba47-55b02cc678eb,a5214110-2d90-47ea-b4df-4b6052b8efdf,Extra Topping,Nutella,8000
+add9afd1-37ca-4d07-b264-a593f5470778,a5214110-2d90-47ea-b4df-4b6052b8efdf,Extra Topping,Milo,6000
+301d24cd-7a02-44d2-af94-c07a37a0dbf8,a5214110-2d90-47ea-b4df-4b6052b8efdf,Extra Topping,Kacang,4000
+ccb70953-d560-4f19-8d1d-7ed12f2f708c,a5214110-2d90-47ea-b4df-4b6052b8efdf,Extra Topping,Strawberry,6000
+a37171e6-83a3-4667-ba78-0e3750facf57,a5214110-2d90-47ea-b4df-4b6052b8efdf,Extra Topping,Chocochrunchy,6000
+092ee725-f1e3-4f0a-a2ad-940decbf3340,a5214110-2d90-47ea-b4df-4b6052b8efdf,Extra Topping,Cheese Sauce,5000
+3b8fa208-9a98-4265-93e9-05db2adbfb32,68e78b1f-b99d-4606-ae30-ab1f7c83d68c,Extra Topping,Coklat,3000
+fd2a637c-fb9a-4cec-b361-9a06c058b36a,68e78b1f-b99d-4606-ae30-ab1f7c83d68c,Extra Topping,Keju,5000
+54e0e887-e7c1-48a1-bc85-0b1ddb0559bd,68e78b1f-b99d-4606-ae30-ab1f7c83d68c,Extra Topping,Nutella,8000
+672c3040-cd29-4cd8-a240-119f0d8832ba,68e78b1f-b99d-4606-ae30-ab1f7c83d68c,Extra Topping,Milo,6000
+c2c4b637-f2c9-438e-abce-0c291054e46f,68e78b1f-b99d-4606-ae30-ab1f7c83d68c,Extra Topping,Kacang,4000
+7ae2d2b5-06ea-4515-9de8-1695719600b7,68e78b1f-b99d-4606-ae30-ab1f7c83d68c,Extra Topping,Strawberry,6000
+e3aa2485-3482-44db-8f40-b19289e0720f,68e78b1f-b99d-4606-ae30-ab1f7c83d68c,Extra Topping,Chocochrunchy,6000
+a02f5c56-6da1-4a57-8c83-cef929563a69,68e78b1f-b99d-4606-ae30-ab1f7c83d68c,Extra Topping,Cheese Sauce,5000
+0473f7f6-d2fa-48fc-b6f6-dffe7d14117b,be9c8a13-9fe4-4c92-85ff-107d4acc732d,Extra Topping,Coklat,3000
+55f1653d-08b3-4248-927b-83f3a6545fd4,be9c8a13-9fe4-4c92-85ff-107d4acc732d,Extra Topping,Keju,5000
+5bb21ab2-40b4-4cf4-832a-4dd5bfb1327e,be9c8a13-9fe4-4c92-85ff-107d4acc732d,Extra Topping,Nutella,8000
+1916ad64-4e73-4b45-99bf-726d0b26952a,be9c8a13-9fe4-4c92-85ff-107d4acc732d,Extra Topping,Milo,6000
+c37b1388-e832-4bc0-a82e-1e414656caa8,be9c8a13-9fe4-4c92-85ff-107d4acc732d,Extra Topping,Kacang,4000
+ef6d41d3-9cf6-44a0-87d7-c6ecd47bad95,be9c8a13-9fe4-4c92-85ff-107d4acc732d,Extra Topping,Strawberry,6000
+c9459c7c-5e59-4c42-843f-bf40b8b30012,be9c8a13-9fe4-4c92-85ff-107d4acc732d,Extra Topping,Chocochrunchy,6000
+2d3bf0db-429b-4444-8806-61c820e1c68c,be9c8a13-9fe4-4c92-85ff-107d4acc732d,Extra Topping,Cheese Sauce,5000
+d6199560-c054-4338-accd-6ecc3f752947,78e70577-1bff-4a8a-a892-36ccf0da7c10,Extra Topping,Coklat,3000
+8f962737-83e2-4ab1-afe7-b74e540582be,78e70577-1bff-4a8a-a892-36ccf0da7c10,Extra Topping,Keju,5000
+27d7b648-abf8-437a-8bc5-a628777622e7,78e70577-1bff-4a8a-a892-36ccf0da7c10,Extra Topping,Nutella,8000
+478fa77a-3e58-413b-8e4a-48e312834ead,78e70577-1bff-4a8a-a892-36ccf0da7c10,Extra Topping,Milo,6000
+6903b3fd-6d79-4d60-9c51-e1d4b72d3167,78e70577-1bff-4a8a-a892-36ccf0da7c10,Extra Topping,Kacang,4000
+8eb110a9-e8a8-4e11-84cb-17b3b8d384c6,78e70577-1bff-4a8a-a892-36ccf0da7c10,Extra Topping,Strawberry,6000
+59e87a62-7bd5-4db9-a7a1-a7cbd56400b9,78e70577-1bff-4a8a-a892-36ccf0da7c10,Extra Topping,Chocochrunchy,6000
+44feb8a3-6919-4ac0-8c90-4aa995693156,78e70577-1bff-4a8a-a892-36ccf0da7c10,Extra Topping,Cheese Sauce,5000
+93d0fc00-6757-4364-96cc-2987656402b4,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Porsi,Single,0
+507462cc-619f-4fff-a3a0-a4aa1227fe49,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Porsi,Double,10000
+102d461e-19b0-4835-be07-c7f43fde1c9c,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Rasa,Goreng,0
+492d609e-746e-43ed-9fcf-b42575723536,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Rasa,Kari,0
+d39d7674-7a2a-4da5-808e-58d3cb8828f9,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Rasa,Soto,0
+404a9c8c-db13-412b-bc85-2d16e41250f8,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Rasa,Rendang,0
+542de59d-f49c-42a9-87d6-7405ff39e000,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Level Pedas,Level 0,0
+26207eba-e8a4-47f3-bde2-c4a391bd2dc1,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Level Pedas,Level 1,0
+6d5271ad-71de-4392-a09a-e35953925830,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Level Pedas,Level 2,0
+f612cc2a-445c-4418-b2e7-f2d92e9e0b11,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Level Pedas,Level 3,0
+c13cad45-4e8c-455a-8e19-0a8a296b2333,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Level Pedas,Level 4,0
+d09f2ca7-2f6b-4530-a05c-ba2bf9289b30,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Level Pedas,Level 5,0
+bfab7009-02e7-4605-9b10-e5bd87679173,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Keju,5000
+2e92974a-fba8-49ba-8491-a320c4587073,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Mozarella,7000
+b5516d1e-6598-4b32-aa8b-df5a33963834,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Telur Ceplok,5000
+f9e2bcf9-8ffc-403e-b8ba-dd26c68e6e49,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Telur Dadar,6000
+4275b70f-ba27-4ba5-a947-ea8dae5d5335,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Kornet,7000
+88c1817f-6570-41fd-936c-bcd3e071d222,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Telur Kornet,11000
+c42f114a-4c37-44be-80d8-26bccf6fac84,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Sosis,5000
+778cb97c-619c-4f79-a6b0-e09b17a0e68e,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Sambal Matah,5000
+adfd291a-86a5-4bf8-829e-4ddd437adcce,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Salted Egg,7000
+42e82beb-3d51-49e5-a23e-839ac8a2e600,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Kerupuk Putih,2000
+41ee8b03-93d2-46ea-b3d6-4714cf99ffc6,d4811d4e-1d1c-45bf-8646-a122a6d2183f,Extra Topping,Nasi Putih,5000
+47bb0e27-8ea9-4b73-97e8-394e5514e727,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Porsi,Single,0
+98e27e64-2fd7-4909-b569-3ab2aa7968b1,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Porsi,Double,15000
+1be13985-eee5-4552-afc7-28111a6afd14,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Rasa,Goreng,0
+723e1a63-f56f-421d-bcaa-990c7797971d,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Rasa,Kari,0
+71db3403-769a-41fc-b5b8-d4e834621ffe,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Level Pedas,Level 0,0
+563c04f8-1f31-4f11-b1cc-b0d5a4522099,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Level Pedas,Level 1,0
+14fb3cb2-927a-45c0-be5f-bfd976b5e3b1,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Level Pedas,Level 2,0
+d2e33bf4-4eb2-4f95-af26-b55020f08c30,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Level Pedas,Level 3,0
+795bbd0a-7d9f-41dc-a19e-6e7fe9085f6f,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Level Pedas,Level 4,0
+79bb0c0e-944d-4551-8768-16fa49850a47,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Level Pedas,Level 5,0
+e45f0f16-01eb-40c0-99d4-a70cc853fff7,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Keju,5000
+2fa460c6-b88f-4558-9e33-f33e3724ed51,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Mozarella,7000
+1312c324-bb5d-4fe1-882a-3f034d892028,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Telur Ceplok,5000
+50ffe79a-e29b-4d34-89e7-af56d23627ff,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Telur Dadar,6000
+aedd2182-71f5-4421-a10d-8803fa21a686,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Kornet,7000
+27cfa239-a928-4d2c-b680-b4fe83495234,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Telur Kornet,11000
+c92f63f2-92b3-4aed-9d3a-e8acf564920e,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Sosis,5000
+18cb0f51-88b7-4cd0-a40b-9b8ceee7febf,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Sambal Matah,5000
+4218236f-93b3-485f-8932-7aaf15ada75d,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Salted Egg,7000
+3a8dbb62-f601-4533-a3ab-62d86a801572,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Kerupuk Putih,2000
+a6c4ffd1-2c9d-474e-b534-80c72d0f19c9,cb39b437-95fa-4f01-9e2e-5e98e54e3d5e,Extra Topping,Nasi Putih,5000
+c156ef72-2049-4ea9-9c28-02e144406bf9,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Porsi,Single,0
+89d30aa7-1409-46f8-b616-034002007f91,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Porsi,Double,10000
+634a539b-f91e-4ef4-a85c-1bf7d213f5bc,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Level Pedas,Level 0,0
+d0901927-0daa-4cac-bc07-8b67e1d2f773,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Level Pedas,Level 1,0
+0c03ef6e-d05b-41a6-baa5-8e1fccc86a16,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Level Pedas,Level 2,0
+d2938149-4681-4245-9842-27d3e8c03c05,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Level Pedas,Level 3,0
+365cdb1f-f4f8-4658-be3a-87e07e11a1dc,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Level Pedas,Level 4,0
+168f0b51-dc04-4d1a-af31-6ef00176ad9d,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Level Pedas,Level 5,0
+a14c9e09-b9b8-4e20-b375-b261e4588986,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Keju,5000
+0f8e7588-6834-4b26-9622-3e4ec05e6fff,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Mozarella,7000
+2f2dbd93-9cdf-4680-b31e-54fd711fa9c5,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Telur Ceplok,5000
+ba7da4a0-d32d-4441-a5e5-32fdfd7e4999,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Telur Dadar,6000
+357e1daf-5888-4b41-a850-c329eb2135a1,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Kornet,7000
+02da75f1-bee0-4b02-b645-f924fd5f843c,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Telur Kornet,11000
+f6331ff3-95f0-4e2e-a73e-9b543c9a5e17,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Sosis,5000
+464a753d-04cc-4e9c-a826-35cfc161f409,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Sambal Matah,5000
+fd9621bf-5749-44a6-a621-363d39ca7a03,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Salted Egg,7000
+44080a5e-51b9-4de4-9820-15dbfac76559,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Kerupuk Putih,2000
+62bc2eed-3da9-45c2-ac14-ff8aacb7d187,bbaf585c-558b-42a6-af4a-9ee5a4cf764a,Extra Topping,Nasi Putih,5000
+16d9c7a6-f7a7-4c38-85fe-577d2ae476b3,04310a53-e31c-4c32-a0d2-ca50673c6e65,Porsi,Single,0
+93d6f0d0-611b-4d40-9a9c-109c766b3443,04310a53-e31c-4c32-a0d2-ca50673c6e65,Porsi,Double,9000
+d09c082e-8533-4ad4-be32-9d355b21ec4d,04310a53-e31c-4c32-a0d2-ca50673c6e65,Rasa,Kari,0
+f39341a9-3ad5-48b9-bfd3-e3e7d560b94f,04310a53-e31c-4c32-a0d2-ca50673c6e65,Rasa,Soto,0
+02d434f8-3030-4335-93ce-7d7ab6eb92fe,04310a53-e31c-4c32-a0d2-ca50673c6e65,Level Pedas,Level 0,0
+29ddca18-f245-4cd4-823d-1283c76d0679,04310a53-e31c-4c32-a0d2-ca50673c6e65,Level Pedas,Level 1,0
+6e5fd326-e286-476f-81f8-ee75550c0875,04310a53-e31c-4c32-a0d2-ca50673c6e65,Level Pedas,Level 2,0
+d2a89716-42d1-4142-950b-aa84e39fcd66,04310a53-e31c-4c32-a0d2-ca50673c6e65,Level Pedas,Level 3,0
+70944f59-779b-47ae-83da-4039d9db4d99,04310a53-e31c-4c32-a0d2-ca50673c6e65,Level Pedas,Level 4,0
+a7e9e6c6-8bbb-4dc4-9201-6f4591d7b4e3,04310a53-e31c-4c32-a0d2-ca50673c6e65,Level Pedas,Level 5,0
+bca46c5a-b3f6-496f-ae45-4cae523cd4e1,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Keju,5000
+93328e62-277e-451b-82e7-9f1973245521,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Mozarella,7000
+70660f58-6305-48c0-ad05-316e1eb34e1b,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Telur Ceplok,5000
+3ea9caa7-1791-4fff-9349-b23bad7bf723,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Telur Dadar,6000
+fadc7b52-aa8c-4e03-b402-0d6f82d4e970,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Kornet,7000
+45fb7633-2a69-4b2e-9978-f40fbd81d4a5,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Telur Kornet,11000
+244bc262-82ed-4502-a43e-c7c92532f4b2,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Sosis,5000
+a7bb683e-0266-41ca-808a-3111c87a4194,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Sambal Matah,5000
+4eeecfa0-21ca-4d83-9504-59da9cf221aa,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Salted Egg,7000
+4cdd87b4-cc80-4c4f-84f7-ddf25d897e2b,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Kerupuk Putih,2000
+8dd3a2e9-8740-4c2d-a131-78128ccb6b1c,04310a53-e31c-4c32-a0d2-ca50673c6e65,Extra Topping,Nasi Putih,5000
+b27233d5-8ac1-43ae-a74d-3ec622942f3c,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Porsi,Single,0
+1f50646d-0ce1-46c2-b921-300b56a976e1,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Porsi,Double,9000
+68473935-9a1f-47bc-bc9d-efad364bb77a,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Rasa,Goreng,0
+d2d7a3f2-ac4a-4871-a030-fc4e4f484fab,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Rasa,Kari,0
+cd95d160-21fc-492b-85fd-f15cd140c77c,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Rasa,Soto,0
+185e5c0a-e93b-4f54-9b44-26a09c71e7e8,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Rasa,Rendang,0
+75fdee23-1ae1-43bb-8c01-68b8f9dc92f5,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Level Pedas,Level 0,0
+ae85af43-ff09-434f-b5d6-42422884d593,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Level Pedas,Level 1,0
+6366d286-0faf-4bae-80ca-ba3e0bbd6d06,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Level Pedas,Level 2,0
+84c950cb-11e3-43a6-8215-1ab22d67fc5c,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Level Pedas,Level 3,0
+46e7212f-e309-494b-adfc-46c793d04206,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Level Pedas,Level 4,0
+0d52c74d-b520-4dfc-80eb-6f604c06cce7,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Level Pedas,Level 5,0
+93c9c578-8160-47ab-ab03-c00769e1c1d7,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Keju,5000
+67301158-16cc-49b3-a39b-f799b8af4548,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Mozarella,7000
+1a58c253-5a44-4f30-bc69-dbc22b967f9f,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Telur Ceplok,5000
+e74f5e50-b53f-4a32-8570-729e6b4dd17c,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Telur Dadar,6000
+e3ad7e2e-9554-4105-a881-7e9229fda844,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Kornet,7000
+6de3b33b-0e8b-4a82-a926-d2f9113d4689,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Telur Kornet,11000
+8b55b901-d29e-4df4-93cd-4c732fbc8dbc,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Sosis,5000
+1b7da542-579b-4111-b1b1-1e2ffd0f0580,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Sambal Matah,5000
+37794ce8-c6d2-457c-b4ba-a94db178db85,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Salted Egg,7000
+e0a8c804-9c12-4866-a75e-5d042240c678,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Kerupuk Putih,2000
+53ce563a-3e57-4e6b-b551-a65cc44639f3,84536f8a-af3b-489a-9556-bc6aa1bb2a73,Extra Topping,Nasi Putih,5000
+1cdf717a-20de-49d9-9cfa-396c8f64af76,371f0b13-05db-4f1c-b026-7863cc89fdf8,Porsi,Single,0
+081ac85d-7eaa-4f65-9f01-916b19caf65d,371f0b13-05db-4f1c-b026-7863cc89fdf8,Porsi,Double,9000
+697c6a79-acf0-4dd1-bb70-4e86c2537cc2,371f0b13-05db-4f1c-b026-7863cc89fdf8,Rasa,Goreng,0
+a0a87f30-0247-4c2a-8694-167b45f9ea41,371f0b13-05db-4f1c-b026-7863cc89fdf8,Rasa,Kari,0
+8cd040b8-ce30-47ea-a1d6-dc1348fb1e57,371f0b13-05db-4f1c-b026-7863cc89fdf8,Rasa,Soto,0
+71ad25c4-e2d1-4163-a87f-13998b4b8d14,371f0b13-05db-4f1c-b026-7863cc89fdf8,Rasa,Rendang,0
+0f5d2726-96a1-46a6-8f5b-7daa8b3710dd,371f0b13-05db-4f1c-b026-7863cc89fdf8,Level Pedas,Level 0,0
+b111c86d-0236-4928-b9f0-a5c397dbe6d4,371f0b13-05db-4f1c-b026-7863cc89fdf8,Level Pedas,Level 1,0
+b48e2472-8f24-4324-9185-4c7fdc953234,371f0b13-05db-4f1c-b026-7863cc89fdf8,Level Pedas,Level 2,0
+a0fde0c9-e63e-47bc-8136-80f2f42efe37,371f0b13-05db-4f1c-b026-7863cc89fdf8,Level Pedas,Level 3,0
+57bd779c-6d59-42bf-8dd2-63e85b8a8e54,371f0b13-05db-4f1c-b026-7863cc89fdf8,Level Pedas,Level 4,0
+a19356b4-5a82-4bcb-81d8-3fa511242eb4,371f0b13-05db-4f1c-b026-7863cc89fdf8,Level Pedas,Level 5,0
+24eb4dee-33d9-44d1-a08d-9e69bd7f456c,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Keju,5000
+6881f7a5-de47-4cfc-a07e-27156098b6b6,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Mozarella,7000
+13b8d682-a17a-46de-a489-867ca731de75,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Telur Ceplok,5000
+387778a8-5ce6-4561-8330-7ad477b2d741,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Telur Dadar,6000
+a3342a92-5bdb-48bf-b33f-3bc44a3a197f,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Kornet,7000
+b359e268-9abf-4a0e-91f4-a046e348f3ea,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Telur Kornet,11000
+3efd8e49-a60d-48ed-9a01-5e7ae85d9e3d,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Sosis,5000
+ca4388a9-eaaf-4259-8a78-1707e72c6412,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Sambal Matah,5000
+2534702f-f4d0-41d7-8171-397df6e80690,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Salted Egg,7000
+2f961c8c-5bd3-4efd-ab9b-0a15f778efa9,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Kerupuk Putih,2000
+c7ec2b76-2932-4251-841f-9ea1b7e50e91,371f0b13-05db-4f1c-b026-7863cc89fdf8,Extra Topping,Nasi Putih,5000
+636ad0ab-a959-4a1e-a5dd-724ab73f68d4,f15be844-f0d5-41ce-b5a6-76f7293afb10,Porsi,Single,0
+b78e322a-c7f6-44df-aef4-783459d06f8b,f15be844-f0d5-41ce-b5a6-76f7293afb10,Porsi,Double,9000
+7c425e64-4e43-4676-a711-b87f2d166826,f15be844-f0d5-41ce-b5a6-76f7293afb10,Rasa,Goreng,0
+c7ccbc12-1aa7-4673-a87d-d6d372e616e5,f15be844-f0d5-41ce-b5a6-76f7293afb10,Rasa,Kari,0
+19dc27d6-6c2e-4f97-8507-efef79d99bc6,f15be844-f0d5-41ce-b5a6-76f7293afb10,Rasa,Soto,0
+c30dd0a4-5ea3-4fc3-8e1b-6585e0db462d,f15be844-f0d5-41ce-b5a6-76f7293afb10,Rasa,Rendang,0
+985817e0-e3b9-499d-9ef2-e1191fb07217,f15be844-f0d5-41ce-b5a6-76f7293afb10,Level Pedas,Level 0,0
+7a8ff5fd-ccb2-4c5d-bd82-de52cadaf871,f15be844-f0d5-41ce-b5a6-76f7293afb10,Level Pedas,Level 1,0
+f1c07d11-c9a9-4450-8f93-1fcb128a0466,f15be844-f0d5-41ce-b5a6-76f7293afb10,Level Pedas,Level 2,0
+de0aa0ba-f0d2-4381-90c6-61b9bb4d3b2d,f15be844-f0d5-41ce-b5a6-76f7293afb10,Level Pedas,Level 3,0
+c913034c-e1d1-4f6f-ba95-aa04e7a87c28,f15be844-f0d5-41ce-b5a6-76f7293afb10,Level Pedas,Level 4,0
+34da291a-a5c0-4a0f-9281-df0ff5ad9c33,f15be844-f0d5-41ce-b5a6-76f7293afb10,Level Pedas,Level 5,0
+0dce53b7-32e3-4f43-aa06-27a0f6505dee,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Keju,5000
+41858a39-1675-4eb7-a24d-17023a656a95,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Mozarella,7000
+416d5ebd-9200-461e-9c1f-4c905879d10d,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Telur Ceplok,5000
+7f3d1da1-dc68-4065-a418-affdab7ebf33,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Telur Dadar,6000
+f03970d3-d50f-41a9-b06f-0353afd7202d,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Kornet,7000
+a40e4804-09a5-472d-978b-7910c51bda4d,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Telur Kornet,11000
+d13edb18-ed83-4476-974e-ddf86f22bd19,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Sosis,5000
+4ee6b5cc-1b28-4095-bf2f-2e832985c3a0,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Sambal Matah,5000
+32f6840c-f156-4159-9686-c503c709080b,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Salted Egg,7000
+a49126a7-2568-427c-81d0-bbe4d1a02fd7,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Kerupuk Putih,2000
+7c79170b-4a0d-4f85-8249-fbbd2a5c584e,f15be844-f0d5-41ce-b5a6-76f7293afb10,Extra Topping,Nasi Putih,5000
+ee044c8d-1a4c-4d5a-be0a-df156b05fa66,18d4dfc0-ff60-4677-95ae-66d65407df2f,Extra Topping,Keju,5000
+9259016b-4ec2-44bf-9b93-fae22ac5c840,18d4dfc0-ff60-4677-95ae-66d65407df2f,Extra Topping,Telur Ceplok,5000
+b93bb779-eaef-42d6-8586-6b0f1e3df25c,18d4dfc0-ff60-4677-95ae-66d65407df2f,Extra Topping,Telur Dadar,6000
+46f8bbaf-f258-48a2-8ea3-76704668e3a1,18d4dfc0-ff60-4677-95ae-66d65407df2f,Extra Topping,Kerupuk Putih,2000
+2839ad14-14fe-4f96-9187-2a5e4158c0ac,18d4dfc0-ff60-4677-95ae-66d65407df2f,Extra Topping,Nasi Putih,5000
+f28bf6ea-ff52-4918-ab01-00f63c94c722,bab04859-d69d-4182-a219-4a93b1c5557b,Extra Topping,Keju,5000
+6d89a14b-d9db-4eed-b46c-5f041f18760b,bab04859-d69d-4182-a219-4a93b1c5557b,Extra Topping,Telur Ceplok,5000
+e3886561-4db2-4d36-b6f6-af0bb3c3873b,bab04859-d69d-4182-a219-4a93b1c5557b,Extra Topping,Telur Dadar,6000
+e3bc53c7-fcc1-4e57-8390-788570934b6c,bab04859-d69d-4182-a219-4a93b1c5557b,Extra Topping,Kerupuk Putih,2000
+31ef7ee5-5e9f-457d-8fcd-1ea72c6367f6,bab04859-d69d-4182-a219-4a93b1c5557b,Extra Topping,Nasi Putih,5000
+ead9ab43-4020-4156-a101-55345b5f1b65,569816c2-0fa1-4894-99c7-f06b50f98acd,Extra Topping,Keju,5000
+3d4d666c-b98c-449b-94df-85c1faddeb39,569816c2-0fa1-4894-99c7-f06b50f98acd,Extra Topping,Telur Ceplok,5000
+0d552877-1ba3-4018-b7a3-67a53ee81db6,569816c2-0fa1-4894-99c7-f06b50f98acd,Extra Topping,Telur Dadar,6000
+1c6732ee-2237-4479-8e8b-b19da5a184f6,569816c2-0fa1-4894-99c7-f06b50f98acd,Extra Topping,Kerupuk Putih,2000
+01787fee-f38b-4b0c-af3a-619bf91b031d,569816c2-0fa1-4894-99c7-f06b50f98acd,Extra Topping,Nasi Putih,5000
+1480e77f-ba6f-44ee-aa0a-94557c2d8c7c,2763261f-0d8a-4c28-97d8-165d625ec1cd,Extra Topping,Keju,5000
+e405f140-8dd2-4f4f-be0a-a951653f7289,2763261f-0d8a-4c28-97d8-165d625ec1cd,Extra Topping,Telur Ceplok,5000
+a3218265-2410-48b8-a35d-b516c0424972,2763261f-0d8a-4c28-97d8-165d625ec1cd,Extra Topping,Telur Dadar,6000
+c8827a01-9c55-489f-85b7-e2d155250712,2763261f-0d8a-4c28-97d8-165d625ec1cd,Extra Topping,Kerupuk Putih,2000
+6857d77e-3e64-43cf-a399-c96e314a10e1,2763261f-0d8a-4c28-97d8-165d625ec1cd,Extra Topping,Nasi Putih,5000
+7813f3ff-14f0-45db-9f6e-da00cf96907d,20c58d47-3248-4129-aacd-8e612c7cb3cb,Extra Topping,Keju,5000
+d4d5cf9d-cd3f-4545-94ee-d85e1b637213,20c58d47-3248-4129-aacd-8e612c7cb3cb,Extra Topping,Telur Ceplok,5000
+9c70ddbe-c5f5-4061-96ea-6f74341b4cbf,20c58d47-3248-4129-aacd-8e612c7cb3cb,Extra Topping,Telur Dadar,6000
+2bec7d3e-3c8c-434e-a3e1-8507646ec5db,20c58d47-3248-4129-aacd-8e612c7cb3cb,Extra Topping,Kerupuk Putih,2000
+1234e335-72c2-44d9-bfd0-9b964a910ba0,20c58d47-3248-4129-aacd-8e612c7cb3cb,Extra Topping,Nasi Putih,5000
+e855126b-c099-43b7-9745-6eda93731af2,d3d9f8e2-7484-4ebb-b0c5-74957a428a96,Extra Topping,Keju,5000
+2c0cf223-13da-4093-8290-e6ecca1be9c1,d3d9f8e2-7484-4ebb-b0c5-74957a428a96,Extra Topping,Telur Ceplok,5000
+e1b0a8db-4aaa-43ce-a16e-e33f3789f123,d3d9f8e2-7484-4ebb-b0c5-74957a428a96,Extra Topping,Telur Dadar,6000
+e1a01e58-60be-4ec7-812f-04dd71bec2e3,d3d9f8e2-7484-4ebb-b0c5-74957a428a96,Extra Topping,Kerupuk Putih,2000
+d335f5a1-88b0-47dc-90c0-6c71b1808931,d3d9f8e2-7484-4ebb-b0c5-74957a428a96,Extra Topping,Nasi Putih,5000
+b30d8fea-a52e-40fb-b30e-92dbdda02880,d24b2e27-38ef-467f-9d8c-ded9bb303a92,Suhu,Hot,0
+abd4c164-872e-4d27-ace0-c1c7525ed4f1,d24b2e27-38ef-467f-9d8c-ded9bb303a92,Suhu,Ice,0
+b76e41ac-ec04-485d-aace-a66da6e20859,44d673b8-89c3-4439-be08-03cc78601caa,Suhu,Hot,0
+32e602b6-3742-4bd0-bdc5-b0d3b77fffb0,44d673b8-89c3-4439-be08-03cc78601caa,Suhu,Ice,0
+75dbc368-e770-4c9f-838c-d431a2f7a367,091a5b6a-d402-47a5-b52d-8c5d9930f003,Suhu,Hot,0
+23912d41-1ae7-48b5-a46f-1dcd05f89f5e,091a5b6a-d402-47a5-b52d-8c5d9930f003,Suhu,Ice,0
+aeb2c000-fb70-4706-a0e1-95abd650f75c,8cf45479-be9e-4ddf-9bd3-bb538ad90765,Suhu,Hot,0
+29c88951-e862-4ba6-9443-ba1a719c5f75,8cf45479-be9e-4ddf-9bd3-bb538ad90765,Suhu,Ice,0
+aeacdf76-4096-40cb-b6e0-93cea6a10a83,dc0075e5-e515-4284-889c-64db49aa183f,Suhu,Hot,0
+06522c3c-aff9-4bb9-abdf-4449e170bff7,dc0075e5-e515-4284-889c-64db49aa183f,Suhu,Ice,0
+bb780cce-f3cd-4180-9e51-f36d8ba64073,bd8dda32-357f-4750-afc9-08b3e1491b18,Suhu,Hot,0
+3c69b76d-50b3-4239-8b1d-5c44cc92f8e9,bd8dda32-357f-4750-afc9-08b3e1491b18,Suhu,Ice,0
+c0e75ef5-71fd-4454-9d7c-d321c8ae0312,4932895b-2060-43cf-8633-19b3767d7367,Extra Topping,Ice Cube,2000
+25c90ad7-d518-4204-ad7c-ea64c38b1f1a,02f7bbb1-0734-49f7-8e6c-335a804e59e9,Extra Topping,Ice Cube,2000

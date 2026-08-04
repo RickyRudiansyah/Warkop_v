@@ -1,0 +1,291 @@
+{
+  "categories": [
+    {
+      "id": "9234384a-cb3d-4b62-83f2-920af7946b01",
+      "name": "Kopi",
+      "sort_order": 1
+    },
+    {
+      "id": "2d1704b1-7b61-4785-9873-b7eb087ad1f2",
+      "name": "Minuman Dingin",
+      "sort_order": 2
+    },
+    {
+      "id": "fc1651e9-9e64-489b-b8c2-5e25c781a36e",
+      "name": "Makanan Berat",
+      "sort_order": 3
+    },
+    {
+      "id": "cd9953de-b337-4719-a3e6-cce1d011de71",
+      "name": "Camilan",
+      "sort_order": 4
+    },
+    {
+      "id": "432d23b3-404b-49b9-9f32-3268b6cf684f",
+      "name": "Minuman Hangat",
+      "sort_order": 5
+    }
+  ],
+  "menu_items": [
+    {
+      "id": "2300dd7e-2815-40d2-bc59-064f1f09e3f9",
+      "category_id": "2d1704b1-7b61-4785-9873-b7eb087ad1f2",
+      "name": "Es Teh Manis",
+      "description": "Teh manis segar dengan es batu",
+      "price": 5000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863475146-Es_Teh.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "1b10e117-38de-4506-af1e-a8bf5b06dbb2",
+      "category_id": "fc1651e9-9e64-489b-b8c2-5e25c781a36e",
+      "name": "Indomie Goreng Original",
+      "description": "Indomie goreng klasik dengan telur ceplok",
+      "price": 12000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863476109-Indomie_Goreng.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "73734b31-5948-4fd4-b5f0-9d2adfb7b56d",
+      "category_id": "fc1651e9-9e64-489b-b8c2-5e25c781a36e",
+      "name": "Indomie Goreng Spesial",
+      "description": "Indomie goreng spesial double topping",
+      "price": 18000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863478047-Indomie_Goreng_Spesial.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "8d15fcac-db3c-429b-b0a6-49508b1eecfa",
+      "category_id": "fc1651e9-9e64-489b-b8c2-5e25c781a36e",
+      "name": "Indomie Kuah",
+      "description": "Indomie kuah hangat dengan telur rebus",
+      "price": 12000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863479705-Indomie_Kuah.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "0a6f2ea5-47d6-47a2-a72a-44cbf994e0f2",
+      "category_id": "cd9953de-b337-4719-a3e6-cce1d011de71",
+      "name": "Kentang Goreng",
+      "description": "Kentang goreng crispy dengan saus",
+      "price": 12000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863481576-Kentang.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "2238f1fb-eb1a-4f61-b811-d197dee6a93a",
+      "category_id": "9234384a-cb3d-4b62-83f2-920af7946b01",
+      "name": "Kopi Hitam",
+      "description": "Kopi hitam robusta kental tanpa gula",
+      "price": 7000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863483104-kopi.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "2b235607-3c9f-4663-8d59-f9293e48843c",
+      "category_id": "cd9953de-b337-4719-a3e6-cce1d011de71",
+      "name": "Pisang Goreng",
+      "description": "Pisang goreng crispy dengan madu",
+      "price": 10000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863485292-Pisang_Goreng.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "17eea630-509f-436c-acdb-84eca7aae2a3",
+      "category_id": "cd9953de-b337-4719-a3e6-cce1d011de71",
+      "name": "Ropang Coklat",
+      "description": "Roti bakar coklat meleleh",
+      "price": 10000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863487353-Ropang.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "faa96bd2-4ed3-476c-8855-f0998dbeacc0",
+      "category_id": "cd9953de-b337-4719-a3e6-cce1d011de71",
+      "name": "Ropang Coklat Keju",
+      "description": "Roti bakar coklat keju premium",
+      "price": 13000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863489247-Ropang_Coklat_Keju.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "4bd69910-4cd3-4df7-8fb9-46c081215eb4",
+      "category_id": "cd9953de-b337-4719-a3e6-cce1d011de71",
+      "name": "Ropang Keju",
+      "description": "Roti bakar keju mozzarella",
+      "price": 12000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863490036-Ropang_Keju.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "2075ffb9-d48b-4bee-a832-7a9e90926bb5",
+      "category_id": "9234384a-cb3d-4b62-83f2-920af7946b01",
+      "name": "Es Kopi Susu",
+      "description": "Es kopi susu segar dengan gula aren",
+      "price": 15000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863473256-Es_Kopi_Susu.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    },
+    {
+      "id": "71cbcd09-c907-468d-8cc1-f35e900d3453",
+      "category_id": "2d1704b1-7b61-4785-9873-b7eb087ad1f2",
+      "name": "Es Jeruk",
+      "description": "Jeruk peras segar dingin premium",
+      "price": 8000,
+      "image_url": "https://jenpnmmcpwnygiluefyw.supabase.co/storage/v1/object/public/menu-images/1779863471174-Es_Jeruk.png",
+      "is_available": true,
+      "is_sold_out": false,
+      "created_at": "2026-05-27T06:30:35.226326+00:00"
+    }
+  ],
+  "menu_variations": [
+    {
+      "id": "3a2161ae-4418-4555-ab98-479df38f2a95",
+      "menu_item_id": "2238f1fb-eb1a-4f61-b811-d197dee6a93a",
+      "variation_type": "Level Gula",
+      "label": "Tanpa Gula",
+      "extra_price": 0
+    },
+    {
+      "id": "4c872a0a-dd7c-45a4-849c-75870015f9c9",
+      "menu_item_id": "2238f1fb-eb1a-4f61-b811-d197dee6a93a",
+      "variation_type": "Level Gula",
+      "label": "Kurang Manis",
+      "extra_price": 0
+    },
+    {
+      "id": "d60bf2db-3ba8-4adf-b713-d319d3fd656e",
+      "menu_item_id": "2238f1fb-eb1a-4f61-b811-d197dee6a93a",
+      "variation_type": "Level Gula",
+      "label": "Manis",
+      "extra_price": 0
+    },
+    {
+      "id": "15b4d949-886d-4226-9bf7-3b10bb8ff04a",
+      "menu_item_id": "2238f1fb-eb1a-4f61-b811-d197dee6a93a",
+      "variation_type": "Level Gula",
+      "label": "Extra Manis",
+      "extra_price": 0
+    },
+    {
+      "id": "0f522aaf-9192-4271-b7ea-56e7c35648ee",
+      "menu_item_id": "2075ffb9-d48b-4bee-a832-7a9e90926bb5",
+      "variation_type": "Ukuran",
+      "label": "Regular",
+      "extra_price": 0
+    },
+    {
+      "id": "3c1b81ea-6a1a-4c88-8518-543c2c58a113",
+      "menu_item_id": "2075ffb9-d48b-4bee-a832-7a9e90926bb5",
+      "variation_type": "Ukuran",
+      "label": "Large",
+      "extra_price": 4000
+    },
+    {
+      "id": "04db1387-27a2-478d-8104-4fb1f55e968a",
+      "menu_item_id": "71cbcd09-c907-468d-8cc1-f35e900d3453",
+      "variation_type": "Ukuran",
+      "label": "Regular",
+      "extra_price": 0
+    },
+    {
+      "id": "c76bc172-5b00-4920-98db-fbf56f8f04ac",
+      "menu_item_id": "71cbcd09-c907-468d-8cc1-f35e900d3453",
+      "variation_type": "Ukuran",
+      "label": "Large",
+      "extra_price": 3000
+    },
+    {
+      "id": "919fc932-3eed-4346-b229-efba963aeffc",
+      "menu_item_id": "2300dd7e-2815-40d2-bc59-064f1f09e3f9",
+      "variation_type": "Ukuran",
+      "label": "Regular",
+      "extra_price": 0
+    },
+    {
+      "id": "ab082a5a-11a2-4c1a-86c4-f1a40bace3d5",
+      "menu_item_id": "2300dd7e-2815-40d2-bc59-064f1f09e3f9",
+      "variation_type": "Ukuran",
+      "label": "Large",
+      "extra_price": 2000
+    },
+    {
+      "id": "b3e17c48-0593-4e7b-8fcb-a43f021276c7",
+      "menu_item_id": "1b10e117-38de-4506-af1e-a8bf5b06dbb2",
+      "variation_type": "Tambahan",
+      "label": "Tanpa Telur",
+      "extra_price": 0
+    },
+    {
+      "id": "376c0c0f-28ff-4201-a9a1-f0c7b2028587",
+      "menu_item_id": "1b10e117-38de-4506-af1e-a8bf5b06dbb2",
+      "variation_type": "Tambahan",
+      "label": "Telur Ceplok",
+      "extra_price": 3000
+    },
+    {
+      "id": "42c93d25-e67e-4c71-af13-ada1f182e8ea",
+      "menu_item_id": "1b10e117-38de-4506-af1e-a8bf5b06dbb2",
+      "variation_type": "Tambahan",
+      "label": "Telur Rebus",
+      "extra_price": 3000
+    },
+    {
+      "id": "9474c7ce-e8b3-4ffd-8d4c-a90d28433570",
+      "menu_item_id": "73734b31-5948-4fd4-b5f0-9d2adfb7b56d",
+      "variation_type": "Toping Ekstra",
+      "label": "Standard",
+      "extra_price": 0
+    },
+    {
+      "id": "84d6a843-9ec3-4bcb-b9b2-84be5c1f81b3",
+      "menu_item_id": "73734b31-5948-4fd4-b5f0-9d2adfb7b56d",
+      "variation_type": "Toping Ekstra",
+      "label": "Tambah Sosis",
+      "extra_price": 5000
+    },
+    {
+      "id": "0403c656-08d2-440e-b9c8-cc8481ff38d2",
+      "menu_item_id": "73734b31-5948-4fd4-b5f0-9d2adfb7b56d",
+      "variation_type": "Toping Ekstra",
+      "label": "Tambah Kornet",
+      "extra_price": 5000
+    },
+    {
+      "id": "d62eced5-94f2-424b-a8c8-c40875d6565a",
+      "menu_item_id": "17eea630-509f-436c-acdb-84eca7aae2a3",
+      "variation_type": "Level Manis",
+      "label": "Normal",
+      "extra_price": 0
+    },
+    {
+      "id": "18a17ff6-8d70-4db3-928b-532b971a592a",
+      "menu_item_id": "17eea630-509f-436c-acdb-84eca7aae2a3",
+      "variation_type": "Level Manis",
+      "label": "Extra Manis",
+      "extra_price": 2000
+    }
+  ]
+}

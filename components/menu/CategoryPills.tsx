@@ -35,13 +35,18 @@ function iconFor(name: string): LucideIcon {
 }
 
 // Ikon bulat 56px: ring luar ember + ring dalam gold saat aktif (DESIGN.md §5.3).
+//
+// Sengaja TANPA ring-offset: selain tidak diminta desain, ring-offset butuh warna
+// latar yang cocok — dan komponen ini dipakai di dua latar berbeda (kanvas strip
+// vs sheet modal), jadi warnanya pasti salah di salah satunya. Tanpa offset,
+// tonjolan keluar juga tinggal 2px sehingga tidak terpotong wadah scroll.
 function CategoryIcon({ Icon, active }: { Icon: LucideIcon; active: boolean }) {
   return (
     <span
       className={cn(
         'w-14 h-14 rounded-full bg-surface flex items-center justify-center transition',
         active
-          ? 'ring-2 ring-ember-ink ring-offset-2 ring-offset-surface-2 shadow-[inset_0_0_0_2px_var(--color-gold-500)]'
+          ? 'ring-2 ring-ember-ink shadow-[inset_0_0_0_2px_var(--color-gold-500)]'
           : 'ring-1 ring-border opacity-70',
       )}
     >
@@ -66,7 +71,12 @@ export function CategoryPills({ categories, selected, onSelect }: CategoryPillsP
   return (
     <>
       <div className="relative">
-        <div className="flex gap-5 overflow-x-auto scrollbar-hide pr-12 pb-1" role="tablist" aria-label="Filter kategori">
+        {/*
+          overflow-x-auto membuat sumbu Y ikut ter-clip (aturan CSS: satu sumbu
+          non-visible memaksa sumbu lain jadi auto). Padding di sini memberi ruang
+          untuk ring; -ml-1 mengembalikan perataan kiri supaya tidak bergeser.
+        */}
+        <div className="flex gap-5 overflow-x-auto scrollbar-hide -ml-1 pl-1 pr-12 py-1" role="tablist" aria-label="Filter kategori">
           {entries.map(({ id, name, Icon }) => {
             const active = selected === id;
             return (
@@ -97,7 +107,7 @@ export function CategoryPills({ categories, selected, onSelect }: CategoryPillsP
           <button
             onClick={() => setModalOpen(true)}
             aria-label="Lihat semua kategori"
-            className="w-9 h-9 mt-2.5 rounded-full bg-surface ring-1 ring-border flex items-center justify-center text-text-secondary active:scale-95 transition"
+            className="w-9 h-9 mt-3.5 rounded-full bg-surface ring-1 ring-border flex items-center justify-center text-text-secondary active:scale-95 transition"
           >
             <ChevronDown className="w-4 h-4" />
           </button>
