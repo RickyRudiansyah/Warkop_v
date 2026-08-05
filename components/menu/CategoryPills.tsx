@@ -6,7 +6,8 @@ import { MenuCategory } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Coffee, CupSoda, UtensilsCrossed, Cookie, GlassWater, Soup, Sandwich,
-  IceCream, Croissant, Utensils, LayoutGrid, ChevronDown, X, type LucideIcon,
+  IceCream, Croissant, Utensils, LayoutGrid, ChevronDown, X, CirclePlus,
+  type LucideIcon,
 } from 'lucide-react';
 
 interface CategoryPillsProps {
@@ -18,15 +19,20 @@ interface CategoryPillsProps {
 // DESIGN.md membayangkan ilustrasi line-art per kategori. Karena aset itu belum
 // ada, ikon dipilih dari nama kategori dengan pencocokan kata kunci — ganti
 // dengan ilustrasi asli kalau nanti tersedia.
+//
+// Urutan penting: aturan yang lebih spesifik didahulukan. Pola untuk "ice" juga
+// WAJIB memakai batas kata (\b) — tanpa itu "SET RICE" ikut cocok dengan /ice/
+// (dari "set rICE") dan kategorinya tampil berikon es krim.
 const ICON_RULES: Array<[RegExp, LucideIcon]> = [
-  [/kopi|coffee|espresso|latte/i, Coffee],
+  [/roti|ropang|panggang|toast|bakar/i, Sandwich],
+  [/indomie|\bmie\b|noodle|soup|sup|kuah/i, Soup],
+  [/rice|nasi|makan|main|food/i, UtensilsCrossed],
+  [/snack|camilan|gorengan|kentang|kerupuk/i, Cookie],
+  [/add.?on|tambahan|topping|extra/i, CirclePlus],
+  [/kopi|coffee|espresso|latte|cappu/i, Coffee],
   [/teh|tea/i, CupSoda],
-  [/es |dingin|jus|juice|minum|drink/i, GlassWater],
-  [/mie|indomie|soup|sup|kuah/i, Soup],
-  [/nasi|makan|main|food/i, UtensilsCrossed],
-  [/roti|ropang|toast|bakar/i, Sandwich],
-  [/camilan|snack|gorengan|kentang|kerupuk/i, Cookie],
-  [/dessert|manis|ice|krim/i, IceCream],
+  [/drink|minum|dingin|jus|juice|\bes\b|\bice\b/i, GlassWater],
+  [/dessert|manis|krim|cream/i, IceCream],
   [/pastry|kue|cake/i, Croissant],
 ];
 

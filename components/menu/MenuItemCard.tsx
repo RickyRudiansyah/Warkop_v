@@ -55,10 +55,18 @@ export function MenuItemCard({ item, onOpenDetail, onQuickAdd, quantityInCart, o
       </button>
 
       <div className="p-3 flex flex-col flex-1">
+        {/*
+          Nama + detail isi, mengikuti poster menu: "ROPOSU / Ropang + susu".
+          Tanpa baris detail, menu seperti "Cipop Original" atau "Rokemsu" tidak
+          memberi tahu apa pun soal isinya.
+        */}
         <button onClick={() => onOpenDetail(item)} disabled={soldOut} className="text-left">
           <h3 className="font-semibold text-[15px] leading-snug uppercase text-text line-clamp-2">{item.name}</h3>
+          {item.description && (
+            <p className="mt-0.5 text-[12px] leading-snug text-text-secondary line-clamp-2">{item.description}</p>
+          )}
         </button>
-        <p className="mt-1 text-[15px] font-bold text-text">{formatCurrency(item.price)}</p>
+        <p className="mt-1.5 text-[15px] font-bold text-text">{formatCurrency(item.price)}</p>
 
         {/* mt-auto: tombol ADD selalu rata bawah walau judul 1 atau 2 baris. */}
         <div className="mt-auto pt-2.5">
