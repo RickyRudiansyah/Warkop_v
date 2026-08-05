@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth';
 import { enqueueReceipt } from '@/lib/print';
+import { fetchCostPrices } from '@/lib/cost';
 
 export async function GET(request: NextRequest) {
   if (!await requireStaff(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -43,8 +44,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid total_amount' }, { status: 400 });
   }
 
-  const { data: order, error: orderError } = await supabase.from('orders').insert({ table_id, payment_method, payment_status, total_amount, notes, status: 'QUEUED' }).select().single();
+  // Alur dapur dipensiunkan — order langsung SERVED. Aturan arsip mensyaratkan
+  // SERVED + lunas, jadi kalau berhenti di QUEUED board kasir menumpuk selamanya.
+  const { data: order, error: orderError } = await supabase.from('orders').insert({ table_id, payment_method, payment_status, total_amount, notes, status: 'SERVED' }).select().single();
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 });
+
+  const costMap = await fetchCostPrices(items);
 
   const orderItems = items.map((item: { menu_item_id: string; menu_item_name: string; menu_item_price: number; quantity: number; variations?: unknown; subtotal: number; notes?: string }) => ({
     order_id: order.id,
@@ -55,6 +60,9 @@ export async function POST(request: NextRequest) {
     variations: item.variations || [],
     subtotal: item.subtotal,
     notes: item.notes || null,
+    // Diambil server dari menu_items, BUKAN dari klien — kalau klien yang
+    // mengirim, siapa pun yang bisa memanggil API bisa memalsukan angka laba.
+    cost_price_snapshot: costMap[item.menu_item_id] ?? 0,
   }));
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);

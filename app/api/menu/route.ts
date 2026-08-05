@@ -2,7 +2,8 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth';
 
-const ALLOWED_MENU_FIELDS = ['category_id', 'name', 'description', 'price', 'image_url', 'is_available', 'is_sold_out'];
+// Field di luar daftar ini DIBUANG DIAM-DIAM — lihat catatan di menu/[id]/route.ts.
+const ALLOWED_MENU_FIELDS = ['category_id', 'name', 'description', 'price', 'cost_price', 'image_url', 'is_available', 'is_sold_out'];
 
 export async function GET() {
   const supabase = createAdminClient();
@@ -21,6 +22,9 @@ export async function POST(request: NextRequest) {
   }
   if (body.price == null || typeof body.price !== 'number' || body.price < 0) {
     return NextResponse.json({ error: 'Valid price is required' }, { status: 400 });
+  }
+  if (body.cost_price !== undefined && (typeof body.cost_price !== 'number' || body.cost_price < 0)) {
+    return NextResponse.json({ error: 'Invalid cost_price' }, { status: 400 });
   }
 
   const sanitized: Record<string, unknown> = {};

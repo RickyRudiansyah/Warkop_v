@@ -7,21 +7,13 @@ import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { CheckCircle, AlertCircle, ChefHat, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { CheckCircle, AlertCircle, Wallet, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Order, OrderItem } from '@/types';
 
-const statusSteps = [
-  { key: 'QUEUED', label: 'Pesanan Diterima', icon: ShoppingCart },
-  { key: 'PROCESSING', label: 'Sedang Diproses', icon: ChefHat },
-  { key: 'SERVED', label: 'Sudah Diantar', icon: CheckCircle },
-  { key: 'CANCELLED', label: 'Dibatalkan', icon: AlertCircle },
-];
-
 function OrderStatusCard({ order }: { order: Order }) {
-  const { formatted: etaFormatted, isOverdue, isWarning } = useCountdown(order.estimated_ready_at || null);
-  const currentStatusIndex = statusSteps.findIndex(s => s.key === order.status);
   const isCancelled = order.status === 'CANCELLED';
+  const isPaid = order.payment_status === 'PAID';
 
   return (
     <div className="card p-4 space-y-4">
@@ -38,35 +30,31 @@ function OrderStatusCard({ order }: { order: Order }) {
         </div>
       </div>
 
+      {/*
+        Alur dapur sudah dipensiunkan: setiap order langsung berstatus SERVED
+        sejak dibuat. Menampilkan langkah "Pesanan Diterima -> Sedang Diproses
+        -> Sudah Diantar" di sini akan MEMBOHONGI pelanggan — semua tercentang
+        padahal makanannya belum datang. Yang ditampilkan sekarang hanya status
+        pembayaran, satu-satunya hal yang memang berubah dari sisi pelanggan.
+      */}
       {isCancelled ? (
         <div className="flex items-center gap-2 text-danger">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span className="text-sm font-medium">Dibatalkan{order.cancel_reason ? ': ' + order.cancel_reason : ''}</span>
         </div>
       ) : (
-        <div className="space-y-2" aria-live="polite">
-          {statusSteps.filter(s => s.key !== 'CANCELLED').map((step) => {
-            const stepIndex = statusSteps.findIndex(s => s.key === step.key);
-            const isCompleted = stepIndex < currentStatusIndex || (order.status === 'SERVED' && stepIndex <= currentStatusIndex);
-            const isCurrent = stepIndex === currentStatusIndex;
-            const Icon = step.icon;
-            const ringClass = isCompleted ? 'bg-success text-white' : isCurrent ? 'bg-primary text-[color:var(--color-on-primary)]' : 'bg-surface-3 text-text-secondary';
-            const textClass = isCurrent ? 'text-text font-medium' : isCompleted ? 'text-success font-medium' : 'text-text-secondary';
-            const etaClass = isOverdue ? 'text-danger' : isWarning ? 'text-warning' : 'text-text-secondary';
-            return (
-              <div key={step.key} className="flex items-center gap-3">
-                <div className={'flex items-center justify-center w-7 h-7 rounded-full shrink-0 ' + ringClass}>
-                  {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Icon className="w-3.5 h-3.5" />}
-                </div>
-                <div className="flex-1">
-                  <p className={'text-sm ' + textClass}>{step.label}</p>
-                  {isCurrent && order.status === 'PROCESSING' && order.estimated_ready_at && (
-                    <p className={'text-xs ' + etaClass}>{isOverdue ? 'Terlambat ' + etaFormatted : 'Estimasi: ' + etaFormatted}</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="flex items-center gap-3" aria-live="polite">
+          <div className={'flex items-center justify-center w-7 h-7 rounded-full shrink-0 ' + (isPaid ? 'bg-success text-white' : 'bg-warning/20 text-warning')}>
+            {isPaid ? <CheckCircle className="w-4 h-4" /> : <Wallet className="w-3.5 h-3.5" />}
+          </div>
+          <div className="flex-1">
+            <p className={'text-sm font-medium ' + (isPaid ? 'text-success' : 'text-text')}>
+              {isPaid ? 'Pesanan diterima & sudah dibayar' : 'Menunggu pembayaran'}
+            </p>
+            <p className="text-xs text-text-secondary">
+              {isPaid ? 'Pesanan sedang disiapkan, tunggu di meja ya.' : 'Silakan bayar di kasir.'}
+            </p>
+          </div>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/server';
 import { enqueueReceipt } from '@/lib/print';
+import { fetchCostPrices } from '@/lib/cost';
 
 export const MIDTRANS_BASE_URL =
   process.env.MIDTRANS_IS_PRODUCTION === 'true'
@@ -187,7 +188,8 @@ export async function settleIntent(intentId: string, transactionId?: string): Pr
       payment_status: 'PAID',
       total_amount: cart.total_amount,
       notes: cart.notes,
-      status: 'QUEUED',
+      // Alur dapur dipensiunkan — lihat catatan di app/api/orders/route.ts.
+      status: 'SERVED',
     })
     .select()
     .single();
@@ -198,6 +200,8 @@ export async function settleIntent(intentId: string, transactionId?: string): Pr
     return null;
   }
 
+  const costMap = await fetchCostPrices(cart.items);
+
   const orderItems = cart.items.map((item) => ({
     order_id: order.id,
     menu_item_id: item.menu_item_id,
@@ -207,6 +211,7 @@ export async function settleIntent(intentId: string, transactionId?: string): Pr
     variations: item.variations || [],
     subtotal: item.subtotal,
     notes: item.notes || null,
+    cost_price_snapshot: costMap[item.menu_item_id] ?? 0,
   }));
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);

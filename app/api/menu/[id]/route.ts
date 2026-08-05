@@ -2,7 +2,10 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth';
 
-const ALLOWED_MENU_FIELDS = ['category_id', 'name', 'description', 'price', 'image_url', 'is_available', 'is_sold_out'];
+// Field di luar daftar ini DIBUANG DIAM-DIAM — request tetap balas 200 tapi
+// datanya tidak tersimpan. Setiap menambah kolom baru di menu_items, tambahkan
+// juga di sini, kalau tidak owner akan bingung kenapa isiannya selalu hilang.
+const ALLOWED_MENU_FIELDS = ['category_id', 'name', 'description', 'price', 'cost_price', 'image_url', 'is_available', 'is_sold_out'];
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!await requireStaff(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -15,6 +18,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
   if (body.price !== undefined && (typeof body.price !== 'number' || body.price < 0)) {
     return NextResponse.json({ error: 'Invalid price' }, { status: 400 });
+  }
+  // cost_price > price sengaja DITERIMA: margin negatif itu keputusan bisnis
+  // (menu promo), bukan kesalahan teknis. Aplikasi menandainya merah sendiri.
+  if (body.cost_price !== undefined && (typeof body.cost_price !== 'number' || body.cost_price < 0)) {
+    return NextResponse.json({ error: 'Invalid cost_price' }, { status: 400 });
   }
 
   const sanitized: Record<string, unknown> = {};
