@@ -1,13 +1,13 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth';
+import { THEME_PRESETS, presetFromSettingsValue } from '@/lib/theme';
 
 export const dynamic = 'force-dynamic';
 
-// Preset tema event. Daftar ini HARUS identik dengan yang ada di aplikasi kasir
-// (shared/app_theme_preset.dart). Preset tak dikenal dianggap NORMAL, bukan error.
-export const THEME_PRESETS = ['NORMAL', 'NATAL', 'RAMADAN', 'KEMERDEKAAN', 'IMLEK'] as const;
-const DEFAULT_PRESET = 'NORMAL';
+// Daftar preset kini tinggal di lib/theme.ts supaya layout server dan klien
+// memakai sumber yang sama. Di-ekspor ulang demi pemanggil lama.
+export { THEME_PRESETS };
 
 // GET publik — web pengunjung perlu membacanya tanpa login.
 export async function GET() {
@@ -17,10 +17,7 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const preset = (data?.value as { preset?: string } | null)?.preset;
-  return NextResponse.json({
-    preset: THEME_PRESETS.includes(preset as typeof THEME_PRESETS[number]) ? preset : DEFAULT_PRESET,
-  });
+  return NextResponse.json({ preset: presetFromSettingsValue(data?.value) });
 }
 
 // PATCH khusus owner — mengubah tampilan untuk SEMUA orang, bukan preferensi pribadi.

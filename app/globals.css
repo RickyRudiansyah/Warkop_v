@@ -167,9 +167,11 @@ h1, h2, h3, h4 {
   100% { background-position: 200% 0; }
 }
 
+/* Ikut --color-primary, bukan ember tetap, supaya denyut FAB tidak tertinggal
+   oranye saat preset event aktif. */
 @keyframes fab-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(194, 65, 12, 0.45); }
-  50% { box-shadow: 0 0 0 12px rgba(194, 65, 12, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 45%, transparent); }
+  50% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-primary) 0%, transparent); }
 }
 
 .animate-shimmer {
@@ -235,3 +237,187 @@ h1, h2, h3, h4 {
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background: var(--color-brown-500);
 }
+
+/* ---- Preset tema event ----------------------------------------------------
+   Diatur owner lewat aplikasi kasir (app_settings.key = 'theme'), dipasang di
+   <html data-preset="..."> oleh layout server. Lihat lib/theme.ts.
+
+   Preset BERDAMPINGAN dengan terang/gelap, tidak menimpanya: tiap preset punya
+   dua varian supaya pilihan mode pengunjung tetap dihormati. Karena itu selektor
+   selalu dipasangkan dengan [data-theme] — nilainya (0,2,0) sehingga menang atas
+   blok dark mode di atas (0,1,0) tanpa bergantung pada urutan file.
+
+   Yang diubah preset hanya warna aksen, tombol, dan bar gelap. Kanvas krem di
+   mode terang sengaja dibiarkan netral: menggeser semua permukaan berisiko
+   merusak kontras di puluhan komponen, sementara aksen sudah cukup untuk
+   membedakan suasana. Di mode gelap permukaan ikut diwarnai, karena di sana
+   kanvas gelap justru yang paling terlihat.
+
+   NORMAL tidak punya blok apa pun — itu nilai bawaan @theme di atas. */
+
+/* ---- NATAL: cemara + merah natal + emas hangat ---- */
+[data-preset="NATAL"]:not([data-theme="dark"]) {
+  --color-brown-950: #10261B;
+  --color-brown-900: #163524;
+  --color-brown-800: #1E4530;
+  --color-gold-500: #E3B23C;
+  --color-gold-400: #F2C65A;
+  --color-ember-600: #B3261E;
+  --color-ember-500: #C9342B;
+  --color-primary: #B3261E;
+  --color-primary-light: #C9342B;
+  --color-primary-dark: #8E1B15;
+  --color-accent: #E3B23C;
+  --color-ember-ink: #A3231C;
+  --color-ember-soft: #F7DEDC;
+  --color-gold-soft: #DDEEE2;
+}
+
+[data-preset="NATAL"][data-theme="dark"] {
+  --color-brown-950: #0C1F16;
+  --color-brown-900: #122C1E;
+  --color-brown-800: #1B3A29;
+  --color-gold-500: #E9BE55;
+  --color-gold-400: #F5D072;
+  --color-ember-600: #C9342B;
+  --color-ember-500: #DE4A40;
+  --color-primary: #C9342B;
+  --color-primary-light: #DE4A40;
+  --color-primary-dark: #A3231C;
+  --color-accent: #E9BE55;
+  --color-ember-ink: #FF9E96;
+  --color-ember-soft: #4A1512;
+  --color-gold-soft: #16331F;
+  --color-surface: #1E2E24;
+  --color-surface-2: #0F1A13;
+  --color-surface-3: #2A3D31;
+  --color-border: #33493B;
+  --color-text-secondary: #A8BCAE;
+}
+
+/* ---- RAMADAN: zamrud teduh + emas ---- */
+[data-preset="RAMADAN"]:not([data-theme="dark"]) {
+  --color-brown-950: #0B2A25;
+  --color-brown-900: #103A32;
+  --color-brown-800: #164B41;
+  --color-gold-500: #C9A227;
+  --color-gold-400: #DFB93F;
+  --color-ember-600: #0F6B5C;
+  --color-ember-500: #148F79;
+  --color-primary: #0F6B5C;
+  --color-primary-light: #148F79;
+  --color-primary-dark: #0A5145;
+  --color-accent: #C9A227;
+  --color-ember-ink: #0C5A4D;
+  --color-ember-soft: #D8EFE9;
+  --color-gold-soft: #F5EBCB;
+}
+
+[data-preset="RAMADAN"][data-theme="dark"] {
+  --color-brown-950: #071F1B;
+  --color-brown-900: #0C2E28;
+  --color-brown-800: #123C35;
+  --color-gold-500: #E3C25A;
+  --color-gold-400: #EFD076;
+  --color-ember-600: #148F79;
+  --color-ember-500: #1BA98F;
+  --color-primary: #148F79;
+  --color-primary-light: #1BA98F;
+  --color-primary-dark: #0F6B5C;
+  --color-accent: #E3C25A;
+  --color-ember-ink: #5FD9BB;
+  --color-ember-soft: #0B3A32;
+  --color-gold-soft: #3E351A;
+  --color-surface: #17302C;
+  --color-surface-2: #0B1917;
+  --color-surface-3: #21423C;
+  --color-border: #2A4F48;
+  --color-text-secondary: #9FBDB6;
+}
+
+/* ---- KEMERDEKAAN: merah putih ---- */
+[data-preset="KEMERDEKAAN"]:not([data-theme="dark"]) {
+  --color-brown-950: #3D0C0F;
+  --color-brown-900: #521114;
+  --color-brown-800: #6B181B;
+  --color-gold-500: #C1272D;
+  --color-gold-400: #D93C42;
+  --color-ember-600: #C1272D;
+  --color-ember-500: #D93C42;
+  --color-primary: #C1272D;
+  --color-primary-light: #D93C42;
+  --color-primary-dark: #991C21;
+  --color-accent: #C1272D;
+  --color-ember-ink: #A81F25;
+  --color-ember-soft: #FADEDF;
+  --color-gold-soft: #FADEDF;
+}
+
+[data-preset="KEMERDEKAAN"][data-theme="dark"] {
+  --color-brown-950: #1A0F0F;
+  --color-brown-900: #2B1414;
+  --color-brown-800: #3D1C1C;
+  --color-gold-500: #E86A6F;
+  --color-gold-400: #F28A8E;
+  --color-ember-600: #D93C42;
+  --color-ember-500: #E85B60;
+  --color-primary: #D93C42;
+  --color-primary-light: #E85B60;
+  --color-primary-dark: #B02B31;
+  --color-accent: #E86A6F;
+  --color-ember-ink: #FF9C9F;
+  --color-ember-soft: #4A1618;
+  --color-gold-soft: #4A1618;
+  --color-surface: #33201F;
+  --color-surface-2: #1A0F0F;
+  --color-surface-3: #452B2A;
+  --color-border: #523433;
+  --color-text-secondary: #C4A5A3;
+}
+
+/* ---- IMLEK: merah giok + emas ---- */
+[data-preset="IMLEK"]:not([data-theme="dark"]) {
+  --color-brown-950: #3B0D10;
+  --color-brown-900: #521215;
+  --color-brown-800: #6E191D;
+  --color-gold-500: #D4A017;
+  --color-gold-400: #EFB937;
+  --color-ember-600: #A81F25;
+  --color-ember-500: #C1272D;
+  --color-primary: #A81F25;
+  --color-primary-light: #C1272D;
+  --color-primary-dark: #86171C;
+  --color-accent: #D4A017;
+  --color-ember-ink: #99181E;
+  --color-ember-soft: #F8DBDC;
+  --color-gold-soft: #FBEDC6;
+}
+
+[data-preset="IMLEK"][data-theme="dark"] {
+  --color-brown-950: #24090B;
+  --color-brown-900: #35100F;
+  --color-brown-800: #4A1917;
+  --color-gold-500: #EFC33F;
+  --color-gold-400: #F7D45F;
+  --color-ember-600: #C1272D;
+  --color-ember-500: #D93C42;
+  --color-primary: #C1272D;
+  --color-primary-light: #D93C42;
+  --color-primary-dark: #99181E;
+  --color-accent: #EFC33F;
+  --color-ember-ink: #FF9A93;
+  --color-ember-soft: #4A1412;
+  --color-gold-soft: #453718;
+  --color-surface: #3A1E1E;
+  --color-surface-2: #1F0E0E;
+  --color-surface-3: #4E2A29;
+  --color-border: #5C3332;
+  --color-text-secondary: #CDA9A4;
+}
+
+/* .glass memakai rgba mentah (butuh transparansi), jadi kanvas gelap tiap preset
+   harus disebut ulang — kalau tidak, header blur tetap coklat di tema apa pun. */
+[data-preset="NATAL"][data-theme="dark"] .glass { background: rgba(15, 26, 19, 0.88); }
+[data-preset="RAMADAN"][data-theme="dark"] .glass { background: rgba(11, 25, 23, 0.88); }
+[data-preset="KEMERDEKAAN"][data-theme="dark"] .glass { background: rgba(26, 15, 15, 0.88); }
+[data-preset="IMLEK"][data-theme="dark"] .glass { background: rgba(31, 14, 14, 0.88); }
