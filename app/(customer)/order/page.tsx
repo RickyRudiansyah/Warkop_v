@@ -14,7 +14,8 @@ import { Footer } from '@/components/ui/Footer';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { Search, MapPin, MapPinOff, Coffee } from 'lucide-react';
+import { Search, MapPin, MapPinOff } from 'lucide-react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -97,8 +98,15 @@ export default function OrderPage() {
         <div className="h-14 flex items-center justify-between gap-3">
           <ThemeToggle />
           <TablePicker />
-          <div className="w-10 h-10 rounded-full border-2 border-gold-500 bg-brown-800 flex items-center justify-center shrink-0">
-            <Coffee className="w-5 h-5 text-gold-500" />
+          <div className="w-10 h-10 rounded-full border-2 border-gold-500 bg-brown-800 flex items-center justify-center shrink-0 overflow-hidden">
+            <Image
+              src="/rumipang-mark.png"
+              alt="Rumipang"
+              width={80}
+              height={80}
+              loading="eager"
+              className="w-8 h-8 object-contain"
+            />
           </div>
         </div>
 
