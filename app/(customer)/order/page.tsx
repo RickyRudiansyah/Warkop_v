@@ -98,16 +98,20 @@ export default function OrderPage() {
         <div className="h-14 flex items-center justify-between gap-3">
           <ThemeToggle />
           <TablePicker />
-          <div className="w-10 h-10 rounded-full border-2 border-gold-500 bg-brown-800 flex items-center justify-center shrink-0 overflow-hidden">
-            <Image
-              src="/rumipang-mark.png"
-              alt="Rumipang"
-              width={80}
-              height={80}
-              loading="eager"
-              className="w-8 h-8 object-contain"
-            />
-          </div>
+          {/* Wordmark, bukan badge bulat: logo baru rasionya 3,28:1 — dipaksa masuk
+              lingkaran 40px tulisannya tinggal ~4px per huruf dan tidak terbaca.
+              Tanpa shrink-0 supaya di layar sangat sempit ia mengalah pada pil meja. */}
+          {/* width/height disetel sebesar kotak render (28px x rasio 3,28), bukan
+              ukuran file: Next memilih kandidat srcset dari angka ini, jadi 480
+              membuatnya menarik berkas 640px untuk slot 92px. */}
+          <Image
+            src="/rumipang-wordmark.png"
+            alt="Rumipang"
+            width={92}
+            height={28}
+            loading="eager"
+            className="h-7 w-auto object-contain"
+          />
         </div>
 
         {withSearch && (
