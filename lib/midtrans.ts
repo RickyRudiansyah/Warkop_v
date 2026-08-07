@@ -19,6 +19,12 @@ export function isMidtransConfigured(): boolean {
   return !!key && key !== 'SB-Mid-server-xxxxxxxx';
 }
 
+// Snap adalah API yang BERBEDA dari Core API, dengan host berbeda pula.
+export const MIDTRANS_SNAP_URL =
+  process.env.MIDTRANS_IS_PRODUCTION === 'true'
+    ? 'https://app.midtrans.com/snap/v1/transactions'
+    : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+
 export interface ChargeResult {
   ok: boolean;
   error?: string;
@@ -26,6 +32,66 @@ export interface ChargeResult {
   qrUrl?: string;
   transactionId?: string;
   expiryTime?: string;
+}
+
+export interface SnapResult {
+  ok: boolean;
+  error?: string;
+  token?: string;
+  /** Halaman pembayaran Midtrans yang dibuka pelanggan. */
+  redirectUrl?: string;
+}
+
+/**
+ * Buat transaksi **Snap** khusus QRIS.
+ *
+ * Dipakai menggantikan `midtransChargeQris()` karena akun produksi ini hanya
+ * diberi Snap: Core API (`POST /v2/charge`) membalas
+ * `402 Payment channel is not activated` untuk **semua** payment_type — QRIS,
+ * GoPay, BCA VA, Mandiri Bill — bukan cuma QRIS. Jadi itu soal akses Core API
+ * yang belum dibuka, bukan channel QRIS yang belum aktif.
+ *
+ * `order_id` sengaja diisi `intent.id` yang sama dengan Core API dulu, supaya
+ * `GET /v2/{order_id}/status`, `settleIntent()`, dan webhook tetap bekerja apa
+ * adanya — yang berganti hanya cara QR-nya sampai ke pelanggan.
+ */
+export async function midtransSnapQris(
+  orderId: string,
+  grossAmount: number,
+  opts: { finishUrl?: string } = {},
+): Promise<SnapResult> {
+  let res: Response;
+  try {
+    res = await fetch(MIDTRANS_SNAP_URL, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: authHeader(),
+      },
+      body: JSON.stringify({
+        transaction_details: { order_id: orderId, gross_amount: Math.round(grossAmount) },
+        // Halaman Snap hanya menawarkan QRIS — pelanggan tidak perlu memilih
+        // metode dua kali, dan tidak bisa nyasar ke channel yang tidak kita dukung.
+        enabled_payments: ['other_qris'],
+        // Disamakan dengan hitung mundur 15 menit di halaman checkout.
+        expiry: { duration: 15, unit: 'minute' },
+        ...(opts.finishUrl ? { callbacks: { finish: opts.finishUrl } } : {}),
+      }),
+    });
+  } catch {
+    return { ok: false, error: 'Tidak dapat menghubungi Midtrans' };
+  }
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.token) {
+    console.error('[Midtrans snap failed]', JSON.stringify(data));
+    const messages = Array.isArray(data.error_messages) ? data.error_messages.join(', ') : null;
+    return { ok: false, error: messages || data.status_message || 'Midtrans menolak transaksi' };
+  }
+
+  return { ok: true, token: data.token, redirectUrl: data.redirect_url };
 }
 
 // Create a QRIS charge. `orderId` must be unique per Midtrans transaction.

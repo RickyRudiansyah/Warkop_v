@@ -12,33 +12,14 @@
 //      atau otomatis kalau memakai --pay
 //   4. Script polling status sampai PAID, lalu cek print job-nya terbentuk
 
-import { readFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { loadEnv } from './load-env.mjs';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // WAJIB pakai path /v2/. Halaman lama (tanpa /v2/) masih bisa membaca QR dan
 // menampilkan Reference ID, tapi form-nya memakai kontrak lama (`qrString`
 // bukan `exploreData`) yang sudah tidak dilayani backend — tombol Pay di sana
 // selalu berakhir "Transaction is unsuccessful" dan transaksi tetap pending.
 const SIMULATOR_BASE = 'https://simulator.sandbox.midtrans.com/v2/qris';
 const SIMULATOR_URL = SIMULATOR_BASE + '/index';
-
-function loadEnv() {
-  const env = {};
-  for (const file of ['.env', '.env.local']) {
-    const path = join(ROOT, file);
-    if (!existsSync(path)) continue;
-    for (const line of readFileSync(path, 'utf-8').split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const idx = trimmed.indexOf('=');
-      if (idx === -1) continue;
-      env[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, '');
-    }
-  }
-  return { ...env, ...process.env };
-}
 
 const env = loadEnv();
 const DIRECT = process.argv.includes('--direct');

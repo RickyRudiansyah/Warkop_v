@@ -10,7 +10,6 @@ import { QRIS_ENABLED } from '@/lib/features';
 import { PaymentMethod, Table } from '@/types';
 import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X, Loader2, Armchair, ShoppingBag } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -21,8 +20,8 @@ const TAKE_AWAY_OPTION = '__take_away__';
 
 interface QrisData {
   intentId: string;
-  qrUrl: string | null;
-  qrString: string | null;
+  /** Halaman pembayaran Snap milik Midtrans — QR-nya dirender di sana. */
+  snapUrl: string | null;
   grossAmount: number;
 }
 
@@ -35,7 +34,6 @@ export default function CheckoutPage() {
   const [agreed, setAgreed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [qrisOpen, setQrisOpen] = useState(false);
-  const [qrImgError, setQrImgError] = useState(false);
   const [payState, setPayState] = useState<PayState>('idle');
   const [qris, setQris] = useState<QrisData | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -94,7 +92,6 @@ export default function CheckoutPage() {
   // ---- QRIS via Midtrans: charge, tampilkan QR, polling sampai settle ----
   const startQris = async () => {
     setPayState('creating');
-    setQrImgError(false);
     setQris(null);
     setQrisOpen(true);
     try {
@@ -111,7 +108,7 @@ export default function CheckoutPage() {
         setQrisOpen(false);
         return;
       }
-      setQris({ intentId: data.intentId, qrUrl: data.qrUrl, qrString: data.qrString, grossAmount: data.grossAmount });
+      setQris({ intentId: data.intentId, snapUrl: data.snapUrl, grossAmount: data.grossAmount });
       setPayState('waiting');
     } catch {
       toast.error('Gagal memproses pembayaran QRIS');
@@ -388,20 +385,29 @@ export default function CheckoutPage() {
 
             {payState === 'waiting' && qris && (
               <>
+                {/* QR-nya ditampilkan di halaman Midtrans, bukan di sini: akun
+                    ini hanya punya akses Snap, bukan Core API yang mengembalikan
+                    qr_string mentah (lihat lib/midtrans.ts). Halamannya dibuka
+                    di tab baru supaya polling di tab ini tetap hidup — begitu
+                    pembayaran masuk, tab ini sendiri yang pindah ke order-success. */}
                 <p className="text-sm text-[color:var(--color-text-secondary)] text-center mb-4">
-                  Scan dengan aplikasi e-wallet / m-banking apa pun.
+                  Buka halaman pembayaran, lalu scan QRIS-nya dengan e-wallet /
+                  m-banking apa pun. Jangan tutup halaman ini.
                 </p>
                 <div className="flex justify-center mb-4">
-                  {qris.qrUrl && !qrImgError ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={qris.qrUrl} alt="Kode QRIS" className="w-56 h-56 object-contain bg-white rounded-xl p-2" onError={() => setQrImgError(true)} />
-                  ) : qris.qrString ? (
-                    <div className="bg-white rounded-xl p-3">
-                      <QRCodeSVG value={qris.qrString} size={208} />
-                    </div>
+                  {qris.snapUrl ? (
+                    <a
+                      href={qris.snapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-[52px] rounded-[10px] bg-ember-600 text-cream-50 font-bold text-base uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-ember-500 active:scale-[0.98] transition"
+                    >
+                      <QrCode className="w-5 h-5" />
+                      Buka Halaman QRIS
+                    </a>
                   ) : (
-                    <div className="w-56 h-56 flex items-center justify-center border-2 border-dashed border-border rounded-xl text-center p-4">
-                      <p className="text-sm text-[color:var(--color-text-secondary)]">Kode QRIS tidak tersedia</p>
+                    <div className="w-full flex items-center justify-center border-2 border-dashed border-border rounded-xl text-center p-6">
+                      <p className="text-sm text-[color:var(--color-text-secondary)]">Halaman pembayaran tidak tersedia</p>
                     </div>
                   )}
                 </div>

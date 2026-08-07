@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { isMidtransConfigured, midtransChargeQris } from '@/lib/midtrans';
+import { isMidtransConfigured, midtransSnapQris } from '@/lib/midtrans';
+import { QRIS_ENABLED } from '@/lib/features';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,12 @@ interface ChargeBody {
 }
 
 export async function POST(request: NextRequest) {
+  // Inilah endpoint yang benar-benar dipakai checkout pelanggan — sakelar QRIS
+  // harus di sini. Menaruhnya hanya di jalur Mayar membuat sakelarnya kosmetik:
+  // UI-nya mati, tapi endpointnya tetap melayani siapa pun yang memanggilnya.
+  if (!QRIS_ENABLED) {
+    return NextResponse.json({ error: 'Pembayaran QRIS belum tersedia. Silakan pilih Cash (bayar di kasir).' }, { status: 503 });
+  }
   if (!isMidtransConfigured()) {
     return NextResponse.json({ error: 'Pembayaran QRIS belum dikonfigurasi' }, { status: 503 });
   }
@@ -51,26 +58,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: intentError?.message || 'Gagal membuat pembayaran' }, { status: 500 });
   }
 
-  const charge = await midtransChargeQris(intent.id, total_amount);
-  if (!charge.ok) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const snap = await midtransSnapQris(intent.id, total_amount, {
+    finishUrl: appUrl + '/order-success?intentId=' + intent.id,
+  });
+
+  if (!snap.ok) {
     await supabase.from('payment_intents').update({ status: 'FAILED' }).eq('id', intent.id);
-    return NextResponse.json({ error: charge.error }, { status: 502 });
+    return NextResponse.json({ error: snap.error }, { status: 502 });
   }
 
+  // `qr_url` menyimpan halaman pembayaran Snap. Kolomnya dipakai ulang apa
+  // adanya — isinya memang "ke mana pelanggan harus pergi untuk membayar".
   await supabase
     .from('payment_intents')
     .update({
-      qr_string: charge.qrString ?? null,
-      qr_url: charge.qrUrl ?? null,
-      midtrans_transaction_id: charge.transactionId ?? null,
+      qr_url: snap.redirectUrl ?? null,
+      midtrans_transaction_id: snap.token ?? null,
     })
     .eq('id', intent.id);
 
   return NextResponse.json({
     intentId: intent.id,
-    qrString: charge.qrString ?? null,
-    qrUrl: charge.qrUrl ?? null,
-    expiryTime: charge.expiryTime ?? null,
+    snapUrl: snap.redirectUrl ?? null,
     grossAmount: Math.round(total_amount),
   });
 }

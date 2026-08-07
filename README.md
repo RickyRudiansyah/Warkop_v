@@ -6,7 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)
 ![Database](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=flat-square&logo=supabase)
 ![Styling](https://img.shields.io/badge/Styling-Tailwind%20CSS%20v4-06B6D4?style=flat-square&logo=tailwindcss)
-![Payment](https://img.shields.io/badge/Payment-Mayar%20QRIS-6B3FA0?style=flat-square)
+![Payment](https://img.shields.io/badge/Payment-Midtrans%20QRIS-1A4FA0?style=flat-square)
 ![Printer](https://img.shields.io/badge/Printer-Bluetooth%20ESC%2FPOS-555?style=flat-square)
 ![Deploy](https://img.shields.io/badge/Deploy-Docker-2496ED?style=flat-square&logo=docker)
 
@@ -22,7 +22,7 @@
 - [API Endpoints](#api-endpoints)
 - [Alur Pemesanan](#alur-pemesanan)
 - [Alur Status Order](#alur-status-order)
-- [Alur Pembayaran QRIS (Mayar)](#alur-pembayaran-qris-mayar)
+- [Alur Pembayaran QRIS (Midtrans)](#alur-pembayaran-qris-midtrans)
 - [Fitur Lokasi (Geolocation Gate)](#fitur-lokasi-geolocation-gate)
 - [Environment Variables](#environment-variables)
 - [Cara Menjalankan Lokal](#cara-menjalankan-lokal)
@@ -56,7 +56,7 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 
 - **Satu QR umum** untuk seluruh kafe (bukan per-meja). Nomor meja dipilih customer saat checkout.
 - **Pemisahan status dapur & status bayar.** `status` (dapur) = `QUEUED → PROCESSING → SERVED`; `payment_status` = `PAID | UNPAID`.
-- **QRIS otomatis** lewat gateway **Mayar** — order baru masuk dapur setelah pembayaran benar-benar terkonfirmasi (verifikasi server-side).
+- **QRIS otomatis** lewat gateway **Midtrans** — order baru masuk dapur setelah pembayaran benar-benar terkonfirmasi (verifikasi server-side).
 - **Dua role staff** — `cashier` & `owner`. Role `koki` sudah dihapus; Kitchen Display sekarang dipegang kasir & owner lewat menu **Dapur**.
 - **Struk otomatis ke printer Bluetooth** — begitu sebuah order jadi `PAID` (QRIS settle atau kasir verifikasi cash), struknya masuk antrian dan ditarik aplikasi Android companion.
 - **Data-fetch via API Routes** (service role, bypass RLS) — browser tidak query Supabase langsung untuk data, hanya untuk trigger Realtime.
@@ -78,7 +78,7 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Checkout | Pilih meja **atau Take Away** + metode bayar + persetujuan (tidak bisa dibatalkan) |
 | Take Away | Pesanan dibungkus, tanpa nomor meja — dipilih dari lembar "Pilih Nomor Meja" atau dropdown checkout |
 | Bayar Cash | Order langsung dibuat `UNPAID`, bayar di kasir |
-| Bayar QRIS | ⚠️ **Dimatikan sejak v3.2** (`NEXT_PUBLIC_QRIS_ENABLED=false`) — pilihannya tampil "Belum tersedia". Saat aktif: halaman QRIS Mayar → scan → **otomatis terdeteksi** → order masuk dapur |
+| Bayar QRIS | Kode QRIS Midtrans tampil di checkout → scan → **otomatis terdeteksi** → order masuk + struk tercetak. Bisa dimatikan lewat `NEXT_PUBLIC_QRIS_ENABLED=false` |
 | Lacak pesanan | Lacak seluruh order 1 meja secara realtime + ETA countdown |
 | Dark mode | Toggle tema terang/gelap |
 
@@ -117,7 +117,7 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 
 | Fitur | Deskripsi |
 |---|---|
-| QRIS auto-print | Struk otomatis masuk antrian cetak begitu pembayaran QRIS settle (Mayar/Midtrans) |
+| QRIS auto-print | Struk otomatis masuk antrian cetak begitu pembayaran QRIS settle (Midtrans) |
 | Cash butuh verifikasi | Struk baru dicetak setelah kasir menekan "Verifikasi & Cetak Struk" |
 | Antrian cetak | Halaman `/dashboard/printer` — status job, pratinjau struk, cetak ulang |
 | Anti dobel-cetak | Satu struk otomatis per order (unique index), aman dari webhook + poll bersamaan |
@@ -163,7 +163,7 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Database | Supabase (PostgreSQL + Storage) |
 | Auth | Supabase Auth (`@supabase/ssr`) |
 | Realtime | Supabase Realtime |
-| Payment (QRIS) | **Mayar** (checkout customer) · **Midtrans** (dipertahankan — `settleIntent` dipakai bersama, dipakai untuk testing sandbox) |
+| Payment (QRIS) | **Midtrans** — provider aktif, dipakai checkout customer. Mayar (`lib/mayar.ts`) masih ada di repo tapi **tidak dipanggil** |
 | Printer | Thermal Bluetooth (ESC/POS, 58mm/32-kolom) via aplikasi Android companion |
 | Animation | Framer Motion |
 | Icons | Lucide React |
@@ -182,7 +182,7 @@ warkop-app/
 │   │   ├── layout.tsx                        # Suspense boundary
 │   │   ├── loading.tsx                       # Loading UI
 │   │   ├── order/page.tsx                    # Halaman menu + geolocation gate
-│   │   ├── checkout/page.tsx                 # Checkout: meja, bayar, QRIS Mayar
+│   │   ├── checkout/page.tsx                 # Checkout: meja/take away, bayar, QRIS Midtrans
 │   │   ├── order-success/page.tsx            # Konfirmasi sukses
 │   │   └── order-tracking/page.tsx           # Lacak pesanan per meja (realtime)
 │   ├── (staff)/                             # Route group staff
@@ -215,9 +215,7 @@ warkop-app/
 │   │   ├── orders/[id]/cancel/route.ts       # PATCH cancel
 │   │   ├── orders/[id]/track/route.ts        # GET tracking 1 order (public)
 │   │   ├── orders/[id]/update-eta/route.ts   # PATCH update ETA
-│   │   ├── payments/mayar/create/route.ts    # POST buat payment request QRIS
-│   │   ├── payments/mayar/status/route.ts    # GET poll status (settle → buat order)
-│   │   ├── payments/mayar/webhook/route.ts   # POST notifikasi Mayar (verify ulang)
+│   │   ├── payments/mayar/*                  # Provider Mayar — TIDAK DIPAKAI
 │   │   ├── payments/midtrans/charge/route.ts # POST buat charge QRIS (dipakai script test sandbox)
 │   │   ├── payments/midtrans/status/route.ts # GET poll status Midtrans
 │   │   ├── payments/midtrans/webhook/route.ts# POST notifikasi Midtrans
@@ -250,7 +248,7 @@ warkop-app/
 │   └── useLocationCheck.ts                   # Geolocation gate (haversine)
 ├── lib/
 │   ├── supabase/client.ts · server.ts        # Browser & admin/server client
-│   ├── mayar.ts                              # Provider Mayar (create + status)
+│   ├── mayar.ts                              # Provider Mayar — TIDAK DIPAKAI (lihat catatan provider)
 │   ├── midtrans.ts                           # Provider Midtrans + settleIntent (shared, memicu cetak struk)
 │   ├── print.ts                              # Antrian cetak: enqueue, klaim job, auth perangkat
 │   ├── receipt.ts                            # Bentuk struk (JSON + teks ESC/POS)
@@ -312,10 +310,10 @@ payment_intents (
   id UUID PK,
   status TEXT,                    -- PENDING | PAID | EXPIRED | FAILED
   gross_amount INT,
-  qr_string TEXT, qr_url TEXT,    -- qr_url = link pembayaran Mayar
+  qr_string TEXT, qr_url TEXT,    -- qr_string = QRIS Midtrans yang dirender klien
   cart JSONB,                     -- payload order (dibuat jadi order saat lunas)
   order_id UUID → orders,
-  midtrans_transaction_id TEXT,   -- id transaksi provider (Mayar/Midtrans)
+  midtrans_transaction_id TEXT,   -- id transaksi Midtrans
   created_at TIMESTAMPTZ, paid_at TIMESTAMPTZ
 )
 
@@ -386,23 +384,27 @@ activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target
 | PATCH | `/api/print/jobs/[id]/ack` | Token perangkat / staff | Konfirmasi PRINTED / FAILED |
 | POST | `/api/print/jobs/[id]/retry` | Staff | Kembalikan job gagal ke antrian |
 
-### Payments — Mayar (aktif, dipakai checkout customer)
+### Payments — Midtrans (AKTIF, dipakai checkout customer)
 
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
-| POST | `/api/payments/mayar/create` | Public | Buat payment request QRIS → return `link` |
-| GET | `/api/payments/mayar/status?intentId=` | Public | Poll status (settle → buat order PAID) |
-| POST | `/api/payments/mayar/webhook` | Public | Notifikasi Mayar (verifikasi ulang server-side) |
-
-### Payments — Midtrans (dipertahankan: shared settle + testing sandbox)
-
-| Method | Endpoint | Auth | Deskripsi |
-|---|---|---|---|
-| POST | `/api/payments/midtrans/charge` | Public | Buat charge QRIS — dipakai `npm run test:qris` |
-| GET | `/api/payments/midtrans/status?intentId=` | Public | Poll status (settle lewat `settleIntent` yang sama dengan Mayar) |
+| POST | `/api/payments/midtrans/charge` | Public | Buat charge QRIS → `qr_string` + `qr_url`. **Ini yang dipanggil checkout pelanggan** |
+| GET | `/api/payments/midtrans/status?intentId=` | Public | Poll status (settle → buat order PAID + antrikan struk) |
 | POST | `/api/payments/midtrans/webhook` | Public | Notifikasi Midtrans |
 
-> `settleIntent()` di `lib/midtrans.ts` dipakai bersama oleh kedua provider untuk membuat order + mengantrikan struk begitu pembayaran settle — jadi cetak struk otomatis tetap jalan terlepas dari provider mana yang memprosesnya.
+> `settleIntent()` di `lib/midtrans.ts` yang membuat order + mengantrikan struk begitu pembayaran settle. Dipanggil dari **polling status** maupun **webhook**, dan idempoten — jadi keduanya boleh menang duluan tanpa membuat order ganda.
+
+### Payments — Mayar (ADA DI REPO, TIDAK DIPAKAI)
+
+`lib/mayar.ts` dan `app/api/payments/mayar/*` masih ada, tapi **checkout tidak
+pernah memanggilnya** — [`checkout/page.tsx`](app/(customer)/checkout/page.tsx)
+memanggil `midtrans/charge` dan `midtrans/status`. Anggap sebagai provider
+cadangan yang belum dicabut, bukan jalur yang hidup.
+
+> Sampai v3.2 README ini menulis Mayar sebagai provider aktif. Itu **salah** —
+> dan sempat berakibat nyata: sakelar `NEXT_PUBLIC_QRIS_ENABLED` pertama kali
+> dipasang di route Mayar, sehingga UI-nya mati tapi endpoint yang sebenarnya
+> dipakai pelanggan tidak terjaga sama sekali.
 
 ### Tables · Upload · Activity · Health
 
@@ -436,7 +438,7 @@ Checkout → pilih MEJA + metode bayar + setuju ketentuan
  │                              ↓
  │                         Struk masuk antrian printer
  │
- └─ QRIS (Mayar) ────────→ Halaman QRIS → scan & bayar
+ └─ QRIS (Midtrans) ─────→ Kode QRIS tampil → scan & bayar
                               ↓ (poll otomatis / webhook)
                            Terkonfirmasi → Order dibuat PAID + QUEUED
                               ↓
@@ -474,29 +476,136 @@ Pembayaran: `UNPAID` (Cash belum dibayar) · `PAID` (QRIS lunas otomatis / kasir
 
 ---
 
-## Alur Pembayaran QRIS (Mayar)
+## Alur Pembayaran QRIS (Midtrans)
 
-> ⚠️ **QRIS pelanggan sedang DIMATIKAN** (v3.2). Gateway-nya belum bisa dipakai,
-> jadi `NEXT_PUBLIC_QRIS_ENABLED` default `false`: pilihan QRIS di checkout
-> tampil mati berlabel "Belum tersedia", dan `POST /api/payments/mayar/create`
-> membalas 503. Seluruh alur di bawah baru berjalan setelah flag itu `true`
-> **dan** `MAYAR_API_KEY` terisi. Lihat [Sakelar QRIS](#sakelar-qris-pelanggan).
+> **Status: AKTIF di produksi** sejak 7 Agustus 2026, lewat **Snap** —
+> bukan Core API. Transaksinya uang asli.
+
+### Kenapa Snap, bukan Core API
+
+Akun produksi ini hanya diberi akses **Snap**. `POST /v2/charge` (Core API)
+membalas `402 Payment channel is not activated` untuk **setiap** payment_type:
+
+| Percobaan | Hasil |
+|---|---|
+| Snap `POST /snap/v1/transactions` | **201, token + redirect_url** ✅ |
+| Core API `qris` (acquirer gopay / tanpa acquirer / airpay shopee) | 402 |
+| Core API `gopay` | 402 |
+| Core API `bank_transfer` (BCA VA) | 402 |
+| Core API `echannel` (Mandiri Bill) | 402 |
+
+Kuncinya ada di dua baris terakhir: **BCA VA dan Mandiri juga ditolak.** Kalau
+masalahnya channel QRIS, keduanya seharusnya lolos. Jadi yang belum dibuka itu
+**akses Core API**-nya, bukan QRIS — Midtrans memang memberi Snap secara default
+dan menyaratkan pengajuan terpisah untuk Core API.
+
+Salah membaca gejala ini mahal: kalau disimpulkan "QRIS belum aktif", yang
+diajukan ke Midtrans adalah hal yang salah, dan penantiannya sia-sia. Uji satu
+channel non-QRIS lebih dulu sebelum menyimpulkan.
+
+Yang berganti hanya cara QR sampai ke pelanggan:
+
+| | Core API (dulu) | Snap (sekarang) |
+|---|---|---|
+| QR | `qr_string` dirender `qrcode.react` di halaman kita | halaman `app.midtrans.com`, dibuka di tab baru |
+| `order_id` ke Midtrans | `intent.id` | **`intent.id`** — sengaja sama |
+| Polling status | `GET /v2/{order_id}/status` | **sama persis** |
+| `settleIntent`, webhook, cetak struk | — | **tidak berubah sama sekali** |
+
+`order_id` sengaja tetap `intent.id` supaya seluruh rantai sesudah pembayaran —
+status, settle, webhook, antrian printer — tidak perlu tahu providernya
+berganti. Halaman Snap dibuka di **tab baru** agar polling di tab checkout tetap
+hidup; begitu pembayaran masuk, tab checkout sendiri yang pindah ke
+order-success.
+
+Kalau nanti Midtrans membuka Core API, `midtransChargeQris()` masih ada di
+[lib/midtrans.ts](lib/midtrans.ts) dan tinggal ditukar kembali.
 
 Order **tidak** dibuat sampai pembayaran benar-benar terkonfirmasi, jadi tidak ada "order hantu" belum bayar di dapur.
 
 ```
-1. Customer pilih QRIS → POST /api/payments/mayar/create
-2. Server buat payment_intent (PENDING) + panggil Mayar → dapat `link` + transactionId
-3. Halaman QRIS Mayar terbuka → customer scan & bayar (OVO/DANA/GoPay/bank apa pun)
-4. App polling GET /api/payments/mayar/status tiap 3 detik
-      → server cek GET https://api.mayar.id/hl/v2/transactions/{id}
-      → status "paid"? settleIntent() buat order PAID + QUEUED (idempoten) + antrikan struk
-5. App redirect ke order-success → order muncul di board dapur
+1. Customer pilih QRIS → POST /api/payments/midtrans/charge
+2. Server buat payment_intent (PENDING) + transaksi Snap (enabled_payments:
+   other_qris, expiry 15 menit) → dapat token + redirect_url
+3. Customer klik "Buka Halaman QRIS" (tab baru) → scan & bayar di halaman
+   Midtrans (OVO/DANA/GoPay/bank apa pun)
+4. App polling GET /api/payments/midtrans/status?intentId= tiap 3 detik
+      → server cek GET https://api.midtrans.com/v2/{order_id}/status
+      → settlement/capture? settleIntent() buat order PAID + SERVED (idempoten)
+        + antrikan struk
+5. App redirect ke order-success → struk tercetak di printer Bluetooth
 ```
 
 - **Deteksi otomatis** lewat polling (jalan di lokal & produksi) + webhook (cadangan di produksi).
-- **Keamanan:** webhook Mayar tidak dipercaya sendiri — selalu diverifikasi ulang lewat status API terautentikasi sebelum settle.
+- **Keamanan:** webhook Midtrans tidak dipercaya sendiri — selalu diverifikasi ulang lewat status API terautentikasi sebelum settle.
 - **Idempoten:** `settleIntent` memakai conditional lock `PENDING → PAID`, jadi polling + webhook tidak akan membuat order ganda atau struk ganda.
+
+### Memastikan kunci Midtrans sah tanpa membuat transaksi
+
+Kesalahan paling sering saat pindah sandbox ↔ produksi adalah kunci dan flag
+tidak diganti bersamaan. Cek tanpa menyentuh uang — `GET /v2/<uuid-acak>/status`
+hanya membaca:
+
+```bash
+curl -s -u "$MIDTRANS_SERVER_KEY:" https://api.midtrans.com/v2/$(uuidgen)/status
+```
+
+| Balasan | Artinya |
+|---|---|
+| `404 Transaction doesn't exist` | kunci **sah** untuk lingkungan itu |
+| `401 Unknown Merchant server_key/id` | kunci ditolak — salah kunci, atau salah lingkungan |
+
+Kunci yang sah **belum berarti QRIS bisa dipakai.** Keduanya terpisah:
+
+| Gejala | Artinya | Yang harus dilakukan |
+|---|---|---|
+| `401 Unknown Merchant server_key/id` | autentikasi gagal | ganti kunci **dan** `MIDTRANS_IS_PRODUCTION` bersamaan |
+| `402 Payment channel is not activated` | kunci sah, tapi channel/API itu tidak dibuka untuk akun tsb. **Uji `bank_transfer` juga** — kalau ikut 402, yang belum dibuka adalah akses **Core API**, bukan QRIS | pakai Snap (sudah dilakukan), atau ajukan Core API ke Midtrans |
+| Snap `token` / `qr_string` terbit | gateway benar-benar hidup | boleh set `NEXT_PUBLIC_QRIS_ENABLED=true` |
+
+Aktivasi **sandbox tidak otomatis berlaku di produksi**, dan sebaliknya. Akun
+produksi yang baru biasanya perlu pengajuan + persetujuan Midtrans lebih dulu.
+
+> **Awas komentar inline di `.env`.** `MIDTRANS_SERVER_KEY=Mid-server-xxx #Production`
+> dibaca Next.js sebagai kunci saja (komentarnya dibuang), tapi skrip yang
+> memotong di tanda `=` akan ikut membawa ` #Production` dan menghasilkan 401
+> palsu — yang dicurigai jadi kuncinya, bukan pembacanya. Semua script CLI
+> karena itu memakai [`scripts/load-env.mjs`](scripts/load-env.mjs) bersama,
+> yang membuang komentar inline persis seperti dotenv.
+
+### Menguji QRIS di produksi (uang asli)
+
+`npm run test:qris` **menolak jalan** saat `MIDTRANS_IS_PRODUCTION=true` — itu
+pengaman, bukan kerusakan: script sandbox membayar lewat simulator, dan
+simulator tidak berlaku di produksi. **Jangan** menyetel
+`MIDTRANS_IS_PRODUCTION=false` untuk menembusnya; kunci produksi akan ditolak
+401, dan kalau lupa dikembalikan, checkout pelanggan ikut mati.
+
+Untuk produksi ada script terpisah dengan pengaman yang dibalik:
+
+```bash
+npm run test:qris:prod                                    # hanya menampilkan peringatan
+node scripts/test-qris-production.mjs --yes-real-money    # benar-benar jalan
+node scripts/test-qris-production.mjs --yes-real-money --amount=1000
+```
+
+| Pengaman | Alasan |
+|---|---|
+| Menuntut `MIDTRANS_IS_PRODUCTION=true` | kebalikan script sandbox — tidak mungkin tertukar |
+| Menuntut `NEXT_PUBLIC_QRIS_ENABLED=true` | kalau tidak, endpoint charge membalas 503 |
+| Menolak kunci `SB-…` | sandbox key + IS_PRODUCTION=true = 401 yang membingungkan |
+| Wajib `--yes-real-money` | tidak bisa jalan karena salah ketik |
+| Default Rp 1.000, `table_id: null` | nominal kecil, dan tidak menempati meja yang mungkin sedang dipakai |
+
+**Berhenti di tengah pun sudah berguna.** Begitu QR muncul, tiga hal yang paling
+sering rusak sudah terbukti: kredensial produksi diterima, QRIS aktif di akun
+Midtrans, dan endpoint charge aplikasi jalan. Tekan Ctrl+C di situ — tagihan
+yang tidak dibayar kedaluwarsa sendiri dan tidak pernah menjadi order.
+
+Kalau diteruskan sampai dibayar dengan e-wallet asli, script memverifikasi
+sisanya: order terbentuk, lalu struknya benar-benar masuk antrian printer.
+Order hasil uji ini QRIS + lunas, jadi **langsung masuk Riwayat**, bukan board
+kasir — hapus dari sana kalau mengganggu.
 
 ---
 
@@ -523,10 +632,9 @@ Membatasi pemesanan hanya untuk customer yang berada di sekitar kafe (via GPS br
 | `SUPABASE_SERVICE_ROLE_KEY` | API key service role (rahasia!) | Ya |
 | `NEXT_PUBLIC_APP_URL` | Base URL app (untuk redirect) | Ya |
 | `NEXT_PUBLIC_QRIS_ENABLED` | `true` = QRIS pelanggan aktif. **Default mati** — checkout menampilkan "Belum tersedia" dan endpoint create menolak 503 | Tidak |
-| `MAYAR_API_KEY` | API key Mayar — QRIS customer | Untuk QRIS |
-| `MAYAR_IS_PRODUCTION` | `true`=api.mayar.id, `false`=api.mayar.club | Untuk QRIS |
-| `MIDTRANS_SERVER_KEY` | Server key Midtrans (`SB-Mid-server-…` untuk sandbox) | Untuk testing sandbox |
-| `MIDTRANS_IS_PRODUCTION` | `false` = sandbox, `true` = produksi | Untuk testing sandbox |
+| `MIDTRANS_SERVER_KEY` | Server key Midtrans — **provider aktif**. `SB-Mid-server-…` sandbox, `Mid-server-…` produksi | Untuk QRIS |
+| `MIDTRANS_IS_PRODUCTION` | `false` = sandbox, `true` = produksi (uang asli) | Untuk QRIS |
+| `MAYAR_API_KEY` / `MAYAR_IS_PRODUCTION` | Provider Mayar — **tidak dipakai**, checkout tidak pernah memanggilnya | Tidak |
 | `PRINT_DEVICE_TOKEN` | Token aplikasi Android printer (header `x-print-token`) | Untuk printer |
 | `RECEIPT_STORE_NAME` | Nama toko di kop struk (default: Rumipang) | Tidak |
 | `RECEIPT_STORE_ADDRESS` | Alamat di kop struk | Tidak |
@@ -579,7 +687,8 @@ Kebalikannya: ambil server key dari toggle **Sandbox**, set
 
 > Sebagai pengaman, `npm run test:qris` **menolak jalan** saat
 > `MIDTRANS_IS_PRODUCTION=true`, supaya script uji tidak pernah membuat transaksi
-> dengan uang asli.
+> dengan uang asli. Untuk menguji produksi, pakai `test:qris:prod` — lihat
+> [Menguji QRIS di produksi](#menguji-qris-di-produksi-uang-asli).
 
 Data kedua lingkungan **terpisah total**. Transaksi yang dibuat di sandbox tidak
 bisa dicek dari produksi (dan sebaliknya), jadi `payment_intents` berstatus
@@ -702,9 +811,9 @@ docker compose up -d --build
 curl http://localhost:3000/api/health
 ```
 
-- `Dockerfile` — 3 stage (deps → builder → runner non-root). `NEXT_PUBLIC_*` di-pass sebagai `--build-arg`; secret server (service role, Mayar/Midtrans key, print token) di runtime.
+- `Dockerfile` — 3 stage (deps → builder → runner non-root). `NEXT_PUBLIC_*` di-pass sebagai `--build-arg`; secret server (service role, Midtrans key, print token) di runtime.
 - `docker-compose.yml` — meneruskan env dari `.env`, healthcheck, `restart: unless-stopped`.
-- **Produksi QRIS:** set Payment Notification URL di dashboard Mayar ke `https://<domain>/api/payments/mayar/webhook` (dan di Midtrans ke `.../api/payments/midtrans/webhook` jika masih dipakai).
+- **Produksi QRIS:** set Payment Notification URL di dashboard **Midtrans** ke `https://<domain>/api/payments/midtrans/webhook`.
 
 > Bisa juga deploy ke Vercel (API Routes = serverless). Untuk akses hanya-di-kafe, lihat opsi jaringan lokal / geolocation gate.
 
@@ -723,7 +832,7 @@ curl http://localhost:3000/api/health
 | v2.7 | Kompatibilitas skema (`categories`, `variation_type`) + error handling |
 | v2.8 | Fix hydration checkout |
 | v2.9 | Owner: hapus menu, reset data, hapus riwayat |
-| v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS Mayar, dark mode, geolocation gate, Docker |
+| v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS, dark mode, geolocation gate, Docker |
 | v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
 | v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per hari/bulan/tahun, kelola karyawan, Take Away untuk pelanggan, 30 meja, QRIS pelanggan dimatikan |
 
@@ -1099,12 +1208,12 @@ curl http://localhost:3000/api/health
 - **Kolom `is_archived`** — Order pindah ke history hanya saat kasir menekan "Selesai".
 - Migrasi: `scripts/migrate-payment-flow.sql` + `scripts/create-payment-intents.sql`.
 
-### 2. Payment Gateway QRIS — Mayar
+### 2. Payment Gateway QRIS — Midtrans
 
-- **Provider Mayar** ([lib/mayar.ts](lib/mayar.ts)) — create payment request + cek status via API resmi Mayar.
+- **Provider Midtrans** ([lib/midtrans.ts](lib/midtrans.ts)) — charge QRIS + cek status via API resmi Midtrans. (Catatan historis: v3.0 sempat memakai Mayar; checkout sudah kembali ke Midtrans.)
 - **Order dibuat setelah lunas** — Tabel `payment_intents` menyimpan cart sementara; order baru dibuat saat pembayaran terkonfirmasi (`settleIntent`, idempoten).
 - **Deteksi otomatis** — Polling status tiap 3 detik (lokal & produksi) + webhook (cadangan). Webhook selalu diverifikasi ulang server-side (aman walau signature tidak didokumentasikan).
-- **Provider Midtrans** — [lib/midtrans.ts](lib/midtrans.ts) + route `payments/midtrans/*` dipertahankan; `settleIntent` di dalamnya dipakai bersama Mayar, dan endpoint charge-nya dipakai script pengujian sandbox (lihat [Changelog v3.1](#changelog-v31)).
+- **Provider Mayar** — `lib/mayar.ts` + route `payments/mayar/*` masih ada di repo tapi tidak dipanggil checkout.
 
 ### 3. Dark Mode
 
@@ -1163,7 +1272,7 @@ apa adanya.
 #### Alur cetak struk
 
 ```
-QRIS  -> pelanggan scan & bayar (Mayar atau Midtrans)
+QRIS  -> pelanggan scan & bayar (Midtrans)
       -> settlement (webhook / status poll) via settleIntent()
       -> order dibuat LUNAS + print job otomatis   [trigger: QRIS_SETTLED]
       -> aplikasi Android tarik job -> cetak Bluetooth
@@ -1270,7 +1379,7 @@ bercabang diam-diam:
 
 | Titik | Kapan | Hasil |
 |---|---|---|
-| `settleIntent()` di `lib/midtrans.ts` | QRIS settle (Mayar/Midtrans) | **diarsipkan** |
+| `settleIntent()` di `lib/midtrans.ts` | QRIS settle (Midtrans) | **diarsipkan** |
 | `POST /api/orders` | order POS yang uangnya sudah diterima | diarsipkan **kalau** QRIS |
 | `PATCH /api/orders/[id]/mark-paid` | kasir verifikasi tunai | tetap di board |
 
@@ -1433,27 +1542,33 @@ dengan 30 meja, tiga kolom berarti sepuluh baris gulungan.
 
 ### Sakelar QRIS pelanggan
 
-Gateway QRIS belum bisa dipakai, jadi pilihannya dimatikan — lewat env, bukan
-dengan menghapus kodenya:
+QRIS bisa dimatikan/dinyalakan lewat env, tanpa menyentuh kode:
 
 ```env
-NEXT_PUBLIC_QRIS_ENABLED=false   # default; true untuk menyalakan lagi
+NEXT_PUBLIC_QRIS_ENABLED=true    # sekarang AKTIF (Midtrans Snap, produksi)
 ```
 
-Dimatikan di **dua lapis**, dan keduanya perlu:
+Sakelarnya bekerja di **dua lapis**, dan keduanya perlu:
 
 | Lapis | Perilaku |
 |---|---|
 | [Checkout pelanggan](app/(customer)/checkout/page.tsx) | Pilihan QRIS **tetap tampil** tapi mati, berlabel "Belum tersedia" |
-| [`POST /api/payments/mayar/create`](app/api/payments/mayar/create/route.ts) | Menolak dengan **503** sebelum satu pun `payment_intent` dibuat |
+| [`POST /api/payments/midtrans/charge`](app/api/payments/midtrans/charge/route.ts) | Menolak dengan **503** sebelum satu pun `payment_intent` dibuat |
 
 Lapis kedua bukan formalitas. Endpoint itu publik, dan tab pelanggan yang sudah
 lama terbuka masih memegang UI versi lama — tanpa penjagaan di server, ia masih
 bisa membuat intent yang tidak akan pernah bisa dibayar.
 
-Pilihannya **ditampilkan mati, bukan disembunyikan**: pelanggan yang mencari
-QRIS jadi tahu ini belum tersedia, bukan mengira warungnya tidak menerima QRIS
-lalu bertanya ke kasir.
+> **Pastikan lapis kedua ada di route yang benar.** Versi pertama sakelar ini
+> dipasang di `payments/mayar/create` — mengikuti README yang (keliru) menyebut
+> Mayar sebagai provider aktif. Checkout sebenarnya memanggil
+> `payments/midtrans/charge`, jadi selama itu UI-nya mati tapi endpoint yang
+> benar-benar dipakai tidak terjaga sama sekali. Sakelar yang salah alamat
+> lebih berbahaya daripada tidak ada sakelar: ia terlihat seperti sudah aman.
+
+Saat mati, pilihannya **ditampilkan mati, bukan disembunyikan**: pelanggan yang
+mencari QRIS jadi tahu ini belum tersedia, bukan mengira warungnya tidak
+menerima QRIS lalu bertanya ke kasir.
 
 > **Tidak menyentuh QRIS di POS kasir.** Di sana "QRIS" berarti uangnya sudah
 > diterima lewat cara lain (mis. stiker QRIS statis di meja kasir) — tidak ada
@@ -1468,8 +1583,8 @@ lalu bertanya ke kasir.
 
 | Metric | Value |
 |---|---|
-| Files created | 6 (`lib/archive.ts`, `lib/features.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`, `scripts/seed-tables-30.sql`) |
-| Files modified | 15 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `mayar/create/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `MenuItemSheet.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`, `checkout/page.tsx`) |
+| Files created | 8 (`lib/archive.ts`, `lib/features.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`, `scripts/seed-tables-30.sql`, `scripts/test-qris-production.mjs`, `scripts/load-env.mjs`) |
+| Files modified | 16 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `mayar/create/route.ts`, `midtrans/charge/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `MenuItemSheet.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`, `checkout/page.tsx`) |
 | TypeScript errors | 0 |
 | Breaking changes | Arsip otomatis tidak butuh migrasi (`is_archived` ada sejak v3.0). Kelola karyawan butuh `scripts/staff-optional-email.sql`. |
 
