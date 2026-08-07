@@ -2,7 +2,7 @@
 
 import { useCart } from '@/context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Minus, Trash2, Armchair, AlertTriangle } from 'lucide-react';
+import { X, Plus, Minus, Trash2, Armchair, AlertTriangle, ShoppingBag } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -10,10 +10,12 @@ import { useEffect } from 'react';
 interface CartDrawerProps { open: boolean; onClose: () => void; }
 
 export function CartDrawer({ open, onClose }: CartDrawerProps) {
-  const { items, removeItem, updateQuantity, totalPrice, tableNumber } = useCart();
+  const { items, removeItem, updateQuantity, totalPrice, tableNumber, takeAway, tableDecided } = useCart();
   const router = useRouter();
-  // Meja wajib dipilih dulu lewat table pill di header sebelum bisa checkout.
-  const tableChosen = tableNumber !== null;
+  // Meja **atau** take away wajib dipilih dulu lewat table pill di header
+  // sebelum bisa checkout. Memakai `tableNumber !== null` di sini akan menahan
+  // pelanggan take away selamanya — mereka memang tidak punya nomor meja.
+  const tableChosen = tableDecided;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -90,7 +92,12 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                       <span>{formatCurrency(totalPrice)}</span>
                     </div>
 
-                    {tableChosen ? (
+                    {takeAway ? (
+                      <p className="flex items-center gap-1.5 text-sm text-[color:var(--color-text-secondary)] mb-3">
+                        <ShoppingBag className="w-4 h-4 text-ember-ink" />
+                        Pesanan <strong className="text-text">dibungkus</strong> untuk dibawa pulang
+                      </p>
+                    ) : tableChosen ? (
                       <p className="flex items-center gap-1.5 text-sm text-[color:var(--color-text-secondary)] mb-3">
                         <Armchair className="w-4 h-4 text-ember-ink" />
                         Diantar ke <strong className="text-text">Meja {tableNumber}</strong>
@@ -99,7 +106,8 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                       <div className="flex items-start gap-2 rounded-lg bg-gold-soft text-text px-3 py-2.5 mb-3">
                         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-warning" />
                         <p className="text-sm leading-relaxed">
-                          Pilih nomor meja dulu lewat tombol <strong>Pilih Meja</strong> di bagian atas layar.
+                          Pilih nomor meja atau <strong>Take Away</strong> dulu lewat tombol
+                          {' '}<strong>Pilih Meja</strong> di bagian atas layar.
                         </p>
                       </div>
                     )}

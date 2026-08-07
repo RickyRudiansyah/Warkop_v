@@ -75,7 +75,8 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Browse & search menu | Filter kategori pills + cari nama menu |
 | Detail menu | Pilih variasi (ukuran, level pedas, topping) + catatan per item |
 | Keranjang | CartFAB floating + CartDrawer bottom sheet, persist di sessionStorage |
-| Checkout | Pilih meja (dropdown) + metode bayar + persetujuan (tidak bisa dibatalkan) |
+| Checkout | Pilih meja **atau Take Away** + metode bayar + persetujuan (tidak bisa dibatalkan) |
+| Take Away | Pesanan dibungkus, tanpa nomor meja — dipilih dari lembar "Pilih Nomor Meja" atau dropdown checkout |
 | Bayar Cash | Order langsung dibuat `UNPAID`, bayar di kasir |
 | Bayar QRIS | ⚠️ **Dimatikan sejak v3.2** (`NEXT_PUBLIC_QRIS_ENABLED=false`) — pilihannya tampil "Belum tersedia". Saat aktif: halaman QRIS Mayar → scan → **otomatis terdeteksi** → order masuk dapur |
 | Lacak pesanan | Lacak seluruh order 1 meja secara realtime + ETA countdown |
@@ -724,7 +725,7 @@ curl http://localhost:3000/api/health
 | v2.9 | Owner: hapus menu, reset data, hapus riwayat |
 | v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS Mayar, dark mode, geolocation gate, Docker |
 | v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
-| v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per hari/bulan/tahun, kelola karyawan, label Take Away, QRIS pelanggan dimatikan |
+| v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per hari/bulan/tahun, kelola karyawan, Take Away untuk pelanggan, 30 meja, QRIS pelanggan dimatikan |
 
 ---
 
@@ -1393,6 +1394,43 @@ jadi keduanya harus seragam.
 `tableLabel()` juga memakai `table_number != null`, bukan `|| '-'`: meja bernomor
 `0` dulu ikut jatuh ke tanda hubung.
 
+### Take Away untuk pelanggan
+
+Sebelumnya pesanan bungkus **tidak mungkin** dibuat dari sisi pelanggan: meja
+wajib dipilih, dan tombol Checkout mati sampai ada nomornya.
+
+Masalahnya bukan sekadar menambah tombol. `tableId === null` dipakai untuk dua
+arti yang berbeda — "belum memilih" dan "sengaja tanpa meja" — dan keduanya
+tidak bisa dibedakan dari situ. Karena itu [`CartContext`](context/CartContext.tsx)
+sekarang punya flag `takeAway` sendiri (ikut tersimpan di `sessionStorage`),
+plus turunan `tableDecided` = "meja dipilih **atau** take away" yang dipakai
+semua penjagaan:
+
+| Tempat | Sebelum | Sesudah |
+|---|---|---|
+| [`TablePicker`](components/order/TablePicker.tsx) | hanya daftar meja | tombol **Take Away · Dibungkus** di atas daftar |
+| Pill di header | "Pilih Meja" berkedip selamanya | jadi "Take Away" + ikon kantong |
+| [`CartDrawer`](components/cart/CartDrawer.tsx) | Checkout mati tanpa nomor meja | aktif kalau `tableDecided` |
+| [Checkout](app/(customer)/checkout/page.tsx) | dropdown meja saja | + opsi "Take Away · Dibungkus" |
+
+`takeAway` dan `tableId` **tidak pernah menyala bersamaan** — `setTable()`
+mematikan take away dan `setTakeAway(true)` mengosongkan meja. Kalau keduanya
+boleh hidup, order bungkus tetap membawa nomor meja dan kasir mengantarkannya ke
+meja yang salah.
+
+Order take away dikirim dengan `table_id: null`, dan tampil sebagai
+**"Take Away"** di board kasir, riwayat, dan struk (lihat bagian di bawah).
+
+### Meja sampai nomor 30
+
+[`scripts/seed-tables-30.sql`](scripts/seed-tables-30.sql) — idempoten,
+`ON CONFLICT (table_number) DO NOTHING`, jadi label yang sudah diganti staff
+lewat halaman QR tidak ikut tertimpa dan meja yang dinonaktifkan tidak
+dihidupkan diam-diam.
+
+Lembar pemilih meja ikut disesuaikan: 3 kolom di HP, **6 di layar lebar** —
+dengan 30 meja, tiga kolom berarti sepuluh baris gulungan.
+
 ### Sakelar QRIS pelanggan
 
 Gateway QRIS belum bisa dipakai, jadi pilihannya dimatikan — lewat env, bukan
@@ -1430,7 +1468,7 @@ lalu bertanya ke kasir.
 
 | Metric | Value |
 |---|---|
-| Files created | 5 (`lib/archive.ts`, `lib/features.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`) |
+| Files created | 6 (`lib/archive.ts`, `lib/features.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`, `scripts/seed-tables-30.sql`) |
 | Files modified | 15 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `mayar/create/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `MenuItemSheet.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`, `checkout/page.tsx`) |
 | TypeScript errors | 0 |
 | Breaking changes | Arsip otomatis tidak butuh migrasi (`is_archived` ada sejak v3.0). Kelola karyawan butuh `scripts/staff-optional-email.sql`. |

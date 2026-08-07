@@ -8,13 +8,16 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { QRIS_ENABLED } from '@/lib/features';
 import { PaymentMethod, Table } from '@/types';
-import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X, Loader2, Armchair } from 'lucide-react';
+import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X, Loader2, Armchair, ShoppingBag } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
 type PayState = 'idle' | 'creating' | 'waiting' | 'paid' | 'expired' | 'failed';
+
+/** Nilai penanda di `<select>`; '' sudah dipakai untuk "belum memilih". */
+const TAKE_AWAY_OPTION = '__take_away__';
 
 interface QrisData {
   intentId: string;
@@ -24,7 +27,7 @@ interface QrisData {
 }
 
 export default function CheckoutPage() {
-  const { items, removeItem, clearCart, totalPrice, tableId, tableNumber, setTable } = useCart();
+  const { items, removeItem, clearCart, totalPrice, tableId, tableNumber, setTable, takeAway, setTakeAway, tableDecided } = useCart();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [submitting, setSubmitting] = useState(false);
   const [tables, setTables] = useState<Table[]>([]);
@@ -67,7 +70,9 @@ export default function CheckoutPage() {
       const res = await fetch('/api/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          table_id: selectedTableId, payment_method: 'CASH', payment_status: 'UNPAID',
+          // `tableId`, bukan `selectedTableId`: yang terakhir jadi string kosong
+          // saat take away, dan '' bukan UUID yang sah untuk kolom table_id.
+          table_id: tableId, payment_method: 'CASH', payment_status: 'UNPAID',
           total_amount: totalPrice, notes: '', items: orderItemsPayload(),
         }),
       });
@@ -96,7 +101,7 @@ export default function CheckoutPage() {
       const res = await fetch('/api/payments/midtrans/charge', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          table_id: selectedTableId, total_amount: totalPrice, notes: '', items: orderItemsPayload(),
+          table_id: tableId, total_amount: totalPrice, notes: '', items: orderItemsPayload(),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -158,7 +163,7 @@ export default function CheckoutPage() {
   };
 
   const handleCheckout = () => {
-    if (!selectedTableId) { toast.error('Silakan pilih nomor meja'); return; }
+    if (!tableDecided) { toast.error('Silakan pilih meja, atau pilih Take Away'); return; }
     if (!agreed) { toast.error('Silakan setujui ketentuan terlebih dahulu'); return; }
     // Radio QRIS-nya sudah dimatikan, tapi tab yang dibuka sebelum sakelar ini
     // berubah masih memegang UI lama — jangan sampai pelanggan terlempar ke
@@ -232,34 +237,43 @@ export default function CheckoutPage() {
         </div>
 
         <div className="card p-4">
-          <h2 className="section-title text-base mb-3">Nomor Meja</h2>
+          <h2 className="section-title text-base mb-3">Meja / Take Away</h2>
           {loadingTables ? (
             <Skeleton variant="rectangular" height="44px" />
-          ) : tables.length === 0 ? (
-            <p className="text-sm text-text-secondary">Belum ada meja tersedia. Hubungi staff.</p>
           ) : (
             <>
               <select
-                value={selectedTableId}
+                value={takeAway ? TAKE_AWAY_OPTION : selectedTableId}
                 onChange={e => {
+                  if (e.target.value === TAKE_AWAY_OPTION) { setTakeAway(true); return; }
                   const t = tables.find(x => x.id === e.target.value);
                   setTable(t?.id ?? null, t?.table_number ?? null);
                 }}
                 className="w-full px-4 py-2.5 border border-border rounded-lg bg-surface text-text outline-none focus:border-ember-ink"
-                aria-label="Pilih nomor meja"
+                aria-label="Pilih meja atau take away"
               >
                 <option value="">— Pilih meja —</option>
+                <option value={TAKE_AWAY_OPTION}>Take Away · Dibungkus</option>
                 {tables.map(t => (
                   <option key={t.id} value={t.id}>{t.label || 'Meja ' + t.table_number}</option>
                 ))}
               </select>
-              {selectedTableId ? (
+              {takeAway ? (
+                <p className="flex items-center gap-1.5 text-sm text-text-secondary mt-2">
+                  <ShoppingBag className="w-4 h-4 text-ember-ink" />
+                  Pesanan <strong className="text-text">dibungkus</strong> untuk dibawa pulang
+                </p>
+              ) : selectedTableId ? (
                 <p className="flex items-center gap-1.5 text-sm text-text-secondary mt-2">
                   <Armchair className="w-4 h-4 text-ember-ink" />
                   Diantar ke <strong className="text-text">Meja {tableNumber}</strong>
                 </p>
               ) : (
-                <p className="text-sm text-warning mt-2">Wajib dipilih sebelum bisa memesan.</p>
+                <p className="text-sm text-warning mt-2">
+                  {tables.length === 0
+                    ? 'Belum ada meja terdaftar — pilih Take Away, atau hubungi staff.'
+                    : 'Pilih meja atau Take Away sebelum bisa memesan.'}
+                </p>
               )}
             </>
           )}
@@ -351,7 +365,7 @@ export default function CheckoutPage() {
           size="lg"
           className="w-full h-[52px] uppercase tracking-wide"
           loading={submitting || payState === 'creating'}
-          disabled={!agreed || !selectedTableId || submitting || payState === 'creating'}
+          disabled={!agreed || !tableDecided || submitting || payState === 'creating'}
           onClick={handleCheckout}
         >
           {paymentMethod === 'QRIS' ? 'Bayar dengan QRIS' : 'Kirim Pesanan'}

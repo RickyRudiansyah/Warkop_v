@@ -11,6 +11,13 @@ interface CartContextType {
   // Disimpan terpisah dari tableNumber karena API butuh id, UI butuh nomor.
   tableId: string | null;
   setTable: (id: string | null, num: number | null) => void;
+  // "Belum memilih" dan "sengaja tanpa meja" sama-sama `tableId === null`, jadi
+  // keduanya tidak bisa dibedakan dari situ. Flag ini yang membedakannya —
+  // tanpa itu, pelanggan take away akan terus ditahan "wajib pilih meja".
+  takeAway: boolean;
+  setTakeAway: (value: boolean) => void;
+  /** Meja sudah dipilih ATAU take away — syarat boleh checkout. */
+  tableDecided: boolean;
   addItem: (menu_item: MenuItem, quantity: number, selectedVariations: VariationSelection[], notes: string) => void;
   removeItem: (index: number) => void;
   updateQuantity: (index: number, quantity: number) => void;
@@ -33,11 +40,16 @@ function getStoredTableId(): string | null {
   if (typeof window === 'undefined') return null;
   try { return sessionStorage.getItem('warkop_table_id'); } catch { return null; }
 }
+function getStoredTakeAway(): boolean {
+  if (typeof window === 'undefined') return false;
+  try { return sessionStorage.getItem('warkop_take_away') === '1'; } catch { return false; }
+}
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(getStoredCart);
   const [tableNumber, setTableNumber] = useState<number | null>(getStoredTable);
   const [tableId, setTableId] = useState<string | null>(getStoredTableId);
+  const [takeAway, setTakeAwayState] = useState<boolean>(getStoredTakeAway);
 
   useEffect(() => {
     try { sessionStorage.setItem('warkop_cart', JSON.stringify(items)); } catch {}
@@ -57,9 +69,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [tableId]);
 
+  useEffect(() => {
+    try {
+      if (takeAway) sessionStorage.setItem('warkop_take_away', '1');
+      else sessionStorage.removeItem('warkop_take_away');
+    } catch {}
+  }, [takeAway]);
+
+  // Memilih meja membatalkan take away, dan sebaliknya — keduanya tidak boleh
+  // menyala bersamaan, kalau tidak order bungkus tetap membawa nomor meja.
   const setTable = useCallback((id: string | null, num: number | null) => {
     setTableId(id);
     setTableNumber(num);
+    if (id !== null) setTakeAwayState(false);
+  }, []);
+
+  const setTakeAway = useCallback((value: boolean) => {
+    setTakeAwayState(value);
+    if (value) {
+      setTableId(null);
+      setTableNumber(null);
+    }
   }, []);
 
   const addItem = useCallback((menu_item: MenuItem, quantity: number, selectedVariations: VariationSelection[], notes: string) => {
@@ -98,7 +128,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const totalPrice = items.reduce((sum, item) => sum + item.subtotal, 0);
 
   return (
-    <CartContext.Provider value={{ items, tableNumber, setTableNumber, tableId, setTable, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}>
+    <CartContext.Provider value={{ items, tableNumber, setTableNumber, tableId, setTable, takeAway, setTakeAway, tableDecided: tableId !== null || takeAway, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}>
       {children}
     </CartContext.Provider>
   );

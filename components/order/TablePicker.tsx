@@ -5,13 +5,13 @@ import { useCart } from '@/context/CartContext';
 import { Table } from '@/types';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Armchair, ChevronDown, X, Check } from 'lucide-react';
+import { Armchair, ChevronDown, X, Check, ShoppingBag } from 'lucide-react';
 
 // Table pill di header (DESIGN.md §5.1) — di sini dibuat interaktif karena
 // aplikasi memakai SATU QR umum: nomor meja dipilih pelanggan sendiri, bukan
 // dibawa dari URL QR per meja. Meja wajib dipilih sebelum bisa checkout.
 export function TablePicker() {
-  const { tableNumber, tableId, setTable } = useCart();
+  const { tableNumber, tableId, setTable, takeAway, setTakeAway, tableDecided } = useCart();
   const [tables, setTables] = useState<Table[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -29,13 +29,19 @@ export function TablePicker() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  const chosen = tableNumber !== null;
+  // Pill-nya berhenti berkedip begitu pelanggan memutuskan — memilih meja
+  // ATAU take away. Sebelumnya hanya nomor meja yang menghentikannya.
+  const chosen = tableDecided;
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label={chosen ? 'Ganti meja, sekarang meja ' + tableNumber : 'Pilih nomor meja'}
+        aria-label={
+          takeAway ? 'Ganti pilihan, sekarang take away'
+            : tableNumber !== null ? 'Ganti meja, sekarang meja ' + tableNumber
+              : 'Pilih nomor meja atau take away'
+        }
         className={cn(
           'flex items-center gap-1.5 rounded-b-2xl rounded-t-md px-4 py-2 -mt-3 shadow-md transition active:scale-95',
           // Ember & gold nilainya tetap di kedua tema, jadi teksnya juga harus
@@ -43,9 +49,9 @@ export function TablePicker() {
           chosen ? 'bg-ember-600 text-cream-50' : 'bg-gold-500 text-brown-900 animate-fab-pulse',
         )}
       >
-        <Armchair className="w-4 h-4" />
+        {takeAway ? <ShoppingBag className="w-4 h-4" /> : <Armchair className="w-4 h-4" />}
         <span className="text-[15px] font-semibold uppercase tracking-wide">
-          {chosen ? 'Meja ' + tableNumber : 'Pilih Meja'}
+          {takeAway ? 'Take Away' : tableNumber !== null ? 'Meja ' + tableNumber : 'Pilih Meja'}
         </span>
         <ChevronDown className="w-4 h-4 opacity-80" />
       </button>
@@ -76,11 +82,35 @@ export function TablePicker() {
 
               <div className="p-4">
                 <p className="text-sm text-[color:var(--color-text-secondary)] mb-3">
-                  Pesanan akan diantar ke meja yang kamu pilih.
+                  Pesanan akan diantar ke meja yang kamu pilih, atau dibungkus
+                  untuk dibawa pulang.
                 </p>
 
+                {/* Take away sejajar dengan memilih meja, bukan sisa pilihan
+                    di bawah daftar: pelanggan yang membungkus tidak sedang
+                    "gagal memilih meja". */}
+                <button
+                  onClick={() => { setTakeAway(true); setOpen(false); }}
+                  className={cn(
+                    'relative w-full mb-3 h-16 rounded-xl border text-center transition active:scale-95 flex items-center justify-center gap-2',
+                    takeAway
+                      ? 'border-ember-ink bg-ember-soft text-text'
+                      : 'border-border bg-surface text-text hover:bg-surface-3',
+                  )}
+                >
+                  {takeAway && (
+                    <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-ember-600 text-cream-50 flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                    </span>
+                  )}
+                  <ShoppingBag className={cn('w-4 h-4', takeAway ? 'text-ember-ink' : 'text-text-secondary')} />
+                  <span className="text-[13px] font-semibold uppercase leading-none">
+                    Take Away · Dibungkus
+                  </span>
+                </button>
+
                 {loading ? (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                     {Array.from({ length: 6 }).map((_, i) => (
                       <div key={i} className="h-16 rounded-xl animate-shimmer" />
                     ))}
@@ -90,7 +120,7 @@ export function TablePicker() {
                     Belum ada meja tersedia. Hubungi staff.
                   </p>
                 ) : (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                     {tables.map(t => {
                       const active = tableId === t.id;
                       return (
