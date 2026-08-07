@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth';
 import { enqueueReceipt } from '@/lib/print';
+import { autoArchiveIfSettled } from '@/lib/archive';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const staff = await requireStaff(request);
@@ -21,5 +22,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   // Pembayaran tunai sudah diverifikasi kasir -> struk masuk antrian printer.
   const print = await enqueueReceipt(id, { trigger: 'CASH_VERIFIED', verifiedBy: staff.name });
 
-  return NextResponse.json({ ...data, print_queued: print.ok });
+  // Order yang sudah diantar + lunas langsung pindah ke riwayat — tidak ada
+  // lagi tombol "Selesai" yang harus ditekan kasir (lib/archive.ts).
+  const archived = await autoArchiveIfSettled(id);
+
+  return NextResponse.json({ ...data, is_archived: archived || data.is_archived, print_queued: print.ok });
 }

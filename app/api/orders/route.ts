@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth';
 import { enqueueReceipt } from '@/lib/print';
 import { fetchCostPrices } from '@/lib/cost';
+import { autoArchiveIfSettled } from '@/lib/archive';
 
 export async function GET(request: NextRequest) {
   if (!await requireStaff(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -74,12 +75,16 @@ export async function POST(request: NextRequest) {
   // Order manual kasir yang langsung lunas -> struk ikut dicetak.
   // Sengaja hanya untuk request ber-session staff: endpoint ini juga dipakai
   // pelanggan (selalu UNPAID), jadi antrian printer tidak bisa dipicu publik.
+  let archived = false;
   if (payment_status === 'PAID') {
     const staff = await requireStaff(request);
     if (staff) {
       await enqueueReceipt(order.id, { trigger: 'CASHIER_PAID_ORDER', verifiedBy: staff.name });
     }
+    // Dibuat SERVED + lunas berarti tidak ada sisa pekerjaan — langsung ke
+    // riwayat, tanpa mampir ke board kasir (lib/archive.ts).
+    archived = await autoArchiveIfSettled(order.id);
   }
 
-  return NextResponse.json({ ...order, items: orderItems }, { status: 201 });
+  return NextResponse.json({ ...order, is_archived: archived || order.is_archived, items: orderItems }, { status: 201 });
 }

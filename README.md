@@ -1,4 +1,4 @@
-# Rumipang Ordering System v3.1
+# Rumipang Ordering System v3.2
 
 > Sistem pemesanan digital berbasis QR Code untuk warung/kafe — customer scan, pilih menu, bayar (Cash atau QRIS otomatis), tanpa antri ke kasir. Struk lunas otomatis cetak ke printer Bluetooth.
 
@@ -41,6 +41,7 @@
 - [Changelog v2.9](#changelog-v29)
 - [Changelog v3.0](#changelog-v30)
 - [Changelog v3.1](#changelog-v31)
+- [Changelog v3.2](#changelog-v32)
 - [Developer](#developer)
 
 ---
@@ -88,7 +89,7 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Realtime updates | Update order via Supabase Realtime |
 | Verifikasi bayar cash | Tombol **"Verifikasi & Cetak Struk"** — ubah `UNPAID → PAID` sekaligus antrikan struk ke printer |
 | Cancel order | Batalkan order yang masih `QUEUED` (belum diproses) |
-| Selesai (arsip) | Pindahkan semua order 1 meja ke history (saat semua `SERVED` + `PAID`) |
+| Arsip otomatis | Order yang `SERVED` + `PAID` pindah sendiri ke history — tidak ada tombol "Selesai" (v3.2) |
 | Manual order (POS) | Input order manual untuk pelanggan yang tidak scan |
 | Cetak ulang struk | Tombol printer di kartu order (khusus order yang sudah lunas) |
 | QR Generator | Generate + download satu QR umum kafe |
@@ -135,7 +136,7 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Rekap penjualan | Filter Hari Ini / 7 Hari / Semua |
 | Kelola menu | Tambah/edit/hapus menu, upload gambar, toggle sold out |
 | Kelola variasi | CRUD variasi per menu (grup + label + extra price) |
-| Order history | Lihat + hapus riwayat (satu / semua) |
+| Order history | Lihat + hapus riwayat (satu / per hari / per bulan / per tahun / semua) |
 | Reset data | Hapus semua order + activity log (menu/meja/staff aman) |
 
 ### Auth & Session
@@ -361,15 +362,15 @@ activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target
 | GET | `/api/orders` | staff | Board dapur (non-arsip, aktif) |
 | GET | `/api/orders?mode=cashier` | staff | Board kasir (termasuk SERVED sampai diarsip) |
 | GET | `/api/orders?history=1` · `/api/orders/history` | staff | Arsip + dibatalkan |
-| DELETE | `/api/orders/history` | staff | Hapus semua history |
+| DELETE | `/api/orders/history` | staff | Hapus history — seluruhnya, atau `?from=&to=` (ISO-8601 ber-offset, `from` inklusif · `to` eksklusif) |
 | DELETE | `/api/orders/reset` | owner | Reset semua order + log |
 | POST | `/api/orders` | Public | Buat order (Cash langsung; QRIS lewat settle) |
 | GET | `/api/orders/[id]` · DELETE | staff | Detail / hapus order |
 | GET | `/api/orders/[id]/track` | Public | Tracking 1 order |
 | GET | `/api/orders/table-track?tableId=` | Public | Tracking semua order 1 meja |
 | PATCH | `/api/orders/[id]/status` | staff | QUEUED→PROCESSING→SERVED (+ETA) |
-| PATCH | `/api/orders/[id]/mark-paid` | staff | UNPAID→PAID + antrikan struk |
-| PATCH | `/api/orders/[id]/archive` | staff | is_archived=true (Selesai) |
+| PATCH | `/api/orders/[id]/mark-paid` | staff | UNPAID→PAID + antrikan struk + arsip otomatis |
+| PATCH | `/api/orders/[id]/archive` | staff | is_archived=true (arsip manual; sejak v3.2 jarang dipakai) |
 | PATCH | `/api/orders/[id]/cancel` | staff | Cancel (tolak jika SERVED/CANCELLED) |
 | PATCH | `/api/orders/[id]/update-eta` | staff | Perpanjang ETA |
 
@@ -443,7 +444,7 @@ Aplikasi Android tarik antrian printer → cetak ke printer Bluetooth
       ↓
 Dapur: QUEUED → (set ETA) PROCESSING → SERVED
       ↓
-Kasir tekan "Selesai" → order pindah ke History
+SERVED + PAID → order pindah sendiri ke History (tanpa tombol, v3.2)
 ```
 
 ---
@@ -455,14 +456,14 @@ QUEUED ──(set ETA + mulai proses)──→ PROCESSING ──(sudah diantar)�
    │                                                                  │
    └────────────(kasir cancel, hanya saat QUEUED)───→ CANCELLED       │
                                                                        ↓
-                                      Kasir "Selesai" → is_archived=true → HISTORY
+                             SERVED + PAID → is_archived=true otomatis → HISTORY
 ```
 
 | Status | Deskripsi | Aksi |
 |---|---|---|
 | `QUEUED` | Masuk antrian dapur | Mulai Proses (ETA), Cancel, Verifikasi Bayar (jika UNPAID) |
 | `PROCESSING` | Sedang dimasak | Sudah Diantar, Update ETA |
-| `SERVED` | Sudah diantar | Verifikasi Bayar (jika UNPAID), Selesai (arsip) |
+| `SERVED` | Sudah diantar | Verifikasi Bayar (jika UNPAID). Begitu lunas → arsip otomatis |
 | `CANCELLED` | Dibatalkan | — (masuk history) |
 
 Pembayaran: `UNPAID` (Cash belum dibayar) · `PAID` (QRIS lunas otomatis / kasir verifikasi). Struk dicetak tepat pada transisi menjadi `PAID`.
@@ -713,6 +714,7 @@ curl http://localhost:3000/api/health
 | v2.9 | Owner: hapus menu, reset data, hapus riwayat |
 | v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS Mayar, dark mode, geolocation gate, Docker |
 | v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
+| v3.2 | Arsip otomatis (tombol "Selesai" dihapus), hapus riwayat per hari/bulan/tahun |
 
 ---
 
@@ -1231,6 +1233,106 @@ Midtrans diarahkan ke `<domain>/api/payments/midtrans/webhook`.
 | TypeScript errors | 0 |
 | Build | Passed |
 | Breaking changes | Role `koki` dihapus — perlu migrasi SQL |
+
+---
+
+## Changelog v3.2
+
+### Arsip otomatis — tombol "Selesai" dihapus
+
+Order yang `SERVED` **dan** `PAID` tidak menyisakan pekerjaan apa pun untuk
+kasir, jadi ia pindah sendiri ke riwayat. Tombol "Selesai · Pindahkan ke
+History" dihapus dari aplikasi kasir: satu-satunya jawaban yang pernah
+diberikan kasir adalah "ya", dan sampai ditekan ordernya menumpuk di board.
+
+Logikanya satu tempat — [`lib/archive.ts`](lib/archive.ts) — dan dipanggil di
+**setiap** titik sebuah order bisa menjadi lunas:
+
+| Titik | Kapan |
+|---|---|
+| `PATCH /api/orders/[id]/mark-paid` | kasir verifikasi tunai |
+| `POST /api/orders` | order POS yang uangnya sudah diterima |
+| `settleIntent()` di `lib/midtrans.ts` | QRIS settle (Mayar/Midtrans) |
+
+Melewatkan salah satunya membuat order menggantung di board tanpa cara
+memindahkannya — tombolnya sudah tidak ada. Fungsinya idempoten dan tidak
+pernah `throw`: gagal mengarsipkan tidak boleh menggagalkan transaksi yang
+uangnya sudah diterima.
+
+`PATCH /api/orders/[id]/archive` **tetap ada** sebagai arsip manual (dan
+dipakai aplikasi Flutter untuk menyapu baris lama dari sebelum v3.2).
+
+> **Efeknya pada board kasir:** yang tersisa hanya order yang belum lunas.
+> Order QRIS pelanggan lahir `SERVED` + `PAID`, jadi ia langsung masuk riwayat
+> dan strukyalah yang jadi tiket dapur — konsisten dengan alur dapur yang sudah
+> dipensiunkan sejak aplikasi Flutter.
+
+### Hapus riwayat per hari / bulan / tahun
+
+`DELETE /api/orders/history` sekarang menerima `?from=&to=`:
+
+```
+DELETE /api/orders/history                       # seluruh riwayat (perilaku lama)
+DELETE /api/orders/history?from=…&to=…           # satu rentang created_at
+```
+
+Keduanya ISO-8601 **lengkap dengan offset zona waktu**, `from` inklusif dan
+`to` eksklusif. Batas "hari" di warung adalah tengah malam WIB, bukan UTC —
+tengah malam UTC jatuh pukul 07.00 pagi, tepat di tengah hari kerja — jadi
+pemanggilnyalah yang menentukan batas itu, bukan server.
+
+Sekalian diperbaiki: penghapusan dulu memakai `status in (SERVED, CANCELLED)`,
+yang **ikut menghapus order `SERVED` yang masih menunggu pembayaran** di board
+kasir. Sekarang definisinya sama persis dengan `GET` di atasnya
+(`is_archived = true` ATAU `status = CANCELLED`).
+
+### Kelola karyawan (tambah & ubah)
+
+Layar **Jatah** di aplikasi kasir memanggil dua endpoint yang tidak pernah ada:
+`POST /api/staff` membalas **405** (file rutenya cuma punya `GET`) dan
+`PATCH /api/staff/[id]` membalas **404**. Tombol "Tambah Karyawan" dan "Ubah
+Karyawan" karena itu tidak pernah berhasil.
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/staff` | staff | Karyawan aktif |
+| POST | `/api/staff` | **owner** | Tambah karyawan |
+| PATCH | `/api/staff/[id]` | **owner** | Ubah nama / peran / email / aktif |
+
+- **Owner-only ditegakkan di server,** bukan cuma disembunyikan di UI —
+  daftar karyawan menentukan siapa yang berhak jatah makan.
+- **`id` dibuat aplikasi, bukan database.** `staff_users.id` sengaja tidak punya
+  `DEFAULT` (lihat `scripts/complete-schema.sql`): id-nya adalah cerminan UUID
+  user Supabase Auth, bukan nomor acak. POST karena itu menerima `id` opsional:
+
+  | Karyawan | Kirim `id`? |
+  |---|---|
+  | Ikut memakai aplikasi (punya akun login) | **Ya** — salin UUID user auth-nya. `requireStaff` mencocokkan sesi lewat `id`; id yang berbeda = tidak bisa masuk walau akun auth-nya sah. |
+  | Hanya menerima jatah makan | Tidak — server membuat UUID acak. |
+- **PATCH hanya menyentuh field yang dikirim.** Sengaja berbeda dari
+  `PUT /api/menu/[id]` yang mengganti seluruh baris.
+- **Owner aktif terakhir tidak bisa menurunkan perannya sendiri atau
+  menonaktifkan dirinya** (409). Tanpa satu pun owner aktif, tidak ada lagi yang
+  bisa mengembalikan keadaan lewat aplikasi.
+- Validasi + perapian body dipakai bersama POST dan PATCH lewat
+  [`app/api/staff/shared.ts`](app/api/staff/shared.ts).
+
+> **Butuh migrasi:** [`scripts/staff-optional-email.sql`](scripts/staff-optional-email.sql).
+> `staff_users.email` masih `NOT NULL`, padahal karyawan yang hanya menerima
+> jatah makan (juru masak, pramusaji) tidak punya email — dan form aplikasi
+> memang menandainya opsional. Kolomnya tetap `UNIQUE`; Postgres membolehkan
+> banyak `NULL` di kolom unik, jadi email kosong disimpan sebagai `NULL`, bukan
+> `''`. Tanpa migrasi ini, menambah karyawan tanpa email dibalas 400 dengan
+> pesan yang menyebutkan file ini.
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files created | 4 (`lib/archive.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`) |
+| Files modified | 5 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `lib/midtrans.ts`, `staff/route.ts`) |
+| TypeScript errors | 0 |
+| Breaking changes | Arsip otomatis tidak butuh migrasi (`is_archived` ada sejak v3.0). Kelola karyawan butuh `scripts/staff-optional-email.sql`. |
 
 ---
 

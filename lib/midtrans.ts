@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/server';
 import { enqueueReceipt } from '@/lib/print';
 import { fetchCostPrices } from '@/lib/cost';
+import { autoArchiveIfSettled } from '@/lib/archive';
 
 export const MIDTRANS_BASE_URL =
   process.env.MIDTRANS_IS_PRODUCTION === 'true'
@@ -227,6 +228,10 @@ export async function settleIntent(intentId: string, transactionId?: string): Pr
   // enqueueReceipt tidak pernah throw, jadi kegagalan cetak tidak membatalkan
   // pembayaran yang sudah settle.
   await enqueueReceipt(order.id, { trigger: 'QRIS_SETTLED' });
+
+  // QRIS yang settle = SERVED + lunas sejak lahir, jadi tidak pernah ada yang
+  // perlu dikerjakan kasir di board — arsipkan sekalian (lib/archive.ts).
+  await autoArchiveIfSettled(order.id);
 
   return order.id;
 }
