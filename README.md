@@ -90,7 +90,7 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Verifikasi bayar cash | Tombol **"Verifikasi & Cetak Struk"** — ubah `UNPAID → PAID` sekaligus antrikan struk ke printer |
 | Cancel order | Batalkan order yang masih `QUEUED` (belum diproses) |
 | Arsip otomatis | Order yang `SERVED` + `PAID` pindah sendiri ke history — tidak ada tombol "Selesai" (v3.2) |
-| Manual order (POS) | Input order manual untuk pelanggan yang tidak scan |
+| Manual order (POS) | Input order manual + cari menu, filter kategori, muat ulang katalog |
 | Cetak ulang struk | Tombol printer di kartu order (khusus order yang sudah lunas) |
 | QR Generator | Generate + download satu QR umum kafe |
 | Order history | Riwayat order (arsip + dibatalkan) |
@@ -1259,6 +1259,10 @@ memindahkannya — tombolnya sudah tidak ada. Fungsinya idempoten dan tidak
 pernah `throw`: gagal mengarsipkan tidak boleh menggagalkan transaksi yang
 uangnya sudah diterima.
 
+Tombolnya dihapus di **kedua** klien: bilah "Selesai · Pindahkan ke History" di
+aplikasi Flutter, dan tombol "Selesai — Pindah ke History" per meja di
+[board kasir web](app/(staff)/dashboard/cashier/page.tsx).
+
 `PATCH /api/orders/[id]/archive` **tetap ada** sebagai arsip manual (dan
 dipakai aplikasi Flutter untuk menyapu baris lama dari sebelum v3.2).
 
@@ -1285,6 +1289,32 @@ Sekalian diperbaiki: penghapusan dulu memakai `status in (SERVED, CANCELLED)`,
 yang **ikut menghapus order `SERVED` yang masih menunggu pembayaran** di board
 kasir. Sekarang definisinya sama persis dengan `GET` di atasnya
 (`is_archived = true` ATAU `status = CANCELLED`).
+
+Antarmukanya ada di kedua klien — aplikasi Flutter dan
+[halaman Riwayat web](app/(staff)/dashboard/history/page.tsx): pilih lingkup
+(Hari · Bulan · Tahun · Semua), geser periodenya dengan panah, dan **jumlah order
+yang terdampak selalu terlihat sebelum tombolnya bisa ditekan**. Tombol lama
+"Hapus Semua" dilebur jadi lingkup "Semua"; dulu ia menghapus tanpa pernah
+menyebut berapa banyak.
+
+### POS web: cari, filter kategori, muat ulang
+
+Sama seperti layar Order di aplikasi — dan alasannya sama: `useMenu()` hanya
+mengambil katalog saat mount, jadi menu yang baru ditambahkan lewat dashboard
+owner tidak pernah muncul di POS sampai halamannya dimuat ulang. Sekarang ada
+tombol **Muat Ulang** (`refetch()`), kolom cari, dan deretan filter kategori di
+[new-order](app/(staff)/dashboard/cashier/new-order/page.tsx).
+
+### Opsi "tanpa" pada variasi menu (web pelanggan)
+
+`MenuItemSheet` memakai radio button, dan radio tidak punya jalan mundur: sekali
+pelanggan menyentuh topping berbayar, tidak ada cara kembali ke harga polos
+selain menutup lembarnya. Tiap grup variasi sekarang punya opsi **"Tanpa …"**
+yang terpilih sejak awal.
+
+> Berbeda dari aplikasi Flutter, web **tidak pernah** memilih variasi otomatis,
+> jadi harga dasarnya memang sudah benar sejak dulu — yang hilang cuma jalan
+> pulangnya.
 
 ### Kelola karyawan (tambah & ubah)
 
@@ -1352,7 +1382,7 @@ jadi keduanya harus seragam.
 | Metric | Value |
 |---|---|
 | Files created | 4 (`lib/archive.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`) |
-| Files modified | 12 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`) |
+| Files modified | 13 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `MenuItemSheet.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`) |
 | TypeScript errors | 0 |
 | Breaking changes | Arsip otomatis tidak butuh migrasi (`is_archived` ada sejak v3.0). Kelola karyawan butuh `scripts/staff-optional-email.sql`. |
 

@@ -104,6 +104,36 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
                   <div key={group}>
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-text mb-2">{group}</h3>
                     <div className="space-y-2">
+                      {/* Radio tidak punya jalan mundur: sekali topping berbayar
+                          dipilih, pelanggan tidak bisa kembali ke harga polos
+                          selain menutup lembar ini. Opsi "tanpa" itulah jalannya —
+                          dan ia yang terpilih sejak awal. */}
+                      {(() => {
+                        const none = !selectedVariations[group];
+                        return (
+                          <label
+                            className={cn(
+                              'flex items-center justify-between p-3 rounded-lg border cursor-pointer transition',
+                              none ? 'border-ember-ink bg-ember-soft' : 'border-border hover:bg-surface-3',
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <input
+                                type="radio"
+                                name={group}
+                                checked={none}
+                                onChange={() => setSelectedVariations(prev => {
+                                  const next = { ...prev };
+                                  delete next[group];
+                                  return next;
+                                })}
+                                className="accent-[color:var(--color-ember-600)]"
+                              />
+                              <span className="text-[15px] text-text">Tanpa {group.toLowerCase()}</span>
+                            </div>
+                          </label>
+                        );
+                      })()}
                       {vars.map(v => {
                         const checked = selectedVariations[group]?.label === v.label;
                         return (

@@ -6,17 +6,29 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { formatCurrency, tableLabel } from '@/lib/utils';
+import { cn, formatCurrency, tableLabel } from '@/lib/utils';
 import { Order } from '@/types';
-import { History, Trash2 } from 'lucide-react';
+import { History, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+
+type PurgeScope = 'day' | 'month' | 'year' | 'all';
+
+const PURGE_SCOPES: { value: PurgeScope; label: string }[] = [
+  { value: 'day', label: 'Hari' },
+  { value: 'month', label: 'Bulan' },
+  { value: 'year', label: 'Tahun' },
+  { value: 'all', label: 'Semua' },
+];
 
 export default function HistoryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<{ open: boolean; type: 'single' | 'all'; orderId?: string }>({ open: false, type: 'single' });
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; orderId?: string }>({ open: false });
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [purgeScope, setPurgeScope] = useState<PurgeScope>('day');
+  const [purgeAnchor, setPurgeAnchor] = useState(() => new Date());
 
   const fetchHistory = useCallback(() => {
     fetch('/api/orders/history')
@@ -29,11 +41,78 @@ export default function HistoryPage() {
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
   const openDeleteModal = (orderId: string) => {
-    setConfirmModal({ open: true, type: 'single', orderId });
+    setConfirmModal({ open: true, orderId });
   };
 
-  const openClearAllModal = () => {
-    setConfirmModal({ open: true, type: 'all' });
+  // --- Hapus riwayat per periode ---------------------------------------
+  //
+  // Batas hari ditentukan di sini, dari jam browser kasir — bukan di server.
+  // `new Date(y, m, d)` itu tengah malam WIB, dan `toISOString()` mengubahnya
+  // jadi instan UTC yang benar. Kalau server yang memotong per hari, batasnya
+  // jatuh pukul 07.00 pagi WIB, tepat di tengah hari kerja.
+  const purgeRange = (): [Date, Date] | null => {
+    const y = purgeAnchor.getFullYear();
+    const m = purgeAnchor.getMonth();
+    const d = purgeAnchor.getDate();
+    switch (purgeScope) {
+      case 'day': return [new Date(y, m, d), new Date(y, m, d + 1)];
+      case 'month': return [new Date(y, m, 1), new Date(y, m + 1, 1)];
+      case 'year': return [new Date(y, 0, 1), new Date(y + 1, 0, 1)];
+      default: return null;
+    }
+  };
+
+  const shiftPurgeAnchor = (step: number) => {
+    const y = purgeAnchor.getFullYear();
+    const m = purgeAnchor.getMonth();
+    const d = purgeAnchor.getDate();
+    if (purgeScope === 'day') setPurgeAnchor(new Date(y, m, d + step));
+    else if (purgeScope === 'month') setPurgeAnchor(new Date(y, m + step, 1));
+    else if (purgeScope === 'year') setPurgeAnchor(new Date(y + step, m, 1));
+  };
+
+  const purgeLabel = (): string => {
+    if (purgeScope === 'all') return 'seluruh riwayat';
+    if (purgeScope === 'year') return String(purgeAnchor.getFullYear());
+    return new Intl.DateTimeFormat('id-ID',
+      purgeScope === 'day'
+        ? { day: 'numeric', month: 'long', year: 'numeric' }
+        : { month: 'long', year: 'numeric' },
+    ).format(purgeAnchor);
+  };
+
+  // Dihitung dari daftar yang sudah dimuat, bukan ditanyakan ke server:
+  // penghapusan ini permanen, dan angka "0 order" adalah cara paling cepat
+  // menyadari salah pilih periode.
+  const purgeAffected = (() => {
+    const range = purgeRange();
+    if (!range) return orders.length;
+    const [from, to] = range;
+    return orders.filter(o => {
+      const at = new Date(o.created_at);
+      return at >= from && at < to;
+    }).length;
+  })();
+
+  const handlePurge = async () => {
+    setClearing(true);
+    const range = purgeRange();
+    const qs = range
+      ? '?from=' + encodeURIComponent(range[0].toISOString()) + '&to=' + encodeURIComponent(range[1].toISOString())
+      : '';
+    try {
+      const res = await fetch('/api/orders/history' + qs, { method: 'DELETE' });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.success((data.deleted ?? purgeAffected) + ' order dihapus dari riwayat');
+        setPurgeOpen(false);
+        fetchHistory();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Gagal menghapus riwayat');
+      }
+    } catch { toast.error('Gagal menghubungi server'); }
+    setClearing(false);
   };
 
   const handleDeleteOne = async () => {
@@ -50,24 +129,12 @@ export default function HistoryPage() {
       }
     } catch { toast.error('Gagal menghubungi server'); }
     setDeletingId(null);
-    setConfirmModal({ open: false, type: 'single' });
+    setConfirmModal({ open: false });
   };
 
-  const handleClearAll = async () => {
-    setClearing(true);
-    try {
-      const res = await fetch('/api/orders/history', { method: 'DELETE' });
-      if (res.ok) {
-        toast.success('Semua riwayat berhasil dihapus');
-        setOrders([]);
-      } else {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err.error || 'Gagal menghapus riwayat');
-      }
-    } catch { toast.error('Gagal menghubungi server'); }
-    setClearing(false);
-    setConfirmModal({ open: false, type: 'all' });
-  };
+  // Catatan: `handleClearAll` sudah dilebur ke `handlePurge` dengan lingkup
+  // "Semua" — satu jalan, satu konfirmasi, dan jumlah order yang terdampak
+  // selalu terlihat sebelum ditekan.
 
   if (loading) return <DashboardLayout><Spinner size="lg" /></DashboardLayout>;
 
@@ -76,8 +143,8 @@ export default function HistoryPage() {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold flex items-center gap-2"><History className="w-5 h-5" /> Riwayat Order</h2>
         {orders.length > 0 && (
-          <Button variant="danger" size="sm" onClick={openClearAllModal} disabled={clearing} loading={clearing}>
-            <Trash2 className="w-4 h-4 mr-1" />Hapus Semua
+          <Button variant="danger" size="sm" onClick={() => setPurgeOpen(true)} disabled={clearing} loading={clearing}>
+            <Trash2 className="w-4 h-4 mr-1" />Hapus Riwayat
           </Button>
         )}
       </div>
@@ -123,23 +190,72 @@ export default function HistoryPage() {
         </div>
       )}
 
+      {purgeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPurgeOpen(false)} />
+          <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-md p-6" role="dialog" aria-modal="true" aria-labelledby="purge-dialog-title">
+            <h3 id="purge-dialog-title" className="text-lg font-bold mb-4">Hapus Riwayat</h3>
+
+            <div className="flex gap-2 mb-4">
+              {PURGE_SCOPES.map(s => (
+                <button
+                  key={s.value}
+                  onClick={() => setPurgeScope(s.value)}
+                  className={cn(
+                    'flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-colors',
+                    purgeScope === s.value
+                      ? 'border-ember-ink bg-ember-soft text-ember-ink'
+                      : 'border-border bg-surface text-text hover:bg-surface-3',
+                  )}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {purgeScope !== 'all' && (
+              <div className="flex items-center gap-2 mb-4">
+                <button onClick={() => shiftPurgeAnchor(-1)} aria-label="Periode sebelumnya"
+                  className="p-2 rounded-lg border border-border text-text hover:bg-surface-3">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="flex-1 text-center font-bold text-text">{purgeLabel()}</span>
+                <button onClick={() => shiftPurgeAnchor(1)} aria-label="Periode berikutnya"
+                  className="p-2 rounded-lg border border-border text-text hover:bg-surface-3">
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="p-3 rounded-lg border border-danger/35 bg-danger/5 mb-4">
+              <p className={cn('text-sm font-medium', purgeAffected === 0 ? 'text-text-secondary' : 'text-danger')}>
+                {purgeAffected === 0
+                  ? 'Tidak ada order pada ' + purgeLabel() + '.'
+                  : purgeAffected + ' order pada ' + purgeLabel() + ' akan dihapus permanen.'}
+              </p>
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" onClick={() => setPurgeOpen(false)} disabled={clearing}>Batal</Button>
+              <Button variant="danger" onClick={handlePurge} disabled={clearing || purgeAffected === 0} loading={clearing}>
+                Hapus Permanen
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmModal({ open: false, type: 'single' })} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmModal({ open: false })} />
           <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-sm p-6" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">
-            <h3 id="delete-dialog-title" className="text-lg font-bold mb-2">
-              {confirmModal.type === 'all' ? 'Hapus Semua Riwayat?' : 'Hapus Order?'}
-            </h3>
+            <h3 id="delete-dialog-title" className="text-lg font-bold mb-2">Hapus Order?</h3>
             <p className="text-sm text-text-secondary mb-4">
-              {confirmModal.type === 'all'
-                ? 'Semua order yang sudah selesai dan dibatalkan akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.'
-                : 'Order ini akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.'}
+              Order ini akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.
             </p>
             <div className="flex gap-2 justify-end">
-              <Button variant="ghost" onClick={() => setConfirmModal({ open: false, type: 'single' })}>Batal</Button>
-              <Button variant="danger" onClick={confirmModal.type === 'all' ? handleClearAll : handleDeleteOne}>
-                Hapus
-              </Button>
+              <Button variant="ghost" onClick={() => setConfirmModal({ open: false })}>Batal</Button>
+              <Button variant="danger" onClick={handleDeleteOne}>Hapus</Button>
             </div>
           </div>
         </div>

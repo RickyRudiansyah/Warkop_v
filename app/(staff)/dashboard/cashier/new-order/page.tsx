@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useMenu } from '@/hooks/useMenu';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency, TAKE_AWAY_LABEL } from '@/lib/utils';
+import { cn, formatCurrency, TAKE_AWAY_LABEL } from '@/lib/utils';
 import { PaymentMethod, Table } from '@/types';
-import { Plus, Minus, Trash2 } from 'lucide-react';
+import { Plus, Minus, Trash2, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CartItem {
@@ -21,7 +21,9 @@ interface CartItem {
 }
 
 export default function NewOrderPage() {
-  const { menuItems } = useMenu();
+  const { menuItems, categories, loading: menuLoading, refetch } = useMenu();
+  const [query, setQuery] = useState('');
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [tables, setTables] = useState<Table[]>([]);
@@ -56,6 +58,16 @@ export default function NewOrderPage() {
 
   const total = cart.reduce((sum, c) => sum + c.subtotal, 0);
 
+  // Menu yang baru ditambahkan lewat dashboard owner tidak muncul di sini
+  // sampai katalognya diambil ulang — `useMenu` hanya fetch saat mount.
+  const visibleMenu = menuItems.filter(item => {
+    if (categoryId && item.category_id !== categoryId) return false;
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return item.name.toLowerCase().includes(q)
+      || (item.description ?? '').toLowerCase().includes(q);
+  });
+
   const handleSubmit = async () => {
     if (cart.length === 0) return;
     setSubmitting(true);
@@ -88,15 +100,66 @@ export default function NewOrderPage() {
       <h2 className="text-xl font-bold mb-4">Order Manual</h2>
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="space-y-3">
-          <h3 className="font-medium">Pilih Menu</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium">Pilih Menu</h3>
+            <button
+              onClick={refetch}
+              disabled={menuLoading}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-border text-text-secondary hover:bg-surface-3 disabled:opacity-50 transition-colors"
+              aria-label="Muat ulang menu"
+            >
+              <RefreshCw className={cn('w-4 h-4', menuLoading && 'animate-spin')} />
+              Muat Ulang
+            </button>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Cari menu"
+              aria-label="Cari menu"
+              className="w-full pl-9 pr-3 py-2 border border-border rounded-lg bg-surface text-text placeholder:text-text-secondary outline-none focus:border-ember-ink"
+            />
+          </div>
+
+          {categories.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {[{ id: null, name: 'Semua' }, ...categories].map(cat => {
+                const active = categoryId === cat.id;
+                return (
+                  <button
+                    key={cat.id ?? 'all'}
+                    onClick={() => setCategoryId(active ? null : cat.id)}
+                    className={cn(
+                      'shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
+                      active
+                        ? 'border-ember-ink bg-ember-soft text-ember-ink'
+                        : 'border-border bg-surface text-text hover:bg-surface-3',
+                    )}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-            {menuItems.map(item => (
+            {visibleMenu.length === 0 ? (
+              <p className="text-text-secondary text-sm text-center py-8">
+                {menuItems.length === 0
+                  ? 'Menu kosong — tambahkan di dashboard owner, lalu tekan Muat Ulang.'
+                  : 'Menu tidak ditemukan. Ubah kata kunci atau pilih kategori "Semua".'}
+              </p>
+            ) : visibleMenu.map(item => (
               <div key={item.id} className="flex items-center justify-between p-3 card">
                 <div>
                   <p className="font-medium">{item.name}</p>
                   <p className="text-sm text-text-secondary">{formatCurrency(item.price)}</p>
                 </div>
-                <Button size="sm" onClick={() => addToCart(item.id)}><Plus className="w-4 h-4" /></Button>
+                <Button size="sm" onClick={() => addToCart(item.id)} aria-label={'Tambah ' + item.name}><Plus className="w-4 h-4" /></Button>
               </div>
             ))}
           </div>
