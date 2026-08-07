@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMenu } from '@/hooks/useMenu';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, TAKE_AWAY_LABEL } from '@/lib/utils';
 import { PaymentMethod, Table } from '@/types';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -127,9 +127,11 @@ export default function NewOrderPage() {
                   <span className="text-text">{formatCurrency(total)}</span>
                 </div>
                 <div className="mb-3">
-                  <label className="block text-sm font-medium mb-1">Nomor Meja (opsional)</label>
-                  <select value={tableId} onChange={e => setTableId(e.target.value)} className="w-full px-3 py-2 border rounded-lg bg-surface" aria-label="Pilih nomor meja">
-                    <option value="">— Tanpa meja —</option>
+                  <label className="block text-sm font-medium mb-1">Meja</label>
+                  <select value={tableId} onChange={e => setTableId(e.target.value)} className="w-full px-3 py-2 border rounded-lg bg-surface" aria-label="Pilih meja atau take away">
+                    {/* Pesanan tanpa meja hampir selalu dibungkus. "Tanpa meja" saja
+                        membuat kasir ragu apakah itu pilihan yang benar. */}
+                    <option value="">{TAKE_AWAY_LABEL}</option>
                     {tables.map(t => (
                       <option key={t.id} value={t.id}>{t.label || 'Meja ' + t.table_number}</option>
                     ))}

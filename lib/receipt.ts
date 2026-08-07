@@ -1,4 +1,5 @@
 import { Order, PaymentMethod, PaymentStatus } from '@/types';
+import { tableLabel } from '@/lib/utils';
 
 // Kertas thermal 58mm, Font A = 32 karakter per baris.
 // Untuk printer 80mm set RECEIPT_COLUMNS=48 di env.
@@ -69,9 +70,9 @@ export function buildReceipt(order: Order, options: BuildReceiptOptions = {}): R
     notes: item.notes,
   }));
 
-  const tableNumber = order.table?.table_number;
-  const tableLabel = order.table?.label
-    || (tableNumber != null ? 'Meja ' + tableNumber : 'Tanpa Meja');
+  // Struk pelanggan ikut memakai kata yang sama dengan layar kasir — pesanan
+  // bungkus tercetak "Take Away", bukan "Tanpa Meja".
+  const label = tableLabel(order.table);
 
   return {
     version: 1,
@@ -80,7 +81,7 @@ export function buildReceipt(order: Order, options: BuildReceiptOptions = {}): R
     store_phone: process.env.RECEIPT_STORE_PHONE || null,
     order_id: order.id,
     order_no: orderNo(order.id),
-    table_label: tableLabel,
+    table_label: label,
     payment_method: order.payment_method,
     payment_status: order.payment_status,
     paid_via: order.payment_method === 'QRIS' ? 'QRIS (Midtrans)' : 'Tunai di Kasir',
@@ -134,7 +135,11 @@ export function renderReceiptText(receipt: Receipt, width: number = RECEIPT_COLU
   lines.push(rule);
 
   lines.push(columns('No', receipt.order_no, width));
-  lines.push(columns('Meja', receipt.table_label, width));
+  // "Meja        Take Away" terbaca ganjil di kertas 32 kolom. Untuk pesanan
+  // bungkus, label kirinya yang berganti — isinya tetap satu kolom kanan.
+  lines.push(receipt.table_label === 'Take Away'
+    ? columns('Jenis', 'TAKE AWAY', width)
+    : columns('Meja', receipt.table_label, width));
   lines.push(columns('Waktu', jakartaTime(receipt.ordered_at), width));
   lines.push(columns('Bayar', receipt.paid_via, width));
   if (receipt.verified_by) lines.push(columns('Kasir', receipt.verified_by, width));

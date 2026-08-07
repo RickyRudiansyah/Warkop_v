@@ -6,7 +6,7 @@ import { VariationManager } from '@/components/dashboard/VariationManager';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, tableLabel } from '@/lib/utils';
 import { MenuItem as MenuItemType, Order } from '@/types';
 import { TrendingUp, DollarSign, ShoppingCart, AlertTriangle, List, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -156,7 +156,7 @@ export default function OwnerPage() {
               {filteredOrders.slice(0, 10).map(order => (
                 <div key={order.id} className="flex items-center justify-between py-2 border-b last:border-0">
                   <div>
-                    <span className="font-medium">Meja {order.table?.table_number || '-'}</span>
+                    <span className="font-medium">{tableLabel(order.table)}</span>
                     <p className="text-xs text-text-secondary">{new Date(order.created_at).toLocaleString('id-ID')}</p>
                   </div>
                   <div className="text-right">

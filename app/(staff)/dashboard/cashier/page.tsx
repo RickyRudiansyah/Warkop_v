@@ -13,6 +13,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Order } from '@/types';
+import { tableLabel } from '@/lib/utils';
 
 const itemAnim = {
   hidden: { opacity: 0, y: 12 },
@@ -41,7 +42,7 @@ export default function CashierPage() {
       const num = order.table?.table_number ?? null;
       const key = num === null ? 'none' : String(num);
       if (!map.has(key)) {
-        map.set(key, { tableNumber: num, label: order.table?.label || (num === null ? 'Tanpa Meja' : 'Meja ' + num), orders: [] });
+        map.set(key, { tableNumber: num, label: tableLabel(order.table), orders: [] });
       }
       map.get(key)!.orders.push(order);
     }

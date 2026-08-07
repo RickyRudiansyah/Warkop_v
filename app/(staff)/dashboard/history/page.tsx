@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, tableLabel } from '@/lib/utils';
 import { Order } from '@/types';
 import { History, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -100,7 +100,7 @@ export default function HistoryPage() {
             <tbody>
               {orders.map(order => (
                 <tr key={order.id} className="border-b last:border-0 hover:bg-surface-2">
-                  <td className="px-4 py-3 font-medium">Meja {order.table?.table_number || '-'}</td>
+                  <td className="px-4 py-3 font-medium">{tableLabel(order.table)}</td>
                   <td className="px-4 py-3 text-sm hidden md:table-cell">{order.items?.map(i => i.menu_item_name).join(', ') || '-'}</td>
                   <td className="px-4 py-3 text-sm">{order.payment_method}</td>
                   <td className="px-4 py-3 font-bold">{formatCurrency(order.total_amount)}</td>
@@ -111,7 +111,7 @@ export default function HistoryPage() {
                       onClick={() => openDeleteModal(order.id)}
                       disabled={deletingId === order.id}
                       className="p-1.5 rounded-lg text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
-                      aria-label={'Hapus order ' + (order.table?.table_number || '')}
+                      aria-label={'Hapus order ' + tableLabel(order.table)}
                     >
                       {deletingId === order.id ? <Spinner size="sm" /> : <Trash2 className="w-4 h-4" />}
                     </button>

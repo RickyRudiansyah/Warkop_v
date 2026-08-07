@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Order, OrderStatus } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency, getElapsedMinutes } from '@/lib/utils';
+import { formatCurrency, getElapsedMinutes, tableLabel } from '@/lib/utils';
 import { useCountdown } from '@/hooks/useCountdown';
 import { Clock, AlertCircle, Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -49,7 +49,7 @@ export function OrderCard({ order, onMarkPaid, onReprint, onFinish, onStartProce
     >
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 className="font-semibold">Meja {order.table?.table_number || '-'}</h3>
+          <h3 className="font-semibold">{tableLabel(order.table)}</h3>
           <p className="text-sm text-text-secondary">{order.payment_method}</p>
         </div>
         <div className="flex flex-col items-end gap-1">

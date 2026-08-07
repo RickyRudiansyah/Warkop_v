@@ -714,7 +714,7 @@ curl http://localhost:3000/api/health
 | v2.9 | Owner: hapus menu, reset data, hapus riwayat |
 | v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS Mayar, dark mode, geolocation gate, Docker |
 | v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
-| v3.2 | Arsip otomatis (tombol "Selesai" dihapus), hapus riwayat per hari/bulan/tahun |
+| v3.2 | Arsip otomatis (tombol "Selesai" dihapus), hapus riwayat per hari/bulan/tahun, kelola karyawan, label Take Away |
 
 ---
 
@@ -1325,12 +1325,34 @@ Karyawan" karena itu tidak pernah berhasil.
 > `''`. Tanpa migrasi ini, menambah karyawan tanpa email dibalas 400 dengan
 > pesan yang menyebutkan file ini.
 
+### "Tanpa Meja" → "Take Away"
+
+Order tanpa `table_id` adalah pesanan bungkus, tapi tiap layar menuliskannya
+sendiri-sendiri — dan dua di antaranya menuliskannya **"Meja -"**, yang terbaca
+seperti data rusak, bukan seperti pilihan yang memang diambil kasir.
+
+Sekarang satu sumber: `tableLabel()` di [lib/utils.ts](lib/utils.ts).
+
+| Tempat | Sebelum | Sesudah |
+|---|---|---|
+| POS — pemilih meja | `— Tanpa meja —` | `Take Away · Tanpa Meja` |
+| Board kasir (grup + `OrderCard`) | `Tanpa Meja` / `Meja -` | `Take Away` |
+| Riwayat & dashboard owner | `Meja -` | `Take Away` |
+| Struk termal | `Meja        Tanpa Meja` | `Jenis       TAKE AWAY` |
+
+Kata yang dipakai **sama persis** dengan aplikasi kasir Flutter
+(`OrderModel.tableLabel`) — order yang sama muncul di dua layar itu sekaligus,
+jadi keduanya harus seragam.
+
+`tableLabel()` juga memakai `table_number != null`, bukan `|| '-'`: meja bernomor
+`0` dulu ikut jatuh ke tanda hubung.
+
 ### Tech Specs
 
 | Metric | Value |
 |---|---|
 | Files created | 4 (`lib/archive.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`) |
-| Files modified | 5 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `lib/midtrans.ts`, `staff/route.ts`) |
+| Files modified | 12 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`) |
 | TypeScript errors | 0 |
 | Breaking changes | Arsip otomatis tidak butuh migrasi (`is_archived` ada sejak v3.0). Kelola karyawan butuh `scripts/staff-optional-email.sql`. |
 
