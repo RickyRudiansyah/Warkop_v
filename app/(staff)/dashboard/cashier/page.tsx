@@ -58,10 +58,23 @@ export default function CashierPage() {
     });
   };
 
-  // Catatan: `handleFinishTable` sudah dihapus. Order yang diantar + lunas
-  // diarsipkan sendiri oleh server begitu pembayarannya tercatat
-  // (lib/archive.ts), jadi tidak ada lagi yang perlu ditekan kasir di sini.
-  // `PATCH /api/orders/[id]/archive` tetap ada untuk arsip manual.
+  // Hanya order **tunai** yang sampai ke tombol ini. Yang QRIS sudah diarsipkan
+  // server begitu pembayarannya settle (lib/archive.ts) dan tidak pernah muncul
+  // lagi di board. Di tunai masih ada urusan fisik yang tidak terlihat server —
+  // uang dihitung, kembalian diberikan — jadi kasir yang menutupnya.
+  const handleFinishTable = async (orderIds: string[], tableLabel: string) => {
+    setProcessingId(orderIds[0]);
+    try {
+      await Promise.all(orderIds.map(id =>
+        fetch('/api/orders/' + id + '/archive', { method: 'PATCH' })
+      ));
+      toast.success(tableLabel + ' selesai & dipindah ke history');
+      await Promise.all(orderIds.map(id =>
+        logActivity('finish_order', 'order', id, { tableLabel })
+      ));
+    } catch { toast.error('Gagal menyelesaikan pesanan'); }
+    setProcessingId(null);
+  };
 
   const handleMarkPaid = async (id: string) => {
     setProcessingId(id);
@@ -136,6 +149,8 @@ export default function CashierPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" aria-live="polite">
             {groups.map(group => {
               const unpaidCount = group.orders.filter(o => o.payment_status === 'UNPAID').length;
+              const allDone = group.orders.length > 0 && group.orders.every(o => o.status === 'SERVED' && o.payment_status === 'PAID');
+              const isFinishing = group.orders.some(o => processingId === o.id);
               return (
                 <div key={group.label} className="card p-4">
                   <div className="flex items-center justify-between mb-3 pb-3 border-b">
@@ -158,6 +173,19 @@ export default function CashierPage() {
                       </motion.div>
                     ))}
                   </div>
+                  {allDone && (
+                    <div className="mt-3 pt-3 border-t">
+                      <Button
+                        variant="primary"
+                        className="w-full"
+                        loading={isFinishing}
+                        disabled={isFinishing}
+                        onClick={() => handleFinishTable(group.orders.map(o => o.id), group.label)}
+                      >
+                        Selesai — Pindah ke History
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}

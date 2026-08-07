@@ -6,6 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatCurrency } from '@/lib/utils';
+import { QRIS_ENABLED } from '@/lib/features';
 import { PaymentMethod, Table } from '@/types';
 import { Trash2, ArrowLeft, AlertTriangle, Check, QrCode, Wallet, X, Loader2, Armchair } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -159,6 +160,14 @@ export default function CheckoutPage() {
   const handleCheckout = () => {
     if (!selectedTableId) { toast.error('Silakan pilih nomor meja'); return; }
     if (!agreed) { toast.error('Silakan setujui ketentuan terlebih dahulu'); return; }
+    // Radio QRIS-nya sudah dimatikan, tapi tab yang dibuka sebelum sakelar ini
+    // berubah masih memegang UI lama — jangan sampai pelanggan terlempar ke
+    // layar pembayaran yang endpointnya menolak.
+    if (paymentMethod === 'QRIS' && !QRIS_ENABLED) {
+      toast.error('Pembayaran QRIS belum tersedia. Pesanan dibayar tunai di kasir.');
+      setPaymentMethod('CASH');
+      return;
+    }
     if (paymentMethod === 'QRIS') startQris();
     else submitCashOrder();
   };
@@ -259,29 +268,53 @@ export default function CheckoutPage() {
         <div className="card p-4">
           <h2 className="section-title text-base mb-3">Metode Pembayaran</h2>
           <div className="space-y-2">
-            {(['CASH', 'QRIS'] as PaymentMethod[]).map(method => (
-              <label
-                key={method}
-                className={'flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ' +
-                  (paymentMethod === method ? 'border-ember-ink bg-ember-soft' : 'border-border hover:bg-surface-3')}
-              >
-                <input
-                  type="radio" name="payment" checked={paymentMethod === method}
-                  onChange={() => setPaymentMethod(method)}
-                  className="accent-[color:var(--color-ember-600)]"
-                />
-                {method === 'CASH'
-                  ? <Wallet className="w-5 h-5 text-text-secondary" />
-                  : <QrCode className="w-5 h-5 text-text-secondary" />}
-                <span className="flex-1">{method === 'CASH' ? 'Cash (Bayar di Kasir)' : 'QRIS (Bayar Sekarang)'}</span>
-              </label>
-            ))}
+            {(['CASH', 'QRIS'] as PaymentMethod[]).map(method => {
+              // QRIS ditampilkan tapi dimatikan, bukan disembunyikan: pelanggan
+              // yang mencarinya jadi tahu ini belum tersedia — bukan mengira
+              // warungnya tidak menerima QRIS sama sekali, lalu bertanya ke kasir.
+              const disabled = method === 'QRIS' && !QRIS_ENABLED;
+              return (
+                <label
+                  key={method}
+                  className={'flex items-center gap-3 p-3 border rounded-lg transition-colors ' +
+                    (disabled
+                      ? 'border-border bg-surface-3/60 cursor-not-allowed opacity-70'
+                      : paymentMethod === method
+                        ? 'border-ember-ink bg-ember-soft cursor-pointer'
+                        : 'border-border hover:bg-surface-3 cursor-pointer')}
+                >
+                  <input
+                    type="radio" name="payment" checked={paymentMethod === method}
+                    disabled={disabled}
+                    onChange={() => setPaymentMethod(method)}
+                    className="accent-[color:var(--color-ember-600)] disabled:cursor-not-allowed"
+                  />
+                  {method === 'CASH'
+                    ? <Wallet className="w-5 h-5 text-text-secondary" />
+                    : <QrCode className="w-5 h-5 text-text-secondary" />}
+                  <span className={'flex-1 ' + (disabled ? 'text-text-secondary' : '')}>
+                    {method === 'CASH' ? 'Cash (Bayar di Kasir)' : 'QRIS (Bayar Sekarang)'}
+                  </span>
+                  {disabled && (
+                    <span className="text-[11px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-surface border border-border text-text-secondary">
+                      Belum tersedia
+                    </span>
+                  )}
+                </label>
+              );
+            })}
           </div>
           <p className="text-xs text-text-secondary mt-2">
             {paymentMethod === 'CASH'
               ? 'Pesanan langsung masuk dapur. Bayar di kasir — pembayaran baru dianggap lunas setelah kasir memverifikasi, lalu struk dicetak.'
               : 'Scan QRIS & bayar. Pesanan otomatis diproses dan struk langsung dicetak setelah pembayaran terkonfirmasi.'}
           </p>
+          {!QRIS_ENABLED && (
+            <p className="text-xs text-text-secondary mt-1">
+              Pembayaran QRIS sedang disiapkan dan belum bisa dipakai. Untuk
+              sekarang, pesanan dibayar tunai di kasir.
+            </p>
+          )}
         </div>
 
         <div className="card p-4">

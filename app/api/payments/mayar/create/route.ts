@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { isMayarConfigured, mayarCreatePayment } from '@/lib/mayar';
+import { QRIS_ENABLED } from '@/lib/features';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,12 @@ interface CreateBody {
 }
 
 export async function POST(request: NextRequest) {
+  // Menyembunyikan tombolnya di UI saja tidak cukup: endpoint ini publik, dan
+  // tab yang sudah lama terbuka masih memegang UI versi lama. Penjagaannya di
+  // sini, sebelum satu pun payment_intent dibuat.
+  if (!QRIS_ENABLED) {
+    return NextResponse.json({ error: 'Pembayaran QRIS belum tersedia. Silakan pilih Cash (bayar di kasir).' }, { status: 503 });
+  }
   if (!isMayarConfigured()) {
     return NextResponse.json({ error: 'Pembayaran QRIS belum dikonfigurasi' }, { status: 503 });
   }

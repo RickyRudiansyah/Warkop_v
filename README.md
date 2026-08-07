@@ -77,7 +77,7 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Keranjang | CartFAB floating + CartDrawer bottom sheet, persist di sessionStorage |
 | Checkout | Pilih meja (dropdown) + metode bayar + persetujuan (tidak bisa dibatalkan) |
 | Bayar Cash | Order langsung dibuat `UNPAID`, bayar di kasir |
-| Bayar QRIS | Halaman QRIS Mayar → scan → **otomatis terdeteksi** → order masuk dapur |
+| Bayar QRIS | ⚠️ **Dimatikan sejak v3.2** (`NEXT_PUBLIC_QRIS_ENABLED=false`) — pilihannya tampil "Belum tersedia". Saat aktif: halaman QRIS Mayar → scan → **otomatis terdeteksi** → order masuk dapur |
 | Lacak pesanan | Lacak seluruh order 1 meja secara realtime + ETA countdown |
 | Dark mode | Toggle tema terang/gelap |
 
@@ -89,7 +89,8 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Realtime updates | Update order via Supabase Realtime |
 | Verifikasi bayar cash | Tombol **"Verifikasi & Cetak Struk"** — ubah `UNPAID → PAID` sekaligus antrikan struk ke printer |
 | Cancel order | Batalkan order yang masih `QUEUED` (belum diproses) |
-| Arsip otomatis | Order yang `SERVED` + `PAID` pindah sendiri ke history — tidak ada tombol "Selesai" (v3.2) |
+| Arsip otomatis (QRIS) | Order QRIS yang lunas pindah sendiri ke history (v3.2) |
+| Selesai (arsip) — tunai | Order tunai dipindahkan kasir lewat tombol "Selesai", saat semua `SERVED` + `PAID` |
 | Manual order (POS) | Input order manual + cari menu, filter kategori, muat ulang katalog |
 | Cetak ulang struk | Tombol printer di kartu order (khusus order yang sudah lunas) |
 | QR Generator | Generate + download satu QR umum kafe |
@@ -444,7 +445,8 @@ Aplikasi Android tarik antrian printer → cetak ke printer Bluetooth
       ↓
 Dapur: QUEUED → (set ETA) PROCESSING → SERVED
       ↓
-SERVED + PAID → order pindah sendiri ke History (tanpa tombol, v3.2)
+QRIS  lunas  → order pindah sendiri ke History (tanpa tombol, v3.2)
+Tunai lunas  → kasir tekan "Selesai" → pindah ke History
 ```
 
 ---
@@ -456,14 +458,15 @@ QUEUED ──(set ETA + mulai proses)──→ PROCESSING ──(sudah diantar)�
    │                                                                  │
    └────────────(kasir cancel, hanya saat QUEUED)───→ CANCELLED       │
                                                                        ↓
-                             SERVED + PAID → is_archived=true otomatis → HISTORY
+              QRIS  → is_archived=true otomatis          → HISTORY
+                             Tunai → kasir tekan "Selesai" → is_archived=true → HISTORY
 ```
 
 | Status | Deskripsi | Aksi |
 |---|---|---|
 | `QUEUED` | Masuk antrian dapur | Mulai Proses (ETA), Cancel, Verifikasi Bayar (jika UNPAID) |
 | `PROCESSING` | Sedang dimasak | Sudah Diantar, Update ETA |
-| `SERVED` | Sudah diantar | Verifikasi Bayar (jika UNPAID). Begitu lunas → arsip otomatis |
+| `SERVED` | Sudah diantar | Verifikasi Bayar (jika UNPAID). Lunas: QRIS → arsip otomatis · Tunai → tombol "Selesai" |
 | `CANCELLED` | Dibatalkan | — (masuk history) |
 
 Pembayaran: `UNPAID` (Cash belum dibayar) · `PAID` (QRIS lunas otomatis / kasir verifikasi). Struk dicetak tepat pada transisi menjadi `PAID`.
@@ -471,6 +474,12 @@ Pembayaran: `UNPAID` (Cash belum dibayar) · `PAID` (QRIS lunas otomatis / kasir
 ---
 
 ## Alur Pembayaran QRIS (Mayar)
+
+> ⚠️ **QRIS pelanggan sedang DIMATIKAN** (v3.2). Gateway-nya belum bisa dipakai,
+> jadi `NEXT_PUBLIC_QRIS_ENABLED` default `false`: pilihan QRIS di checkout
+> tampil mati berlabel "Belum tersedia", dan `POST /api/payments/mayar/create`
+> membalas 503. Seluruh alur di bawah baru berjalan setelah flag itu `true`
+> **dan** `MAYAR_API_KEY` terisi. Lihat [Sakelar QRIS](#sakelar-qris-pelanggan).
 
 Order **tidak** dibuat sampai pembayaran benar-benar terkonfirmasi, jadi tidak ada "order hantu" belum bayar di dapur.
 
@@ -512,6 +521,7 @@ Membatasi pemesanan hanya untuk customer yang berada di sekitar kafe (via GPS br
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | API key public (anon) | Ya |
 | `SUPABASE_SERVICE_ROLE_KEY` | API key service role (rahasia!) | Ya |
 | `NEXT_PUBLIC_APP_URL` | Base URL app (untuk redirect) | Ya |
+| `NEXT_PUBLIC_QRIS_ENABLED` | `true` = QRIS pelanggan aktif. **Default mati** — checkout menampilkan "Belum tersedia" dan endpoint create menolak 503 | Tidak |
 | `MAYAR_API_KEY` | API key Mayar — QRIS customer | Untuk QRIS |
 | `MAYAR_IS_PRODUCTION` | `true`=api.mayar.id, `false`=api.mayar.club | Untuk QRIS |
 | `MIDTRANS_SERVER_KEY` | Server key Midtrans (`SB-Mid-server-…` untuk sandbox) | Untuk testing sandbox |
@@ -714,7 +724,7 @@ curl http://localhost:3000/api/health
 | v2.9 | Owner: hapus menu, reset data, hapus riwayat |
 | v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS Mayar, dark mode, geolocation gate, Docker |
 | v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
-| v3.2 | Arsip otomatis (tombol "Selesai" dihapus), hapus riwayat per hari/bulan/tahun, kelola karyawan, label Take Away |
+| v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per hari/bulan/tahun, kelola karyawan, label Take Away, QRIS pelanggan dimatikan |
 
 ---
 
@@ -1238,38 +1248,44 @@ Midtrans diarahkan ke `<domain>/api/payments/midtrans/webhook`.
 
 ## Changelog v3.2
 
-### Arsip otomatis — tombol "Selesai" dihapus
+### Arsip otomatis — QRIS saja
 
-Order yang `SERVED` **dan** `PAID` tidak menyisakan pekerjaan apa pun untuk
-kasir, jadi ia pindah sendiri ke riwayat. Tombol "Selesai · Pindahkan ke
-History" dihapus dari aplikasi kasir: satu-satunya jawaban yang pernah
-diberikan kasir adalah "ya", dan sampai ditekan ordernya menumpuk di board.
-
-Logikanya satu tempat — [`lib/archive.ts`](lib/archive.ts) — dan dipanggil di
-**setiap** titik sebuah order bisa menjadi lunas:
-
-| Titik | Kapan |
+| Metode bayar | Pindah ke riwayat |
 |---|---|
-| `PATCH /api/orders/[id]/mark-paid` | kasir verifikasi tunai |
-| `POST /api/orders` | order POS yang uangnya sudah diterima |
-| `settleIntent()` di `lib/midtrans.ts` | QRIS settle (Mayar/Midtrans) |
+| **QRIS** | **Otomatis**, begitu pembayarannya settle |
+| **Tunai** | **Manual** — kasir menekan "Selesai" |
 
-Melewatkan salah satunya membuat order menggantung di board tanpa cara
-memindahkannya — tombolnya sudah tidak ada. Fungsinya idempoten dan tidak
-pernah `throw`: gagal mengarsipkan tidak boleh menggagalkan transaksi yang
-uangnya sudah diterima.
+Bedanya bukan soal teknis, tapi soal apa yang masih terjadi di dunia nyata.
+Uang QRIS sudah masuk sebelum ordernya lahir; tidak ada langkah tersisa, dan
+menahannya di board hanya menunggu klik yang jawabannya selalu "ya". Di tunai
+masih ada yang tidak terlihat server: uang dihitung, kembalian diberikan, meja
+dibereskan. Hanya kasir yang tahu kapan itu benar-benar selesai. Keputusan
+pemilik.
 
-Tombolnya dihapus di **kedua** klien: bilah "Selesai · Pindahkan ke History" di
-aplikasi Flutter, dan tombol "Selesai — Pindah ke History" per meja di
-[board kasir web](app/(staff)/dashboard/cashier/page.tsx).
+Penyaringan metode bayarnya ada di **satu tempat**,
+[`lib/archive.ts`](lib/archive.ts) — bukan di pemanggilnya. Jadi ketiga jalur di
+bawah boleh memanggilnya tanpa perlu tahu aturannya, dan aturan itu tidak bisa
+bercabang diam-diam:
 
-`PATCH /api/orders/[id]/archive` **tetap ada** sebagai arsip manual (dan
-dipakai aplikasi Flutter untuk menyapu baris lama dari sebelum v3.2).
+| Titik | Kapan | Hasil |
+|---|---|---|
+| `settleIntent()` di `lib/midtrans.ts` | QRIS settle (Mayar/Midtrans) | **diarsipkan** |
+| `POST /api/orders` | order POS yang uangnya sudah diterima | diarsipkan **kalau** QRIS |
+| `PATCH /api/orders/[id]/mark-paid` | kasir verifikasi tunai | tetap di board |
 
-> **Efeknya pada board kasir:** yang tersisa hanya order yang belum lunas.
-> Order QRIS pelanggan lahir `SERVED` + `PAID`, jadi ia langsung masuk riwayat
-> dan strukyalah yang jadi tiket dapur — konsisten dengan alur dapur yang sudah
-> dipensiunkan sejak aplikasi Flutter.
+Fungsinya idempoten dan tidak pernah `throw`: gagal mengarsipkan tidak boleh
+menggagalkan transaksi yang uangnya sudah diterima.
+
+Tombol **"Selesai"** karena itu tetap ada di kedua klien — bilah
+`_ArchiveBar` di aplikasi Flutter dan tombol per meja di
+[board kasir web](app/(staff)/dashboard/cashier/page.tsx) — dan syaratnya tidak
+berubah: muncul hanya kalau **semua** order di meja itu sudah `SERVED` + `PAID`.
+Yang sampai ke sana praktis selalu tunai, karena yang QRIS tidak pernah menetap.
+
+> **Sapuan pengaman di aplikasi.** `CashierBoardNotifier` ikut mengarsipkan
+> order QRIS lunas yang masih tampil di board (arsip di server sempat gagal,
+> atau baris dari sebelum v3.2) — **khusus QRIS**. Order tunai sengaja
+> dibiarkan; menyapunya sama saja menekan "Selesai" tanpa sepengetahuan kasir.
 
 ### Hapus riwayat per hari / bulan / tahun
 
@@ -1377,12 +1393,45 @@ jadi keduanya harus seragam.
 `tableLabel()` juga memakai `table_number != null`, bukan `|| '-'`: meja bernomor
 `0` dulu ikut jatuh ke tanda hubung.
 
+### Sakelar QRIS pelanggan
+
+Gateway QRIS belum bisa dipakai, jadi pilihannya dimatikan — lewat env, bukan
+dengan menghapus kodenya:
+
+```env
+NEXT_PUBLIC_QRIS_ENABLED=false   # default; true untuk menyalakan lagi
+```
+
+Dimatikan di **dua lapis**, dan keduanya perlu:
+
+| Lapis | Perilaku |
+|---|---|
+| [Checkout pelanggan](app/(customer)/checkout/page.tsx) | Pilihan QRIS **tetap tampil** tapi mati, berlabel "Belum tersedia" |
+| [`POST /api/payments/mayar/create`](app/api/payments/mayar/create/route.ts) | Menolak dengan **503** sebelum satu pun `payment_intent` dibuat |
+
+Lapis kedua bukan formalitas. Endpoint itu publik, dan tab pelanggan yang sudah
+lama terbuka masih memegang UI versi lama — tanpa penjagaan di server, ia masih
+bisa membuat intent yang tidak akan pernah bisa dibayar.
+
+Pilihannya **ditampilkan mati, bukan disembunyikan**: pelanggan yang mencari
+QRIS jadi tahu ini belum tersedia, bukan mengira warungnya tidak menerima QRIS
+lalu bertanya ke kasir.
+
+> **Tidak menyentuh QRIS di POS kasir.** Di sana "QRIS" berarti uangnya sudah
+> diterima lewat cara lain (mis. stiker QRIS statis di meja kasir) — tidak ada
+> gateway yang dipanggil, jadi pilihan itu tetap hidup.
+>
+> Konsekuensinya pada arsip otomatis: order POS bertanda QRIS **tetap** langsung
+> masuk riwayat, karena uangnya memang sudah diterima.
+
+`NEXT_PUBLIC_*` di-bake saat build — mengubah flag ini menuntut **deploy ulang**.
+
 ### Tech Specs
 
 | Metric | Value |
 |---|---|
-| Files created | 4 (`lib/archive.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`) |
-| Files modified | 13 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `MenuItemSheet.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`) |
+| Files created | 5 (`lib/archive.ts`, `lib/features.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`) |
+| Files modified | 15 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `mayar/create/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `MenuItemSheet.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`, `checkout/page.tsx`) |
 | TypeScript errors | 0 |
 | Breaking changes | Arsip otomatis tidak butuh migrasi (`is_archived` ada sejak v3.0). Kelola karyawan butuh `scripts/staff-optional-email.sql`. |
 
