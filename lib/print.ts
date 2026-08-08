@@ -8,6 +8,32 @@ import { Order, PrintJobTrigger } from '@/types';
 // (aplikasi Android ditutup / printer mati) dan dikembalikan ke PENDING.
 export const STALE_CLAIM_MS = 2 * 60 * 1000;
 
+export const ALL_PRINT_STATIONS = ['CASHIER', 'KITCHEN'] as const;
+export type PrintStation = (typeof ALL_PRINT_STATIONS)[number];
+
+/**
+ * Stasiun yang benar-benar punya printer.
+ *
+ * **Default hanya `CASHIER`.** Menambahkan `KITCHEN` sebelum printernya ada
+ * membuat setiap order meninggalkan satu job yang tidak akan pernah diambil
+ * siapa pun — antrian menumpuk, lencana "struk menunggu" menyala selamanya,
+ * dan kasir belajar mengabaikannya. Isi `PRINT_STATIONS=CASHIER,KITCHEN` saat
+ * printer dapur sudah terpasang.
+ */
+export const PRINT_STATIONS: PrintStation[] = (() => {
+  const raw = process.env.PRINT_STATIONS;
+  if (!raw) return ['CASHIER'];
+  const picked = raw
+    .split(',')
+    .map(s => s.trim().toUpperCase())
+    .filter((s): s is PrintStation => (ALL_PRINT_STATIONS as readonly string[]).includes(s));
+  return picked.length > 0 ? picked : ['CASHIER'];
+})();
+
+export function isPrintStation(value: string | null): value is PrintStation {
+  return !!value && (ALL_PRINT_STATIONS as readonly string[]).includes(value);
+}
+
 export interface EnqueueOptions {
   trigger: PrintJobTrigger;
   verifiedBy?: string | null;
@@ -46,29 +72,52 @@ export async function enqueueReceipt(orderId: string, options: EnqueueOptions): 
       verifiedBy: options.verifiedBy ?? null,
     });
 
-    const { data: job, error: insertError } = await supabase
-      .from('print_jobs')
-      .insert({
-        order_id: orderId,
-        kind: options.reprint ? 'REPRINT' : 'RECEIPT',
-        status: 'PENDING',
-        trigger: options.trigger,
-        payload: receipt,
-        text_body: renderReceiptText(receipt),
-      })
-      .select('id')
-      .single();
+    const textBody = renderReceiptText(receipt);
 
-    if (insertError) {
-      // 23505 = kena unique index print_jobs_one_receipt_per_order.
-      // Struk otomatis untuk order ini sudah pernah diantrikan — itu sukses,
-      // bukan error (webhook + status poll bisa sama-sama memanggil ini).
-      if (insertError.code === '23505') return { ok: true, duplicate: true };
-      console.error('[print] gagal membuat print job', insertError.message);
-      return { ok: false, error: insertError.message };
+    // Satu job per stasiun, isi struk sama persis. Dipisah — bukan satu job
+    // yang dicetak dua kali — supaya kegagalan di printer dapur tidak menarik
+    // ulang salinan kasir yang sudah tercetak. Itu justru jalan paling mudah
+    // menuju struk dobel.
+    const rows = PRINT_STATIONS.map(station => ({
+      order_id: orderId,
+      station,
+      kind: options.reprint ? 'REPRINT' : 'RECEIPT',
+      status: 'PENDING',
+      trigger: options.trigger,
+      payload: receipt,
+      text_body: textBody,
+    }));
+
+    const inserted: string[] = [];
+    let duplicates = 0;
+
+    // Sengaja satu per satu, bukan insert massal: kalau salah satu stasiun kena
+    // unique index (struknya memang sudah diantrikan), stasiun lain tetap
+    // masuk. Insert massal akan menggagalkan semuanya sekaligus.
+    for (const row of rows) {
+      const { data: job, error: insertError } = await supabase
+        .from('print_jobs').insert(row).select('id').single();
+
+      if (!insertError) {
+        inserted.push(job.id);
+        continue;
+      }
+      // 23505 = kena unique index print_jobs_one_receipt_per_order_station.
+      // Struk otomatis untuk (order, stasiun) ini sudah pernah diantrikan — itu
+      // sukses, bukan error (webhook + status poll bisa sama-sama memanggil ini).
+      if (insertError.code === '23505') {
+        duplicates++;
+        continue;
+      }
+      console.error('[print] gagal membuat print job', row.station, insertError.message);
     }
 
-    return { ok: true, jobId: job.id };
+    if (inserted.length === 0) {
+      if (duplicates > 0) return { ok: true, duplicate: true };
+      return { ok: false, error: 'Gagal mengantrikan struk ke stasiun mana pun' };
+    }
+
+    return { ok: true, jobId: inserted[0] };
   } catch (err) {
     console.error('[print] enqueue error', err);
     return { ok: false, error: err instanceof Error ? err.message : 'Gagal mengantrikan cetak' };

@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { formatCurrency } from '@/lib/utils';
-import { CheckCircle, MapPin, ArrowLeft, Wallet, Loader2, XCircle, Receipt } from 'lucide-react';
+import { CheckCircle, MapPin, ArrowLeft, Wallet, Loader2, XCircle, Receipt, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
@@ -186,10 +186,22 @@ export default function OrderSuccessPage() {
         <h1 className="text-2xl font-bold mb-2">
           {paid ? 'Pembayaran Berhasil!' : 'Pesanan Berhasil!'}
         </h1>
-        <p className="text-text-secondary mb-6">
-          {paid
-            ? 'Pesanan Anda sedang diproses. Silakan tunggu di meja.'
-            : 'Pesanan Anda sedang diproses. Silakan tunggu di meja.'}
+        <p className="text-text-secondary mb-4">
+          Pesanan Anda sedang diproses. Silakan tunggu di meja.
+        </p>
+      </motion.div>
+
+      {/* Ekspektasi waktu tunggu, diminta warung: pelanggan yang sudah membayar
+          duluan (QRIS) paling sering bertanya ke kasir "pesanan saya mana",
+          dan yang ditanya sedang sibuk memasak. */}
+      <motion.div
+        className="w-full rounded-xl border border-gold-500/40 bg-gold-soft px-4 py-3 mb-6 flex items-start gap-2.5 text-left"
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
+      >
+        <Clock className="w-5 h-5 shrink-0 mt-0.5 text-warning" />
+        <p className="text-sm leading-relaxed text-text">
+          Mohon tunggu sekitar <strong>10–20 menit</strong>. Pesanan diantar ke
+          meja Anda begitu siap.
         </p>
       </motion.div>
 

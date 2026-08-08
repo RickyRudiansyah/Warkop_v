@@ -91,7 +91,8 @@ Dibangun **full Next.js 16** (App Router + API Routes sebagai backend) — 1 rep
 | Verifikasi bayar cash | Tombol **"Verifikasi & Cetak Struk"** — ubah `UNPAID → PAID` sekaligus antrikan struk ke printer |
 | Cancel order | Batalkan order yang masih `QUEUED` (belum diproses) |
 | Arsip otomatis (QRIS) | Order QRIS yang lunas pindah sendiri ke history (v3.2) |
-| Selesai (arsip) — tunai | Order tunai dipindahkan kasir lewat tombol "Selesai", saat semua `SERVED` + `PAID` |
+| Selesai (arsip) — tunai | Tombol "Selesai" **per order**, bukan per meja |
+| QRIS Lunas | Daftar hanya-baca order QRIS hari ini (`?mode=qris-paid`) — supaya pesanan yang sudah dibayar tetap terpantau |
 | Manual order (POS) | Input order manual + cari menu, filter kategori, muat ulang katalog |
 | Cetak ulang struk | Tombol printer di kartu order (khusus order yang sudah lunas) |
 | QR Generator | Generate + download satu QR umum kafe |
@@ -328,10 +329,11 @@ print_jobs (
   trigger   TEXT,   -- QRIS_SETTLED | CASH_VERIFIED | CASHIER_PAID_ORDER | STAFF_REPRINT
   payload   JSONB,  -- snapshot struk terstruktur
   text_body TEXT,   -- teks siap kirim ke printer ESC/POS
+  station   TEXT,   -- CASHIER | KITCHEN (1 struk per stasiun, isi sama)
   attempts INT, last_error TEXT, device_id TEXT,
   created_at TIMESTAMPTZ, claimed_at TIMESTAMPTZ, printed_at TIMESTAMPTZ
 )
--- UNIQUE (order_id) WHERE kind = 'RECEIPT'  -> anti dobel-cetak
+-- UNIQUE (order_id, station) WHERE kind = 'RECEIPT'  -> anti dobel-cetak per stasiun
 
 activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target_id, detail JSONB, created_at )
 ```
@@ -361,6 +363,7 @@ activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target
 |---|---|---|---|
 | GET | `/api/orders` | staff | Board dapur (non-arsip, aktif) |
 | GET | `/api/orders?mode=cashier` | staff | Board kasir (termasuk SERVED sampai diarsip) |
+| GET | `/api/orders?mode=qris-paid&from=` | staff | Order QRIS lunas sejak `from` (ISO ber-offset) — hanya-baca |
 | GET | `/api/orders?history=1` · `/api/orders/history` | staff | Arsip + dibatalkan |
 | DELETE | `/api/orders/history` | staff | Hapus history — seluruhnya, atau `?from=&to=` (ISO-8601 ber-offset, `from` inklusif · `to` eksklusif) |
 | DELETE | `/api/orders/reset` | owner | Reset semua order + log |
@@ -378,8 +381,8 @@ activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target
 
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
-| GET | `/api/print/jobs?claim=1&limit=5` | Token perangkat / staff | Ambil & kunci job PENDING jadi PRINTING |
-| GET | `/api/print/jobs` | Token perangkat / staff | 50 job terakhir untuk monitoring |
+| GET | `/api/print/jobs?claim=1&limit=5&station=` | Token perangkat / staff | Ambil & kunci job PENDING jadi PRINTING. `station` wajib kalau perangkat melayani >1 printer |
+| GET | `/api/print/jobs?station=` | Token perangkat / staff | 50 job terakhir untuk monitoring (bisa disaring per stasiun) |
 | POST | `/api/print/jobs` | Staff | Cetak ulang struk sebuah order |
 | PATCH | `/api/print/jobs/[id]/ack` | Token perangkat / staff | Konfirmasi PRINTED / FAILED |
 | POST | `/api/print/jobs/[id]/retry` | Staff | Kembalikan job gagal ke antrian |
@@ -636,6 +639,7 @@ Membatasi pemesanan hanya untuk customer yang berada di sekitar kafe (via GPS br
 | `MIDTRANS_IS_PRODUCTION` | `false` = sandbox, `true` = produksi (uang asli) | Untuk QRIS |
 | `MAYAR_API_KEY` / `MAYAR_IS_PRODUCTION` | Provider Mayar — **tidak dipakai**, checkout tidak pernah memanggilnya | Tidak |
 | `PRINT_DEVICE_TOKEN` | Token aplikasi Android printer (header `x-print-token`) | Untuk printer |
+| `PRINT_STATIONS` | Stasiun yang punya printer: `CASHIER` (default) atau `CASHIER,KITCHEN` | Tidak |
 | `RECEIPT_STORE_NAME` | Nama toko di kop struk (default: Rumipang) | Tidak |
 | `RECEIPT_STORE_ADDRESS` | Alamat di kop struk | Tidak |
 | `RECEIPT_STORE_PHONE` | Nomor telepon di kop struk | Tidak |
@@ -834,7 +838,7 @@ curl http://localhost:3000/api/health
 | v2.9 | Owner: hapus menu, reset data, hapus riwayat |
 | v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS, dark mode, geolocation gate, Docker |
 | v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
-| v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per hari/bulan/tahun, kelola karyawan, Take Away untuk pelanggan, 30 meja, QRIS pelanggan dimatikan |
+| v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per hari/bulan/tahun, kelola karyawan, Take Away untuk pelanggan, 30 meja, QRIS via Midtrans Snap, struk kasir + dapur |
 
 ---
 
@@ -1290,8 +1294,8 @@ Struk **tidak pernah** dicetak untuk order yang belum lunas.
 
 | Method | Endpoint | Auth | Fungsi |
 |---|---|---|---|
-| GET | `/api/print/jobs?claim=1&limit=5` | Token perangkat / staff | Ambil & kunci job PENDING jadi PRINTING |
-| GET | `/api/print/jobs` | Token perangkat / staff | 50 job terakhir untuk monitoring |
+| GET | `/api/print/jobs?claim=1&limit=5&station=` | Token perangkat / staff | Ambil & kunci job PENDING jadi PRINTING. `station` wajib kalau perangkat melayani >1 printer |
+| GET | `/api/print/jobs?station=` | Token perangkat / staff | 50 job terakhir untuk monitoring (bisa disaring per stasiun) |
 | POST | `/api/print/jobs` | Staff | Cetak ulang struk sebuah order |
 | PATCH | `/api/print/jobs/[id]/ack` | Token perangkat / staff | Konfirmasi PRINTED / FAILED |
 | POST | `/api/print/jobs/[id]/retry` | Staff | Kembalikan job gagal ke antrian |
@@ -1503,6 +1507,68 @@ jadi keduanya harus seragam.
 `tableLabel()` juga memakai `table_number != null`, bukan `|| '-'`: meja bernomor
 `0` dulu ikut jatuh ke tanda hubung.
 
+### "Selesai" per order, bukan per meja
+
+Keluhan nomor satu dari warung: *"kalo kita belom pencet selesai dia auto gabung
+yg bekas sblm slsnya"*.
+
+Board dikelompokkan per meja, dan tombol "Selesai" dulu menutup **seluruh meja
+sekaligus**. Satu meja bisa memesan beberapa kali semalam, jadi order baru yang
+masuk sebelum order lama ditutup terlihat menyatu dengan yang lama — dan sekali
+ditekan, keduanya hilang bersamaan.
+
+Sekarang tombolnya ada di **kartu order masing-masing**, di aplikasi maupun web.
+Pengelompokan per meja tetap dipertahankan; yang berubah hanya cakupan tombolnya.
+
+### Order QRIS tetap terpantau
+
+Keluhan kedua: *"yang qris malah ga masuk ke sini"*. Itu memang akibat arsip
+otomatis — dan bukan sesuatu yang perlu dibatalkan, karena *"harus yang tunai
+doang masuk kesini"*.
+
+Yang hilang cuma **pandangannya**. Jadi ditambahkan `?mode=qris-paid&from=`:
+daftar order QRIS lunas sejak batas waktu tertentu, dan di aplikasi muncul
+sebagai baris **"QRIS Lunas"** di panel meja (jumlah order + totalnya), yang
+membuka daftar lengkapnya.
+
+**Sengaja hanya-baca.** Order itu sudah lunas dan sudah tercatat di riwayat;
+menaruh tombol "Selesai" di sana akan mengembalikannya jadi pekerjaan yang harus
+ditutup kasir — persis keadaan yang ingin dihindari.
+
+### Dua printer: struk kasir + struk dapur
+
+Satu order sekarang menghasilkan **satu job per stasiun**, isinya sama persis.
+
+> **Butuh migrasi:** [`scripts/add-print-stations.sql`](scripts/add-print-stations.sql),
+> lalu set `PRINT_STATIONS=CASHIER,KITCHEN`.
+
+| Lapis | Perubahan |
+|---|---|
+| `print_jobs` | kolom `station` (`CASHIER`/`KITCHEN`), unique index jadi **per (order, station)** |
+| `enqueueReceipt()` | insert satu baris per stasiun di `PRINT_STATIONS` |
+| `GET /api/print/jobs` | menerima `?station=` — untuk `claim` maupun monitoring |
+
+**Kenapa dua job, bukan satu job yang dicetak dua kali.** Kalau satu job harus
+mendarat di dua printer, kegagalan di printer dapur memaksa job itu diulang —
+dan salinan kasir yang sudah keluar ikut tercetak lagi. Dipisah per stasiun,
+setiap salinan punya nasibnya sendiri: dapur gagal, dapur saja yang diulang.
+
+Unique index lama (`print_jobs_one_receipt_per_order`) **tidak dihapus,
+diperlebar**. Ia tetap pengaman anti dobel-cetak saat webhook dan polling
+menyelesaikan pembayaran bersamaan — sekarang per stasiun.
+
+`PRINT_STATIONS` **default `CASHIER` saja.** Menambah `KITCHEN` sebelum
+printernya ada membuat tiap order meninggalkan job yang tak pernah diambil
+siapa pun: antrian menumpuk, lencana "struk menunggu" menyala terus, dan kasir
+belajar mengabaikannya — persis penanda yang tidak boleh diabaikan.
+
+> **Satu perangkat, dua printer.** `print_bluetooth_thermal` memegang satu
+> socket SPP, jadi aplikasi kasir berpindah bergantian: sambung printer A →
+> cetak seluruh antriannya → ACK semuanya → baru pindah ke B. `?station=`
+> itulah yang membuatnya mungkin — tanpa filter, alat yang sedang memegang
+> printer kasir bisa ikut mengunci job dapur lalu menahannya 2 menit tanpa bisa
+> mencetaknya.
+
 ### Take Away untuk pelanggan
 
 Sebelumnya pesanan bungkus **tidak mungkin** dibuat dari sisi pelanggan: meja
@@ -1583,7 +1649,7 @@ menerima QRIS lalu bertanya ke kasir.
 
 | Metric | Value |
 |---|---|
-| Files created | 8 (`lib/archive.ts`, `lib/features.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`, `scripts/seed-tables-30.sql`, `scripts/test-qris-production.mjs`, `scripts/load-env.mjs`) |
+| Files created | 9 (`lib/archive.ts`, `lib/features.ts`, `app/api/staff/shared.ts`, `app/api/staff/[id]/route.ts`, `scripts/staff-optional-email.sql`, `scripts/seed-tables-30.sql`, `scripts/add-print-stations.sql`, `scripts/test-qris-production.mjs`, `scripts/load-env.mjs`) |
 | Files modified | 16 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `mayar/create/route.ts`, `midtrans/charge/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `MenuItemSheet.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`, `checkout/page.tsx`) |
 | TypeScript errors | 0 |
 | Breaking changes | Arsip otomatis tidak butuh migrasi (`is_archived` ada sejak v3.0). Kelola karyawan butuh `scripts/staff-optional-email.sql`. |

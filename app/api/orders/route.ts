@@ -15,6 +15,21 @@ export async function GET(request: NextRequest) {
   if (history) {
     // history: archived orders OR cancelled orders
     query = query.or('is_archived.eq.true,status.eq.CANCELLED');
+  } else if (mode === 'qris-paid') {
+    // Order QRIS diarsipkan otomatis begitu lunas, jadi ia tidak pernah mampir
+    // di board kasir — dan warung kehilangan pandangan atas pesanan yang justru
+    // sudah dibayar. Ini daftar tontonannya: hanya-baca, tidak perlu ditutup.
+    //
+    // `from` dikirim klien (ISO ber-offset) karena batas "hari ini" di warung
+    // adalah tengah malam WIB, bukan UTC.
+    const from = searchParams.get('from');
+    query = query.eq('payment_method', 'QRIS').eq('payment_status', 'PAID').neq('status', 'CANCELLED');
+    if (from) {
+      if (Number.isNaN(Date.parse(from))) {
+        return NextResponse.json({ error: 'Parameter from bukan tanggal yang sah' }, { status: 400 });
+      }
+      query = query.gte('created_at', from);
+    }
   } else if (mode === 'cashier') {
     // cashier board: all non-archived, non-cancelled (includes SERVED until cashier presses Finish)
     query = query.eq('is_archived', false).neq('status', 'CANCELLED');

@@ -103,6 +103,13 @@ export function OrderCard({ order, onMarkPaid, onReprint, onFinish, onStartProce
                 <Printer className="w-4 h-4" />
               </Button>
             )}
+            {/* Per order, bukan per meja — satu meja bisa memesan beberapa kali
+                dan menutup semuanya sekaligus ikut menelan order yang baru masuk. */}
+            {onFinish && (
+              <Button variant="primary" size="sm" onClick={onFinish} disabled={isLoading} loading={isLoading}>
+                Selesai
+              </Button>
+            )}
           </div>
         </div>
 

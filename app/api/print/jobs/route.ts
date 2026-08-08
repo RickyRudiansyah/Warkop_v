@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { enqueueReceipt, requirePrintAccess, requeueStaleJobs } from '@/lib/print';
+import {
+  enqueueReceipt,
+  requirePrintAccess,
+  requeueStaleJobs,
+  isPrintStation,
+  PRINT_STATIONS,
+  type PrintStation,
+} from '@/lib/print';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,26 +23,42 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const claim = searchParams.get('claim') === '1';
   const limit = Math.min(Math.max(Number(searchParams.get('limit')) || 5, 1), 20);
+
+  // Satu perangkat memegang satu koneksi Bluetooth, jadi ia menyambar per
+  // stasiun — bukan semua job sekaligus. Tanpa filter ini, alat yang sedang
+  // tersambung ke printer kasir bisa ikut mengunci job dapur lalu menahannya
+  // 2 menit tanpa bisa mencetaknya.
+  const stationParam = searchParams.get('station');
+  if (stationParam && !isPrintStation(stationParam)) {
+    return NextResponse.json({ error: 'station tidak dikenal' }, { status: 400 });
+  }
+  const station = stationParam as PrintStation | null;
+
   const supabase = createAdminClient();
 
   await requeueStaleJobs();
 
   if (!claim) {
-    const { data, error } = await supabase
+    let monitor = supabase
       .from('print_jobs')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(50);
+    if (station) monitor = monitor.eq('station', station);
+    const { data, error } = await monitor;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ jobs: data ?? [] });
+    return NextResponse.json({ jobs: data ?? [], stations: PRINT_STATIONS });
   }
 
-  const { data: pending, error: pendingError } = await supabase
+  let pendingQuery = supabase
     .from('print_jobs')
     .select('id')
     .eq('status', 'PENDING')
     .order('created_at', { ascending: true })
     .limit(limit);
+  if (station) pendingQuery = pendingQuery.eq('station', station);
+
+  const { data: pending, error: pendingError } = await pendingQuery;
 
   if (pendingError) return NextResponse.json({ error: pendingError.message }, { status: 500 });
   if (!pending?.length) return NextResponse.json({ jobs: [] });
