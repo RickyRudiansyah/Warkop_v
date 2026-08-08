@@ -169,3 +169,48 @@ export function renderReceiptText(receipt: Receipt, width: number = RECEIPT_COLU
 
   return lines.join('\n');
 }
+
+/**
+ * Struk **dapur**: apa yang harus dimasak, tanpa satu pun angka rupiah.
+ *
+ * Dapur tidak butuh harga, total, atau status bayar — dan menaruhnya di sana
+ * justru menyulitkan: yang dicari juru masak (nama menu + variasi + catatan)
+ * tenggelam di antara kolom angka. Permintaan pemilik, mencontoh struk dapur
+ * mesin kasir yang sudah biasa mereka pakai.
+ *
+ * Yang sengaja tetap ada: nomor order dan meja — tanpa keduanya, masakan yang
+ * jadi tidak bisa dicocokkan dengan pesanan mana pun.
+ */
+export function renderKitchenText(receipt: Receipt, width: number = RECEIPT_COLUMNS): string {
+  const rule = '-'.repeat(width);
+  const lines: string[] = [];
+
+  lines.push(center('** DAPUR **', width));
+  if (receipt.is_reprint) lines.push(center('** CETAK ULANG **', width));
+  lines.push(rule);
+
+  lines.push(columns('No', receipt.order_no, width));
+  lines.push(receipt.table_label === 'Take Away'
+    ? columns('Jenis', 'TAKE AWAY', width)
+    : columns('Meja', receipt.table_label, width));
+  lines.push(columns('Waktu', jakartaTime(receipt.ordered_at), width));
+  lines.push(rule);
+
+  for (const item of receipt.items) {
+    // Jumlah ditaruh di depan nama, bukan di baris harga seperti struk kasir —
+    // di dapur, "2x" adalah hal pertama yang perlu dilihat.
+    wrap(item.quantity + 'x ' + item.name.toUpperCase(), width).forEach(l => lines.push(l));
+    for (const variation of item.variations) {
+      wrap('+ ' + variation, width - 2).forEach(l => lines.push('  ' + l));
+    }
+    if (item.notes) {
+      wrap('* ' + item.notes, width - 2).forEach(l => lines.push('  ' + l));
+    }
+    lines.push('');
+  }
+
+  lines.push(rule);
+  lines.push(center(jakartaTime(receipt.issued_at) + ' WIB', width));
+
+  return lines.join('\n');
+}

@@ -338,7 +338,24 @@ print_jobs (
 activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target_id, detail JSONB, created_at )
 ```
 
-> **Migrasi (urutan):** `scripts/migrate-payment-flow.sql` + `scripts/create-payment-intents.sql` (status split & QRIS) → `scripts/remove-koki-role.sql` (hapus role koki) → `scripts/create-print-jobs.sql` (antrian printer). Untuk fitur "Selesai" kasir: `ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;`
+### Migrasi (jalankan berurutan)
+
+| # | Script | Untuk |
+|---|---|---|
+| 1 | `scripts/migrate-payment-flow.sql` | pisah `status` & `payment_status` |
+| 2 | `scripts/create-payment-intents.sql` | QRIS (order dibuat setelah lunas) |
+| 3 | `scripts/remove-koki-role.sql` | hapus role koki |
+| 4 | `scripts/create-print-jobs.sql` | antrian cetak struk |
+| 5 | `scripts/create-admin-features.sql` | stok, jatah makan, tema, laporan |
+| 6 | `scripts/staff-optional-email.sql` | karyawan tanpa email (kelola karyawan) |
+| 7 | `scripts/seed-tables-30.sql` | lengkapi meja sampai nomor 30 |
+| 8 | `scripts/add-print-stations.sql` | struk kasir + struk dapur |
+
+Nomor 1–4 sudah dijalankan sejak v3.1. Nomor 5–8 menyusul di v3.2 — semuanya
+idempoten, jadi aman kalau ragu apakah sudah pernah dijalankan.
+
+Untuk fitur "Selesai" kasir (kalau database dibangun sebelum v3.0):
+`ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;`
 
 ---
 
@@ -634,7 +651,7 @@ Membatasi pemesanan hanya untuk customer yang berada di sekitar kafe (via GPS br
 | `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase | Ya |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | API key public (anon) | Ya |
 | `SUPABASE_SERVICE_ROLE_KEY` | API key service role (rahasia!) | Ya |
-| `NEXT_PUBLIC_APP_URL` | Base URL app (untuk redirect) | Ya |
+| `NEXT_PUBLIC_APP_URL` | Base URL app. **Harus domain publik, bukan `localhost`** — dipakai sebagai alamat kembali Snap, dan alamat itu dibuka di HP pelanggan. Domain polos tanpa `/order` di belakangnya | Ya |
 | `NEXT_PUBLIC_QRIS_ENABLED` | `true` = QRIS pelanggan aktif. **Default mati** — checkout menampilkan "Belum tersedia" dan endpoint create menolak 503 | Tidak |
 | `MIDTRANS_SERVER_KEY` | Server key Midtrans — **provider aktif**. `SB-Mid-server-…` sandbox, `Mid-server-…` produksi | Untuk QRIS |
 | `MIDTRANS_IS_PRODUCTION` | `false` = sandbox, `true` = produksi (uang asli) | Untuk QRIS |
@@ -651,6 +668,12 @@ Membatasi pemesanan hanya untuk customer yang berada di sekitar kafe (via GPS br
 | `NEXT_PUBLIC_CAFE_RADIUS_METERS` | Radius izin (m) | Tidak |
 
 > ⚠️ **PENTING:** `SUPABASE_SERVICE_ROLE_KEY`, `MAYAR_API_KEY`, `MIDTRANS_SERVER_KEY`, dan `PRINT_DEVICE_TOKEN` **server-only** — jangan pernah commit. Variabel `NEXT_PUBLIC_*` di-bake saat build (untuk Docker lewat `--build-arg`).
+>
+> ⚠️ **`NEXT_PUBLIC_APP_URL` bukan sekadar kosmetik.** Nilai `localhost` di
+> produksi membuat pelanggan terlempar ke halaman kosong tepat setelah membayar
+> QRIS — dan karena tab checkout-nya ikut mati, ordernya tidak pernah dibuat.
+> Itu sudah pernah memakan Rp 107.000; lihat
+> [Jaring pengaman pembayaran QRIS](#jaring-pengaman-pembayaran-qris).
 
 ### Beralih QRIS Sandbox ↔ Produksi
 

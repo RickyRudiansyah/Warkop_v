@@ -15,6 +15,17 @@ interface MenuItemSheetProps {
 
 // Bottom sheet detail produk (DESIGN.md §5.7): foto besar 1:1 di atas dengan
 // tombol close bulat, deskripsi, variasi, catatan, lalu CTA sticky di dasar.
+/**
+ * Grup variasi yang WAJIB dipilih: ada opsi yang tidak menambah harga.
+ *
+ * Penanda paling jujur tanpa mengubah skema — grup yang semua opsinya berbayar
+ * adalah tambahan (Extra Topping), grup yang punya pilihan dasar gratis adalah
+ * pilihan yang memang harus diambil (Rasa, Porsi).
+ */
+function isRequiredGroup(vars: MenuVariation[]): boolean {
+  return vars.some(v => v.extra_price === 0);
+}
+
 export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemSheetProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, VariationSelection>>({});
@@ -44,6 +55,13 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
     acc[v.variation_type].push(v);
     return acc;
   }, {});
+
+  // Grup wajib yang belum dipilih. Selama masih ada, tombol tambah terkunci —
+  // lebih baik menahan pesanan di sini daripada mengirimnya ke dapur tanpa
+  // keterangan yang mereka butuhkan.
+  const missing = Object.entries(groupedVariations)
+    .filter(([group, vars]) => isRequiredGroup(vars) && !selectedVariations[group])
+    .map(([group]) => group);
 
   return (
     <AnimatePresence>
@@ -102,13 +120,23 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
 
                 {Object.entries(groupedVariations).map(([group, vars]) => (
                   <div key={group}>
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-text mb-2">{group}</h3>
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-text mb-2 flex items-center gap-2">
+                      {group}
+                      {isRequiredGroup(vars) && !selectedVariations[group] && (
+                        <span className="text-[11px] font-bold text-danger normal-case">wajib dipilih</span>
+                      )}
+                    </h3>
                     <div className="space-y-2">
                       {/* Radio tidak punya jalan mundur: sekali topping berbayar
                           dipilih, pelanggan tidak bisa kembali ke harga polos
-                          selain menutup lembar ini. Opsi "tanpa" itulah jalannya —
-                          dan ia yang terpilih sejak awal. */}
+                          selain menutup lembar ini. Opsi "tanpa" itulah jalannya.
+                          
+                          Tapi HANYA untuk grup tambahan. Grup yang punya pilihan
+                          dasar gratis (Rasa, Porsi) adalah pilihan yang memang
+                          harus diambil — dapur tidak bisa memasak "Indomie tanpa
+                          rasa", mereka tidak tahu itu kari goreng atau soto. */}
                       {(() => {
+                        if (isRequiredGroup(vars)) return null;
                         const none = !selectedVariations[group];
                         return (
                           <label
@@ -205,9 +233,10 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
             <div className="border-t border-border bg-surface p-4 pb-safe">
               <button
                 onClick={() => onAdd(item, quantity, Object.values(selectedVariations), notes)}
-                className="w-full h-[52px] rounded-[10px] bg-ember-600 text-cream-50 font-bold text-base uppercase tracking-wide hover:bg-ember-500 active:scale-[0.98] transition"
+                disabled={missing.length > 0}
+                className="w-full h-[52px] rounded-[10px] bg-ember-600 text-cream-50 font-bold text-base uppercase tracking-wide hover:bg-ember-500 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
               >
-                Tambah ke Keranjang
+                {missing.length > 0 ? `Pilih ${missing[0]} dulu` : 'Tambah ke Keranjang'}
               </button>
             </div>
           </motion.div>

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import { buildReceipt, renderReceiptText } from '@/lib/receipt';
+import { buildReceipt, renderKitchenText, renderReceiptText } from '@/lib/receipt';
 import { Order, PrintJobTrigger } from '@/types';
 
 // Job PRINTING yang tidak di-ACK dalam waktu ini dianggap nyangkut
@@ -72,12 +72,17 @@ export async function enqueueReceipt(orderId: string, options: EnqueueOptions): 
       verifiedBy: options.verifiedBy ?? null,
     });
 
-    const textBody = renderReceiptText(receipt);
+    // Isi struk berbeda per stasiun: kasir dapat harga & total, dapur dapat
+    // daftar masakannya saja. Dirender di sini, bukan saat dicetak, supaya
+    // `text_body` tetap snapshot — struk yang sudah diantrikan tidak berubah
+    // walau format renderernya nanti diperbaiki.
+    const bodyFor = (station: PrintStation) =>
+      station === 'KITCHEN' ? renderKitchenText(receipt) : renderReceiptText(receipt);
 
-    // Satu job per stasiun, isi struk sama persis. Dipisah — bukan satu job
-    // yang dicetak dua kali — supaya kegagalan di printer dapur tidak menarik
-    // ulang salinan kasir yang sudah tercetak. Itu justru jalan paling mudah
-    // menuju struk dobel.
+    // Satu job per stasiun. Dipisah — bukan satu job yang dicetak dua kali —
+    // supaya kegagalan di printer dapur tidak menarik ulang salinan kasir yang
+    // sudah tercetak. Itu justru jalan paling mudah menuju struk dobel. Bonus
+    // dari pemisahan ini: isinya jadi bisa berbeda per stasiun.
     const rows = PRINT_STATIONS.map(station => ({
       order_id: orderId,
       station,
@@ -85,7 +90,7 @@ export async function enqueueReceipt(orderId: string, options: EnqueueOptions): 
       status: 'PENDING',
       trigger: options.trigger,
       payload: receipt,
-      text_body: textBody,
+      text_body: bodyFor(station),
     }));
 
     const inserted: string[] = [];
