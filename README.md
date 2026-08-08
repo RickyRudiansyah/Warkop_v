@@ -394,6 +394,7 @@ activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target
 | POST | `/api/payments/midtrans/charge` | Public | Buat charge QRIS → `qr_string` + `qr_url`. **Ini yang dipanggil checkout pelanggan** |
 | GET | `/api/payments/midtrans/status?intentId=` | Public | Poll status (settle → buat order PAID + antrikan struk) |
 | POST | `/api/payments/midtrans/webhook` | Public | Notifikasi Midtrans |
+| POST | `/api/payments/reconcile` | Token perangkat / staff | Sapu intent PENDING yang ternyata sudah dibayar |
 
 > `settleIntent()` di `lib/midtrans.ts` yang membuat order + mengantrikan struk begitu pembayaran settle. Dipanggil dari **polling status** maupun **webhook**, dan idempoten — jadi keduanya boleh menang duluan tanpa membuat order ganda.
 
@@ -1568,6 +1569,47 @@ belajar mengabaikannya — persis penanda yang tidak boleh diabaikan.
 > itulah yang membuatnya mungkin — tanpa filter, alat yang sedang memegang
 > printer kasir bisa ikut mengunci job dapur lalu menahannya 2 menit tanpa bisa
 > mencetaknya.
+
+### Jaring pengaman pembayaran QRIS
+
+> **Ini lahir dari kehilangan uang sungguhan.** 7 Agustus 2026, dua pelanggan
+> membayar QRIS senilai **Rp 107.000** dan ordernya tidak pernah dibuat: uang
+> masuk ke Midtrans, `payment_intents` tetap `PENDING`, kasir tidak melihat
+> apa-apa, struk tidak keluar, riwayat kosong.
+
+Penyebabnya dua pemicu `settleIntent()` gagal bersamaan:
+
+| Pemicu | Kenapa gagal |
+|---|---|
+| Polling tab checkout | `NEXT_PUBLIC_APP_URL` masih `localhost:3000`, jadi Snap melempar HP pelanggan ke sana dan tabnya mati **tepat setelah membayar** |
+| Webhook Midtrans | Payment Notification URL belum diisi di dashboard produksi |
+
+Pelajarannya: **uang tidak boleh bergantung pada sebuah tab browser tetap
+terbuka.** Karena itu ada lapis ketiga yang tidak bergantung pada keduanya —
+[`lib/reconcile.ts`](lib/reconcile.ts):
+
+```
+POST /api/payments/reconcile   -> { checked, recovered, expired, orderIds }
+```
+
+Ia mengambil `payment_intents` yang masih `PENDING`, bertanya **langsung ke
+Midtrans** (satu-satunya pihak yang tahu pasti uangnya masuk atau belum), lalu
+menyelesaikan yang ternyata sudah dibayar.
+
+Tiga batas yang menjaganya tetap aman:
+
+- **Intent < 1 menit dilewati** — tab checkout-nya kemungkinan masih polling.
+- **Midtrans tidak terjangkau → intent TIDAK ditutup.** Menandai `EXPIRED` saat
+  jaringan bermasalah sama saja membuang pembayaran yang mungkin sudah masuk.
+- **Intent > 24 jam yang tetap tidak terbayar ditutup**, supaya daftar sapuan
+  tidak tumbuh selamanya.
+
+Idempoten — `settleIntent()` memakai kunci kondisional `PENDING → PAID`, jadi
+dua sapuan bersamaan tidak akan membuat order ganda.
+
+**Yang memanggilnya: aplikasi kasir, ~2 menit sekali.** Bukan cron: tablet di
+warung adalah satu-satunya perangkat yang menyala sepanjang hari, dan ia sudah
+punya loop latar (foreground service printer) beserta kredensialnya.
 
 ### Take Away untuk pelanggan
 

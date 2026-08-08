@@ -21,8 +21,31 @@ interface TrackedOrder {
 
 export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId');
   const tableId = searchParams.get('tableId');
+
+  // Pelanggan yang kembali dari halaman Snap membawa `intentId`, bukan
+  // `orderId` — ordernya memang belum ada saat tautan kembali itu dibuat.
+  // Ditukar di sini lewat endpoint status, yang juga yang menyelesaikan
+  // pembayaran kalau webhook/polling belum sempat.
+  const intentId = searchParams.get('intentId');
+  const [resolvedId, setResolvedId] = useState<string | null>(null);
+  const orderId = searchParams.get('orderId') ?? resolvedId;
+
+  useEffect(() => {
+    if (!intentId || resolvedId) return;
+    let active = true;
+    const check = async () => {
+      try {
+        const res = await fetch('/api/payments/midtrans/status?intentId=' + intentId, { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (active && data.orderId) setResolvedId(data.orderId);
+      } catch { /* dicoba lagi di tick berikutnya */ }
+    };
+    check();
+    // Settle bisa tertinggal beberapa detik di belakang redirect Snap.
+    const id = setInterval(check, 3000);
+    return () => { active = false; clearInterval(id); };
+  }, [intentId, resolvedId]);
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [loading, setLoading] = useState(true);
 

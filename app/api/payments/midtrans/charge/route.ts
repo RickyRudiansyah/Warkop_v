@@ -58,9 +58,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: intentError?.message || 'Gagal membuat pembayaran' }, { status: 500 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  // Alamat "selesai" dibuka di HP PELANGGAN, bukan di mesin ini. Mengirim
+  // localhost berarti menyuruh HP itu membuka dirinya sendiri — pelanggan
+  // mendarat di halaman error tepat setelah uangnya keluar. Lebih baik tidak
+  // mengirim callback sama sekali: Snap menampilkan halaman hasilnya sendiri,
+  // dan tab checkout yang masih polling tetap pindah ke order-success.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+  const reachable = /^https?:\/\//i.test(appUrl) && !/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(appUrl);
+  if (appUrl && !reachable) {
+    console.warn('[snap] NEXT_PUBLIC_APP_URL tidak bisa dijangkau pelanggan, callback finish dilewati:', appUrl);
+  }
+
   const snap = await midtransSnapQris(intent.id, total_amount, {
-    finishUrl: appUrl + '/order-success?intentId=' + intent.id,
+    // `intentId`, bukan `orderId` — ordernya memang belum ada saat tautan ini
+    // dibuat. order-success yang menukarnya lewat endpoint status.
+    finishUrl: reachable ? appUrl + '/order-success?intentId=' + intent.id : undefined,
   });
 
   if (!snap.ok) {
