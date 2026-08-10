@@ -350,6 +350,7 @@ activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target
 | 6 | `scripts/staff-optional-email.sql` | karyawan tanpa email (kelola karyawan) |
 | 7 | `scripts/seed-tables-30.sql` | lengkapi meja sampai nomor 30 |
 | 8 | `scripts/add-print-stations.sql` | struk kasir + struk dapur |
+| 9 | `scripts/create-expenses.sql` | pengeluaran harian (rekap bersih) |
 
 Nomor 1–4 sudah dijalankan sejak v3.1. Nomor 5–8 menyusul di v3.2 — semuanya
 idempoten, jadi aman kalau ragu apakah sudah pernah dijalankan.
@@ -435,6 +436,8 @@ cadangan yang belum dicabut, bukan jalur yang hidup.
 | POST / DELETE | `/api/tables` | staff | Tambah / nonaktifkan meja |
 | GET | `/api/tables/[number]` | Public | Meja by nomor |
 | POST | `/api/upload` | staff | Upload gambar menu (≤5MB) |
+| GET / POST | `/api/expenses?from=&to=` | staff | Pengeluaran harian (rekap bersih) |
+| DELETE | `/api/expenses/[id]` | staff | Hapus pengeluaran |
 | GET / POST | `/api/activity-logs` | staff | Activity logging |
 | GET | `/api/health` | Public | Health check |
 
