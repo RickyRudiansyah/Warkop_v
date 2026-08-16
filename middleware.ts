@@ -31,9 +31,11 @@ export async function middleware(request: NextRequest) {
     if (!staff) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
-    // Kitchen Display kini dipegang kasir (role 'koki' sudah dihapus),
-    // jadi hanya halaman owner yang masih dibatasi.
-    if (staff.role === 'cashier' && pathname.startsWith('/dashboard/owner')) {
+    // Halaman owner ditolak untuk **semua yang bukan owner**, bukan cuma
+    // 'cashier'. Sejak owner boleh membuat role sendiri ("koki", "barista"),
+    // daftar-hitam per role akan bocor diam-diam: role yang belum terpikir
+    // saat kode ini ditulis otomatis lolos. Daftar-putih tidak punya celah itu.
+    if (staff.role !== 'owner' && pathname.startsWith('/dashboard/owner')) {
       return NextResponse.redirect(new URL('/dashboard/cashier', request.url));
     }
   }

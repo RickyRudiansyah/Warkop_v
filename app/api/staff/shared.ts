@@ -3,8 +3,6 @@
 // baru di `staff_users` tidak ikut bocor tanpa disengaja.
 export const SELECT_STAFF = 'id, name, email, role, is_active';
 
-const ROLES = ['cashier', 'owner'];
-
 type StaffInput = {
   id?: string;
   name?: string;
@@ -57,11 +55,17 @@ export function normalizeStaffInput(
   }
 
   if (!partial || body.role !== undefined) {
-    const role = typeof body.role === 'string' ? body.role.toLowerCase() : 'cashier';
-    if (!ROLES.includes(role)) {
-      return { error: `Peran harus salah satu dari: ${ROLES.join(', ')}` };
+    // Owner bebas membuat role sendiri ("koki", "barista"). Yang dijaga bukan
+    // daftar namanya, melainkan siapa yang boleh jadi 'owner' — dan itu dijaga
+    // di route (owner-only) serta middleware (bukan-owner ditolak dari halaman
+    // owner). Role di luar 'owner' semuanya berakses staff biasa.
+    const raw = typeof body.role === 'string' ? body.role.trim().toLowerCase() : 'cashier';
+    if (!raw) return { error: 'Peran tidak boleh kosong' };
+    if (raw.length > 30) return { error: 'Nama peran terlalu panjang' };
+    if (!/^[a-z0-9 _-]+$/.test(raw)) {
+      return { error: 'Peran hanya boleh huruf, angka, spasi, - dan _' };
     }
-    value.role = role;
+    value.role = raw;
   }
 
   if (body.email !== undefined) {

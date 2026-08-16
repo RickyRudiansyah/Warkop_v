@@ -57,6 +57,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { data, error } = await supabase
     .from('staff_users').update(patch.value).eq('id', id).select(SELECT_STAFF).single();
 
+
   if (error) {
     // 23505 = email sudah dipakai baris lain (kolomnya UNIQUE).
     if (error.code === '23505') {
@@ -65,4 +66,54 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json(data);
+}
+
+/**
+ * Keluarkan karyawan dari daftar — **dinonaktifkan, bukan dihapus permanen.**
+ *
+ * `staff_meals.staff_id` memakai `ON DELETE CASCADE`, jadi menghapus barisnya
+ * ikut menghapus seluruh riwayat jatah makannya. Biaya jatah bulan lalu akan
+ * berubah sendiri hanya karena seorang karyawan berhenti — persis jenis
+ * kerusakan angka yang paling lama tidak disadari.
+ *
+ * `is_active = false` membuatnya hilang dari daftar karyawan dan dari layar
+ * jatah makan (GET /api/staff hanya mengembalikan yang aktif), sementara
+ * catatannya tetap utuh.
+ */
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const staff = await requireStaff(request);
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (staff.role !== 'owner') {
+    return NextResponse.json({ error: 'Hanya owner yang boleh mengeluarkan karyawan' }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const supabase = createAdminClient();
+
+  const { data: current } = await supabase
+    .from('staff_users').select('id, role, is_active').eq('id', id).maybeSingle();
+  if (!current) return NextResponse.json({ error: 'Karyawan tidak ditemukan' }, { status: 404 });
+
+  // Owner aktif terakhir tidak boleh mengeluarkan dirinya sendiri: tanpa satu
+  // pun owner aktif, tidak ada lagi yang bisa mengembalikan keadaan.
+  if (current.role === 'owner') {
+    const { count } = await supabase
+      .from('staff_users')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'owner')
+      .eq('is_active', true);
+
+    if ((count ?? 0) <= 1) {
+      return NextResponse.json(
+        { error: 'Ini satu-satunya owner aktif — angkat owner lain dulu' },
+        { status: 409 },
+      );
+    }
+  }
+
+  const { error } = await supabase
+    .from('staff_users').update({ is_active: false }).eq('id', id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true, deactivated: true });
 }

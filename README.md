@@ -351,9 +351,14 @@ activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target
 | 7 | `scripts/seed-tables-30.sql` | lengkapi meja sampai nomor 30 |
 | 8 | `scripts/add-print-stations.sql` | struk kasir + struk dapur |
 | 9 | `scripts/create-expenses.sql` | pengeluaran harian (rekap bersih) |
+| 10 | `scripts/flexible-staff-roles.sql` | peran karyawan bebas (koki, barista, …) |
 
-Nomor 1–4 sudah dijalankan sejak v3.1. Nomor 5–8 menyusul di v3.2 — semuanya
+Nomor 1–4 sudah dijalankan sejak v3.1. Nomor 5–10 menyusul di v3.2 — semuanya
 idempoten, jadi aman kalau ragu apakah sudah pernah dijalankan.
+
+Per 8 Agustus 2026 seluruhnya **sudah terpasang** di database produksi
+(diverifikasi: tabel `expenses` ada, dan `role` sudah menerima nilai di luar
+`cashier`/`owner`).
 
 Untuk fitur "Selesai" kasir (kalau database dibangun sebelum v3.0):
 `ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;`
@@ -865,7 +870,7 @@ curl http://localhost:3000/api/health
 | v2.9 | Owner: hapus menu, reset data, hapus riwayat |
 | v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS, dark mode, geolocation gate, Docker |
 | v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
-| v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per hari/bulan/tahun, kelola karyawan, Take Away untuk pelanggan, 30 meja, QRIS via Midtrans Snap, struk kasir + dapur |
+| v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per periode, kelola karyawan + peran bebas, Take Away, 30 meja, QRIS via Midtrans Snap, struk kasir + dapur, jaring pengaman pembayaran, pengeluaran harian |
 
 ---
 
@@ -1485,6 +1490,7 @@ Karyawan" karena itu tidak pernah berhasil.
 | GET | `/api/staff` | staff | Karyawan aktif |
 | POST | `/api/staff` | **owner** | Tambah karyawan |
 | PATCH | `/api/staff/[id]` | **owner** | Ubah nama / peran / email / aktif |
+| DELETE | `/api/staff/[id]` | **owner** | Keluarkan karyawan (**nonaktifkan**, bukan hapus baris) |
 
 - **Owner-only ditegakkan di server,** bukan cuma disembunyikan di UI —
   daftar karyawan menentukan siapa yang berhak jatah makan.
@@ -1636,6 +1642,41 @@ dua sapuan bersamaan tidak akan membuat order ganda.
 **Yang memanggilnya: aplikasi kasir, ~2 menit sekali.** Bukan cron: tablet di
 warung adalah satu-satunya perangkat yang menyala sepanjang hari, dan ia sudah
 punya loop latar (foreground service printer) beserta kredensialnya.
+
+### Peran karyawan bebas — dan kenapa itu aman
+
+Owner bisa membuat peran sendiri ("koki", "barista", "pramusaji") lewat aplikasi
+kasir. `role CHECK (cashier|owner)` diganti syarat paling dasar: tidak kosong,
+maksimal 30 karakter, hanya huruf/angka/spasi/`-`/`_`
+([`scripts/flexible-staff-roles.sql`](scripts/flexible-staff-roles.sql)).
+
+**Yang perlu dipahami: di sistem ini hanya ada satu batas hak akses yang nyata —
+`owner` vs bukan `owner`.** HPP, laba, kelola karyawan, dan `/dashboard/owner`
+dijaga oleh peran `owner`. Peran lain apa pun mendapat akses staff yang sama.
+Menambah peran = menambah **label**, bukan tingkat izin baru.
+
+Dua ranjau yang harus dijinakkan lebih dulu sebelum ini aman, dan keduanya sudah:
+
+| Ranjau | Sebelum | Sesudah |
+|---|---|---|
+| `middleware.ts` | `role === 'cashier'` ditolak dari halaman owner — **daftar-hitam** | `role !== 'owner'` ditolak — **daftar-putih** |
+| `StaffIdentity.canUseApp` (app) | owner **atau** cashier saja | `isActive` saja |
+
+Daftar-hitam bocor diam-diam: peran yang belum terpikir saat kode ditulis
+otomatis lolos ke halaman owner. Dan `canUseApp` yang lama mengunci orangnya
+keluar dari aplikasi begitu perannya diubah jadi "koki" — tanpa pesan yang
+menjelaskan kenapa.
+
+### Keluarkan karyawan = nonaktifkan, bukan hapus
+
+`DELETE /api/staff/[id]` menyetel `is_active = false`, tidak menghapus barisnya.
+`staff_meals.staff_id` memakai `ON DELETE CASCADE`, jadi menghapus karyawan ikut
+menghapus seluruh riwayat jatah makannya — biaya jatah bulan lalu akan berubah
+sendiri hanya karena seseorang berhenti kerja.
+
+`GET /api/staff` hanya mengembalikan yang aktif, jadi efek yang terlihat sama
+saja: namanya hilang dari daftar dan dari layar jatah makan. Owner aktif terakhir
+tidak bisa mengeluarkan dirinya sendiri (409).
 
 ### Take Away untuk pelanggan
 
