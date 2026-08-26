@@ -43,6 +43,7 @@
 - [Changelog v3.1](#changelog-v31)
 - [Changelog v3.2](#changelog-v32)
 - [Changelog v3.3](#changelog-v33)
+- [Changelog v3.4](#changelog-v34)
 - [Developer](#developer)
 
 ---
@@ -886,6 +887,7 @@ curl http://localhost:3000/api/health
 | v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
 | v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per periode, kelola karyawan + peran bebas, Take Away, 30 meja, QRIS via Midtrans Snap, struk kasir + dapur, jaring pengaman pembayaran, pengeluaran harian |
 | v3.3 | Refund order & per item (mengurangi omzet hari itu), suite end-to-end test |
+| v3.4 | Foto menu lewat Image Optimization: egress Supabase turun dari 9,8 MB jadi ~32 KB per pelanggan |
 
 ---
 
@@ -1959,6 +1961,94 @@ kolom isi struk bernama `text_body`, bukan `body`.
 | TypeScript errors | 0 |
 | Migrasi baru | `scripts/create-refunds.sql` (idempoten), **wajib**, tanpa itu refund 404 |
 | Breaking changes | Tidak ada. `refunded_amount` opsional di tipe `Order`; klien lama membacanya sebagai 0 |
+
+---
+
+## Changelog v3.4
+
+### Foto menu: 9,8 MB jadi ~32 KB per pelanggan
+
+Ditemukan dari halaman Usage Supabase pada 27 Agustus 2026: **3,952 GB dari
+kuota egress 5 GB terpakai dalam 9 hari pertama** siklus (18 Agu-18 Sep). Dengan
+laju 0,44 GB/hari, kuotanya habis sekitar 29-30 Agustus, dan project Free Plan
+yang melewati kuota **dibatasi**, bukan ditagih. Untuk warung yang sedang buka,
+itu berarti pelanggan berhenti bisa memesan.
+
+Petunjuknya ada di rincian angkanya: **Cached Egress 3,598 GB dari total 3,952
+GB**. 91% egress adalah berkas statis, bukan query database. Database sendiri
+cuma 0,032 GB dan Realtime Messages 1.773 dari kuota 2 juta.
+
+Penyebabnya satu baris di [`MenuItemCard.tsx`](components/menu/MenuItemCard.tsx):
+
+```tsx
+<img src={item.image_url} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+```
+
+Tiga masalah menumpuk di situ:
+
+1. **Tanpa `loading="lazy"`.** Ke-57 foto diunduh sekaligus begitu halaman
+   dibuka, padahal pelanggan hanya melihat sekitar 6 di layar pertama.
+2. **Bukan `next/image`.** Berkas asli dikirim apa adanya: tidak diperkecil,
+   tidak dikonversi format.
+3. **Kartunya dirender ~200px**, tapi yang diunduh foto ukuran penuh.
+
+Diukur langsung: satu kali buka halaman menu = **9,81 MB**. Kuota 5 GB habis
+setelah ~520 kali buka halaman.
+
+Sesudah diganti `next/image` + `remotePatterns` di
+[next.config.ts](next.config.ts):
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| Format | PNG asli | AVIF (fallback WebP) |
+| Lebar | ukuran asli | 256px (sesuai kartu) |
+| Satu foto | 123-331 KB | **4-6 KB** |
+| Seluruh 57 foto | 9,81 MB | **0,30 MB** (97% lebih ringan) |
+| Yang dimuat saat halaman dibuka | semuanya | ~6 yang terlihat (**~32 KB**) |
+
+Penghematan yang sebenarnya lebih besar dari angka itu, dan ini bagian yang
+paling penting: **foto tidak lagi ditarik dari Supabase oleh setiap pelanggan.**
+Vercel menariknya sekali, mengoptimasi, lalu melayaninya dari CDN-nya sendiri
+selama masa cache. Egress Supabase untuk foto menu berubah dari "9,8 MB dikali
+jumlah pengunjung" menjadi "9,8 MB sekali per periode cache".
+
+Tiga setelan yang tidak boleh dilepas:
+
+- **`sizes="(max-width: 448px) 50vw, 200px"`.** Grid menu 2 kolom di dalam
+  `max-w-md`, jadi kartunya tidak pernah lebih lebar dari ~200px. Tanpa batas
+  ini Next menawarkan kandidat 640px ke atas dan hematnya hilang lagi.
+- **`qualities: [60, 75]`.** Next 16 mewajibkan daftar putih kualitas; `quality`
+  yang tidak ada di daftar akan dibulatkan ke nilai terdekat, bukan dipakai apa
+  adanya. Foto seukuran ibu jari tidak membutuhkan 75.
+- **`minimumCacheTTL: 2678400`** (31 hari). Bawaannya 4 jam, artinya Supabase
+  ditarik ulang enam kali sehari tanpa guna. Nama berkas unggahan sudah
+  ber-timestamp (`1779863478047-Ropang.png`), jadi URL yang sama selalu berisi
+  gambar yang sama dan aman di-cache selama mungkin.
+
+`remotePatterns` dibatasi ke host Supabase dari env + `/storage/v1/object/public/**`.
+Kalau `image_url` menunjuk ke host lain, `next/image` **melempar error**, bukan
+diam-diam melewatinya. Cadangannya wildcard `**.supabase.co`, dipilih supaya
+halaman pelanggan tetap menampilkan foto seandainya env-nya tidak terbaca saat
+build - kegagalan yang salah arah di sini berarti menu tanpa gambar sama sekali.
+
+> **Masih ada 175 MB sampah di Storage.** Bucket `Menu` (12 berkas) dan
+> `menu-images` (92 berkas) menyimpan PNG **7-8,5 MB per berkas**, sisa unggahan
+> awal. Tidak satu pun dirujuk `menu_items` sekarang, jadi tidak memakan egress
+> - tapi kalau suatu saat ada yang tidak sengaja memilihnya lewat dashboard,
+> satu foto itu saja 8,5 MB untuk setiap pelanggan. Layak dibersihkan.
+
+> **Aplikasi Flutter belum ikut.** Layar Menu di aplikasi kasir memakai
+> `Image.network` ke `image_url` mentah. Itu sumber egress kedua, tapi jauh
+> lebih kecil: pemakainya satu-dua tablet, bukan setiap pelanggan.
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 3 (`next.config.ts`, `components/menu/MenuItemCard.tsx`, `components/menu/MenuItemSheet.tsx`) |
+| TypeScript errors | 0 |
+| Egress per pelanggan | 9,81 MB -> ~32 KB saat halaman dibuka, 0,30 MB kalau seluruh menu digulir |
+| Breaking changes | Tidak ada. Butuh **deploy ulang**; `remotePatterns` hanya berlaku pada build baru |
 
 ---
 

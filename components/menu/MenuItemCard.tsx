@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import { MenuItem } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Plus, Minus, Utensils } from 'lucide-react';
@@ -38,8 +40,21 @@ export function MenuItemCard({ item, onOpenDetail, onQuickAdd, quantityInCart, o
         aria-label={'Lihat detail ' + item.name}
       >
         {item.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image_url} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+          // next/image, bukan <img>: yang ditarik adalah versi seukuran kartu
+          // dalam AVIF/WebP (~15 KB), bukan berkas asli 200-330 KB. Ia juga
+          // lazy secara bawaan, jadi 57 foto tidak lagi diunduh sekaligus saat
+          // halaman dibuka - hanya yang benar-benar terlihat.
+          <Image
+            src={item.image_url}
+            alt={item.name}
+            fill
+            // Grid 2 kolom di dalam `max-w-md` (448px), jadi kartunya tidak
+            // pernah lebih lebar dari ~200px. Tanpa batas ini Next menawarkan
+            // kandidat 640px+ dan hematnya hilang lagi.
+            sizes="(max-width: 448px) 50vw, 200px"
+            quality={60}
+            className="object-cover"
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <Utensils className="w-8 h-8 text-text-secondary/40" />

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { MenuItem, MenuVariation, VariationSelection } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -88,8 +89,18 @@ export function MenuItemSheet({ item, variations, onClose, onAdd }: MenuItemShee
                 {/* Gambar absolute supaya rasio 1:1 tidak ditimpa tinggi asli gambar. */}
                 <div className="relative aspect-square w-full bg-surface-3 rounded-t-2xl overflow-hidden">
                   {item.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.image_url} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+                    <Image
+                      src={item.image_url}
+                      alt={item.name}
+                      fill
+                      // Lembar ini selebar layar, jadi butuh versi lebih besar
+                      // daripada kartunya - tapi tetap dibatasi 640px, karena
+                      // di atas itu mata tidak lagi bisa membedakannya pada
+                      // foto makanan.
+                      sizes="(max-width: 640px) 100vw, 640px"
+                      quality={60}
+                      className="object-cover"
+                    />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Utensils className="w-12 h-12 text-text-secondary/40" />
