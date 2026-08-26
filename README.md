@@ -395,7 +395,8 @@ Untuk fitur "Selesai" kasir (kalau database dibangun sebelum v3.0):
 | GET | `/api/orders/[id]/track` | Public | Tracking 1 order |
 | GET | `/api/orders/table-track?tableId=` | Public | Tracking semua order 1 meja |
 | PATCH | `/api/orders/[id]/status` | staff | QUEUED→PROCESSING→SERVED (+ETA) |
-| PATCH | `/api/orders/[id]/mark-paid` | staff | UNPAID→PAID + antrikan struk + arsip otomatis |
+| PATCH | `/api/orders/[id]/mark-paid` | staff | UNPAID→PAID + antrikan struk + arsip otomatis. Body opsional `verified_by` = nama kasir yang bertugas |
+| PATCH | `/api/orders/[id]/payment-method` | staff | Tukar `CASH` ↔ `QRIS`, **hanya selama UNPAID** |
 | PATCH | `/api/orders/[id]/archive` | staff | is_archived=true (arsip manual; sejak v3.2 jarang dipakai) |
 | PATCH | `/api/orders/[id]/cancel` | staff | Cancel (tolak jika SERVED/CANCELLED) |
 | PATCH | `/api/orders/[id]/update-eta` | staff | Perpanjang ETA |
@@ -1677,6 +1678,41 @@ sendiri hanya karena seseorang berhenti kerja.
 `GET /api/staff` hanya mengembalikan yang aktif, jadi efek yang terlihat sama
 saja: namanya hilang dari daftar dan dari layar jatah makan. Owner aktif terakhir
 tidak bisa mengeluarkan dirinya sendiri (409).
+
+### Tukar metode bayar — hanya selama belum lunas
+
+Pelanggan sering memilih tunai di web lalu minta QRIS di meja kasir. Tanpa
+`PATCH /api/orders/[id]/payment-method`, satu-satunya jalan adalah membatalkan
+ordernya dan mengetik ulang seluruh pesanan.
+
+**Setelah `PAID`, permintaannya ditolak (409).** Metode bayar menentukan uangnya
+ada di mana — tunai di laci, QRIS di rekening — dan rekap kas memisahkan keduanya
+persis untuk itu. Mengubahnya setelah pembayaran memindahkan uang antar pos
+secara diam-diam, dan selisihnya baru ketahuan saat menghitung laci.
+
+### Nama kasir yang bertugas ikut di struk
+
+Warung memakai **satu akun login bersama**, jadi `staff.name` dari JWT selalu
+sama siapa pun yang melayani. Aplikasi kasir karena itu boleh mengirim
+`verified_by` di body `mark-paid`, dipilih dari daftar karyawan.
+
+Nilainya **sengaja tidak divalidasi ke tabel staff**: itu satu query tambahan di
+jalur terpanas (setiap pembayaran tunai), demi mencegah teks bebas dari klien
+yang sudah terautentikasi staff. Yang dilakukan hanya `trim` + potong 40
+karakter — dampak terburuknya nama aneh tercetak di struk, bukan data rusak.
+
+### Menu nonaktif disembunyikan dari pelanggan
+
+`is_available = false` berarti menu itu tidak dijual lagi → **tidak ditampilkan
+sama sekali** di halaman pelanggan. Berbeda dari `is_sold_out`, yang berarti hari
+ini kebetulan kosong dan tetap tampil berlabel "Habis" supaya pelanggan tahu
+warungnya memang menjualnya.
+
+Dulu keduanya sama-sama tampil berlabel "Habis". Akibatnya dua menu bernama sama
+— satu aktif, satu sudah dimatikan — muncul berdampingan, dan pelanggan bingung
+mana yang benar. Aplikasi kasir juga kini punya tombol **Hapus** untuk menu yang
+memang salah dibuat; order lama tidak terpengaruh karena `order_items` menyimpan
+nama & harga sebagai salinan.
 
 ### Take Away untuk pelanggan
 

@@ -52,6 +52,15 @@ export default function OrderPage() {
   }, [selectedItem]);
 
   const filteredItems = menuItems.filter(item => {
+    // Menu yang dinonaktifkan owner TIDAK ditampilkan sama sekali.
+    //
+    // Bedanya dengan "habis": `is_sold_out` berarti hari ini kebetulan kosong —
+    // itu tetap ditampilkan berlabel Habis supaya pelanggan tahu warungnya
+    // memang menjualnya. `is_available = false` berarti menu itu memang tidak
+    // dijual lagi; menampilkannya cuma membuat pelanggan bingung, apalagi kalau
+    // ada dua menu bernama sama dan yang satu sudah dimatikan.
+    if (item.is_available === false) return false;
+
     const matchCategory = !selectedCategory || item.category_id === selectedCategory;
     const matchSearch = !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
