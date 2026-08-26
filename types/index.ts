@@ -41,6 +41,8 @@ export interface Order {
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
   total_amount: number;
+  /** Uang yang sudah dikembalikan ke pelanggan. Omzet memakai selisihnya. */
+  refunded_amount?: number;
   notes: string | null;
   cancel_reason: string | null;
   confirmed_at: string | null;

@@ -60,7 +60,10 @@ export default function OwnerPage() {
     return true;
   });
 
-  const totalRevenue = filteredOrders.filter(o => o.status === 'SERVED').reduce((sum, o) => sum + o.total_amount, 0);
+  // Refund dipotong dari omzet tanggal order itu dibuat — keputusan pemilik,
+  // dan harus sama persis dengan angka yang ditampilkan aplikasi kasir.
+  const totalRefunded = filteredOrders.reduce((sum, o) => sum + (o.refunded_amount ?? 0), 0);
+  const totalRevenue = filteredOrders.filter(o => o.status === 'SERVED').reduce((sum, o) => sum + o.total_amount - (o.refunded_amount ?? 0), 0);
   const totalOrders = filteredOrders.length;
   const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
   const cancelCount = filteredOrders.filter(o => o.status === 'CANCELLED').length;
@@ -109,6 +112,9 @@ export default function OwnerPage() {
         <div className="card p-4">
           <div className="flex items-center gap-2 text-text-secondary text-sm mb-1"><DollarSign className="w-4 h-4" /> Pendapatan</div>
           <p className="text-xl font-bold text-text">{formatCurrency(totalRevenue)}</p>
+          {totalRefunded > 0 && (
+            <p className="text-xs text-danger mt-1">sudah dipotong refund {formatCurrency(totalRefunded)}</p>
+          )}
         </div>
         <div className="card p-4">
           <div className="flex items-center gap-2 text-text-secondary text-sm mb-1"><ShoppingCart className="w-4 h-4" /> Total Order</div>

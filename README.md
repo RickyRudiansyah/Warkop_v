@@ -42,6 +42,7 @@
 - [Changelog v3.0](#changelog-v30)
 - [Changelog v3.1](#changelog-v31)
 - [Changelog v3.2](#changelog-v32)
+- [Changelog v3.3](#changelog-v33)
 - [Developer](#developer)
 
 ---
@@ -352,13 +353,14 @@ activity_logs ( id UUID PK, actor_email, actor_role, action, target_type, target
 | 8 | `scripts/add-print-stations.sql` | struk kasir + struk dapur |
 | 9 | `scripts/create-expenses.sql` | pengeluaran harian (rekap bersih) |
 | 10 | `scripts/flexible-staff-roles.sql` | peran karyawan bebas (koki, barista, …) |
+| 11 | `scripts/create-refunds.sql` | refund order / per item (`orders.refunded_amount` + tabel `refunds`) |
 
 Nomor 1–4 sudah dijalankan sejak v3.1. Nomor 5–10 menyusul di v3.2 — semuanya
 idempoten, jadi aman kalau ragu apakah sudah pernah dijalankan.
 
-Per 8 Agustus 2026 seluruhnya **sudah terpasang** di database produksi
-(diverifikasi: tabel `expenses` ada, dan `role` sudah menerima nilai di luar
-`cashier`/`owner`).
+Per 27 Agustus 2026 **seluruhnya sudah terpasang** di database produksi —
+diverifikasi bukan lewat inspeksi manual, tapi karena `npm run test:e2e` lolos
+35/35 (uji refund akan membalas 404 kalau migrasi 11 belum jalan).
 
 Untuk fitur "Selesai" kasir (kalau database dibangun sebelum v3.0):
 `ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;`
@@ -397,6 +399,7 @@ Untuk fitur "Selesai" kasir (kalau database dibangun sebelum v3.0):
 | PATCH | `/api/orders/[id]/status` | staff | QUEUED→PROCESSING→SERVED (+ETA) |
 | PATCH | `/api/orders/[id]/mark-paid` | staff | UNPAID→PAID + antrikan struk + arsip otomatis. Body opsional `verified_by` = nama kasir yang bertugas |
 | PATCH | `/api/orders/[id]/payment-method` | staff | Tukar `CASH` ↔ `QRIS`, **hanya selama UNPAID** |
+| PATCH | `/api/orders/[id]/refund` | staff | Refund seluruh sisa (body kosong) atau per item (`items: [{ order_item_id, quantity }]`, opsional `reason`). **Nominal dihitung server** |
 | PATCH | `/api/orders/[id]/archive` | staff | is_archived=true (arsip manual; sejak v3.2 jarang dipakai) |
 | PATCH | `/api/orders/[id]/cancel` | staff | Cancel (tolak jika SERVED/CANCELLED) |
 | PATCH | `/api/orders/[id]/update-eta` | staff | Perpanjang ETA |
@@ -749,6 +752,16 @@ cp .env.example .env      # lalu isi kredensial
 npm run dev               # http://localhost:3000
 ```
 
+Menguji perubahan sebelum dipasang ke warung:
+
+```bash
+npm run build && npx next start -p 3100     # e2e menembak build, bukan dev server
+node scripts/e2e.mjs --base=http://localhost:3100
+```
+
+Suite ini menulis ke database yang sama dengan yang dipakai warung, lalu
+membersihkan jejaknya sendiri — rinciannya di [Changelog v3.3](#changelog-v33).
+
 | URL | Halaman | Akses |
 |---|---|---|
 | `http://localhost:3000/order?table=1` | Menu Customer | Public |
@@ -872,6 +885,7 @@ curl http://localhost:3000/api/health
 | v3.0 | Redesign alur pembayaran (status/payment_status split), gateway QRIS, dark mode, geolocation gate, Docker |
 | v3.1 | Hapus role koki, cetak struk otomatis ke printer Bluetooth |
 | v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per periode, kelola karyawan + peran bebas, Take Away, 30 meja, QRIS via Midtrans Snap, struk kasir + dapur, jaring pengaman pembayaran, pengeluaran harian |
+| v3.3 | Refund order & per item (mengurangi omzet hari itu), suite end-to-end test |
 
 ---
 
@@ -1798,6 +1812,153 @@ menerima QRIS lalu bertanya ke kasir.
 | Files modified | 16 (`orders/route.ts`, `mark-paid/route.ts`, `orders/history/route.ts`, `mayar/create/route.ts`, `midtrans/charge/route.ts`, `lib/midtrans.ts`, `staff/route.ts`, `lib/utils.ts`, `lib/receipt.ts`, `OrderCard.tsx`, `MenuItemSheet.tsx`, `cashier/page.tsx`, `new-order/page.tsx`, `history/page.tsx`, `owner/page.tsx`, `checkout/page.tsx`) |
 | TypeScript errors | 0 |
 | Breaking changes | Arsip otomatis tidak butuh migrasi (`is_archived` ada sejak v3.0). Kelola karyawan butuh `scripts/staff-optional-email.sql`. |
+
+---
+
+## Changelog v3.3
+
+### Refund — seluruh order atau per item
+
+Permintaan pemilik, dua kalimat, dan keduanya menentukan bentuk fiturnya:
+
+> 1. bisa refund seluruh order dan per item di order itu
+> 2. uang refund mengurangi omzet hari itu
+
+**Kalimat kedua yang menentukan letak datanya.** Jumlah refund menempel pada
+ordernya (`orders.refunded_amount`), bukan dicatat sebagai baris pengeluaran.
+Rekap menghitung omzet sebagai `SUM(total_amount - refunded_amount)`, sehingga
+pengurangannya otomatis jatuh pada tanggal order itu dibuat — termasuk kalau
+refundnya baru dilakukan tiga hari kemudian. Kalau refund dicatat sebagai
+pemasukan negatif bertanggal sendiri, refund lintas hari akan menaikkan omzet
+kemarin **dan** menurunkan hari ini: dua angka salah sekaligus, dan tidak ada
+yang punya alasan untuk curiga.
+
+`PATCH /api/orders/[id]/refund`
+([route.ts](app/api/orders/[id]/refund/route.ts)):
+
+```jsonc
+{}                                                        // seluruh sisa order
+{ "items": [{ "order_item_id": "…", "quantity": 1 }] }    // per item
+{ "items": [ … ], "reason": "pesanan salah" }
+```
+
+**Nominalnya tidak pernah diambil dari klien.** Yang naik hanya id item dan
+jumlah porsi; rupiahnya dihitung ulang server dari `order_items`. Uang keluar
+tidak boleh bergantung pada angka yang dikirim tablet — salah hitung di sana
+langsung jadi omzet yang salah dan tidak ada yang mengoreksinya. Dialog di
+aplikasi kasir tetap menampilkan perkiraannya, tapi itu murni untuk kasir.
+
+Harga per porsi diturunkan dari `subtotal ÷ quantity`, **bukan** dari
+`menu_item_price`. Topping berbayar ada di subtotal dan tidak ada di harga menu;
+memakai harga menu berarti mengembalikan uang lebih sedikit daripada yang
+benar-benar dibayar pelanggan. Uji `refund per item memakai harga per porsi dari
+subtotal` di suite e2e menjaga persis itu.
+
+Penjagaan lainnya:
+
+| Keadaan | Balasan |
+|---|---|
+| Order belum lunas | 400 — belum ada uang yang masuk |
+| Jumlah porsi > yang dipesan | 400 |
+| `order_item_id` milik order lain | 400 |
+| Sudah direfund penuh | 409 |
+| Refund lain menyelip di antara baca & tulis | 409, dan baris `refunds` yang terlanjur dibuat dihapus |
+| Pembulatan per porsi melewati sisa | dipangkas ke sisa, bukan ditolak |
+
+Kunci optimistiknya `.eq('refunded_amount', already)` — pola yang sama dengan
+`mark-paid`. Dua tablet menekan Refund berbarengan tidak boleh menghasilkan
+pengembalian ganda, dan yang kalah harus tahu ia kalah, bukan diam-diam
+menimpa.
+
+Tabel `refunds` menyimpan jejaknya: berapa, untuk apa, item mana, oleh siapa.
+Kolom `refunded_amount` di `orders` hanyalah ringkasan yang dibaca rekap; kalau
+suatu hari angkanya dipertanyakan, rinciannya masih ada.
+
+Constraint database `refunded_amount <= total_amount` adalah lapis terakhir:
+bug apa pun di kemudian hari tidak bisa membuat sebuah order mengembalikan lebih
+banyak daripada yang pernah dibayarkan.
+
+**Dashboard owner ikut memakai `total_amount - refunded_amount`.** Rumusnya
+sama persis dengan `OrderModel.netAmount` di aplikasi kasir. Kalau salah satu
+bergeser, angka di tablet dan di web berselisih dan tidak ada yang tahu mana
+yang benar. Kartu Pendapatan menambahkan baris kecil "sudah dipotong refund
+Rp …" supaya selisihnya punya penjelasan.
+
+> Butuh `scripts/create-refunds.sql` — **sudah dijalankan di produksi**
+> (27 Agustus 2026). Kalau suatu saat dipasang di database baru dan lupa
+> dijalankan, gejalanya khas: endpoint refund membalas 404 dan aplikasi membaca
+> `refunded_amount` sebagai 0 — tidak ada yang rusak, fiturnya saja mati.
+
+---
+
+### End-to-end test
+
+`npm run test:e2e` — [scripts/e2e.mjs](scripts/e2e.mjs). 35 uji yang menembak
+API sungguhan lewat HTTP, dengan login staff sungguhan, di atas database
+sungguhan.
+
+Kenapa bukan unit test: bug-bug yang pernah menyakitkan di proyek ini semuanya
+akan lolos dari unit test — order QRIS lunas yang tidak pernah muncul di mana
+pun, struk yang tercetak enam kali, arsip yang menelan order tunai sebelum
+kasir sempat menghitung uangnya. Semuanya hanya kelihatan kalau route,
+database, dan aturan arsipnya dijalankan berbarengan.
+
+```bash
+npm run build && npx next start -p 3100
+node scripts/e2e.mjs --base=http://localhost:3100
+```
+
+Yang dijaga suite ini:
+
+| Kelompok | Isi |
+|---|---|
+| Penjagaan akses | tanpa token 401 · token palsu 401 · menu tetap publik |
+| Alur order tunai | order masuk board · tukar metode selama UNPAID · mark-paid + struk · lunas dua kali ditolak · metode terkunci setelah lunas |
+| Aturan arsip | **tunai menunggu tombol Selesai, QRIS langsung ke riwayat** |
+| Refund | harga per porsi dari subtotal · nominal klien diabaikan · batas porsi · item order lain · sisa order · 409 penuh · jejak `refunds` · constraint database |
+| Omzet | riwayat membawa `refunded_amount` · refund sebagian memotong sebagian · pembulatan tidak melampaui total |
+| Pengeluaran | tercatat atas nama yang login · nol/minus ditolak · batas tanggal dari klien · hapus |
+| Antrian cetak | satu job per stasiun, tidak kembar · struk dapur tanpa rupiah |
+| Pembatalan | order SERVED tidak bisa dibatalkan · order batal ada di riwayat, bukan di board |
+
+**Aman dijalankan saat warung buka**, dan itu bukan kebetulan:
+
+* Akun staff uji **dibuat sendiri** lewat Auth admin API lalu dihapus — tidak
+  perlu meminjam kata sandi siapa pun, dan tidak ada kredensial uji yang
+  mengendap di `.env`.
+* Setiap order uji ditandai `notes` dan **dihapus di akhir**; `ON DELETE
+  CASCADE` ikut membersihkan item, refund, dan print job.
+* Antrian cetak order uji **dihapus segera** setelah dibuat, bukan di akhir
+  skrip. Tablet menarik antrian tiap beberapa detik — menunggu sampai akhir
+  berarti warung mencetak struk palsu.
+* Pembersihan jalan di `finally`, jadi kegagalan di tengah tetap membereskan
+  jejaknya.
+* Basis non-localhost **wajib pakai `--yes`**. Skrip ini menulis order dan
+  refund sungguhan; salah tembak ke domain produksi tidak boleh semudah salah
+  ketik.
+
+`--keep` mematikan pembersihan kalau ada yang perlu diperiksa manual (id yang
+ditinggalkan dicetak di akhir).
+
+Hasil terakhir (27 Agustus 2026, lawan `localhost:3100` + database produksi):
+**35 lolos, 0 gagal.**
+
+Jalan pertamanya justru yang paling berguna: 11 gagal, semuanya satu sebab —
+`scripts/create-refunds.sql` belum dijalankan. Itu persis jenis kesalahan yang
+tidak terlihat dari kode dan baru ketahuan di warung. Suite ini juga menangkap
+dua ekspektasi keliru dalam dokumentasi sebelumnya: `POST /api/orders` yang
+lunas tunai **tidak** langsung terarsip (memang begitu yang diminta warung), dan
+kolom isi struk bernama `text_body`, bukan `body`.
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files created | 3 (`app/api/orders/[id]/refund/route.ts`, `scripts/create-refunds.sql`, `scripts/e2e.mjs`) |
+| Files modified | 3 (`types/index.ts`, `app/(staff)/dashboard/owner/page.tsx`, `package.json`) |
+| TypeScript errors | 0 |
+| Migrasi baru | `scripts/create-refunds.sql` (idempoten) — **wajib**, tanpa itu refund 404 |
+| Breaking changes | Tidak ada. `refunded_amount` opsional di tipe `Order`; klien lama membacanya sebagai 0 |
 
 ---
 
