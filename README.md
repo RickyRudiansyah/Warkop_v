@@ -45,6 +45,7 @@
 - [Changelog v3.3](#changelog-v33)
 - [Changelog v3.4](#changelog-v34)
 - [Changelog v3.5](#changelog-v35)
+- [Changelog v3.6](#changelog-v36)
 - [Developer](#developer)
 
 ---
@@ -891,6 +892,7 @@ curl http://localhost:3000/api/health
 | v3.3 | Refund order & per item (mengurangi omzet hari itu), suite end-to-end test |
 | v3.4 | Foto menu lewat Image Optimization: egress Supabase turun dari 9,8 MB jadi ~32 KB per pelanggan |
 | v3.5 | Audit beban server: ringkasan antrian cetak, riwayat berbatas, Realtime keluar dari halaman pelanggan |
+| v3.6 | Loop cetak tablet melambat sendiri saat sepi (778rb -> 142rb permintaan/bulan), setelah kuota Vercel benar-benar habis dan situs mati |
 
 ---
 
@@ -2064,6 +2066,13 @@ Ditemukan saat menelusuri kuota egress Supabase yang nyaris habis (lihat
 terjadi, tapi audit lanjutan menemukan sesuatu yang lebih besar lagi dan belum
 sempat meledak.
 
+> **Catatan 27 Agustus 2026, sore:** yang diperkirakan di bawah ini **terjadi
+> sungguhan**. Kuota Vercel Hobby (1 juta permintaan/bulan) habis, dan seluruh
+> situs membalas HTTP 402 `DEPLOYMENT_DISABLED` - halaman pelanggan, API, dan
+> gambar. Warung tidak bisa menerima order sampai paketnya dinaikkan ke Pro.
+> Yang menghabiskannya bukan pelanggan, melainkan tablet kasir yang menganggur.
+> Tindak lanjutnya ada di [v3.6](#changelog-v36).
+
 #### 1. Loop cetak menarik 89 KB tiap 4 detik untuk menghitung dua angka
 
 `refreshMonitor()` di aplikasi kasir memanggil `/api/print/jobs`, yang dulu
@@ -2191,6 +2200,73 @@ Suite lengkap: **42 lolos, 0 gagal.**
 | E2E | 42/42 |
 | Egress loop cetak | 3,67 GB/hari -> 2,1 MB/hari |
 | Breaking changes | `/api/orders/history` tanpa `limit` kini mengembalikan **200 terbaru**, bukan seluruh riwayat. Klien yang mengandalkan kelengkapannya harus memakai `?count=1` atau mengirim rentang. |
+
+---
+
+## Changelog v3.6
+
+### Kuota Vercel habis, situs mati, dan apa yang dikerjakan sesudahnya
+
+Pada 27 Agustus 2026 seluruh `rumipang.vercel.app` membalas **HTTP 402
+`DEPLOYMENT_DISABLED`**: halaman pelanggan, API, dan optimasi gambar. Warung
+tidak bisa menerima satu pun order lewat QR.
+
+Penyebabnya kuota **Function Invocations** paket Hobby, 1 juta per bulan. Yang
+menghabiskannya bukan pelanggan:
+
+| Sumber | Interval | Per bulan |
+|---|---|---|
+| Loop cetak tablet | 4 detik | 648.000 |
+| Board kasir | 15 detik | 172.800 |
+| Sapuan pembayaran QRIS | 2 menit | 21.600 |
+| **Total** | | **842.400** |
+
+84% kuota sebulan habis oleh satu tablet yang menganggur di meja kasir.
+
+Pemulihannya naik ke paket **Pro** ($20/bulan, sudah termasuk $20 kredit
+pemakaian, 1 TB transfer, dan 10 juta edge request). Perlu dicatat untuk
+kejadian berikutnya: **upgrade paket saja tidak menghidupkan deployment yang
+sudah terlanjur diblokir** - perlu satu kali redeploy supaya 402-nya lepas.
+
+Catatan lain yang berguna kalau project ini pernah dipindah akun: kuota
+dihitung **per tim**, bukan per project, dan Vercel mereset pemakaian saat
+project ditransfer ke tim lain. Syaratnya pelaksana transfer harus owner di tim
+asal **dan** member di tim tujuan, jadi undangannya dikirim dari tim tujuan ke
+akun pemilik project, bukan sebaliknya.
+
+### Perbaikan akar masalahnya
+
+Aplikasi kasir ([v2.5.1](../MobileApp/RumipangApp/README.md)) sekarang
+melambatkan loop cetaknya sendiri saat antrian sepi: tetap 4 detik selama ada
+pekerjaan atau dalam semenit sesudahnya, 20 detik di luar itu. Jalur cepatnya
+memang bukan polling melainkan Realtime, yang memanggil `pump()` seketika
+begitu ada `print_jobs` INSERT.
+
+| | Per hari | Per bulan |
+|---|---|---|
+| Sebelum | 25.920 | 777.600 |
+| Sesudah | 4.736 | **142.080** |
+
+Digabung dengan v3.5 (ringkasan antrian 89 KB -> 101 byte) dan v3.4 (foto menu
+9,8 MB -> 32 KB), beban yang dulu menghabiskan seluruh kuota sebulan sekarang
+memakai sekitar seperlimanya - dan tiap permintaannya jauh lebih ringan.
+
+### Yang masih menganggur
+
+**Board kasir masih 15 detik** (172.800/bulan), dan sekarang ia yang terbesar.
+Sengaja tidak ikut dilonggarkan: itu layar yang ditatap kasir sepanjang hari,
+dan keterlambatan melihat order masuk lebih terasa daripada keterlambatan
+mencetak struk. Kalau nanti perlu, polanya sudah ada di
+`PrintQueueController._shouldPoll` dan tinggal ditiru.
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 2 (`lib/core/env.dart`, `lib/features/printer/print_queue.dart`) - keduanya di repo aplikasi |
+| Flutter analyze | bersih (2 info lama) |
+| Permintaan loop cetak | 777.600 -> 142.080 per bulan (-82%) |
+| Breaking changes | Tidak ada. Struk tetap tercetak seketika lewat Realtime; yang melambat hanya jaring pengamannya, paling lama 20 detik. |
 
 ---
 
