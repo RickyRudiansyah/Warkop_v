@@ -1,11 +1,51 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth';
+import { readHistoryRange } from '@/lib/history-range';
 
+/**
+ * Riwayat order: diarsipkan **atau** dibatalkan.
+ *
+ * `?from=&to=&limit=` — lihat `lib/history-range.ts`. Tanpa parameter, yang
+ * dikembalikan adalah 200 order terbaru, **bukan** seluruh riwayat.
+ *
+ * `?count=1` mengembalikan `{ count }` saja untuk rentang yang sama. Dipakai
+ * dialog "Hapus Riwayat": jumlah yang akan terhapus tidak boleh dihitung dari
+ * daftar yang kebetulan sedang dimuat klien, karena sejak ada batas di atas
+ * daftar itu tidak lagi memuat semuanya — dan penghapusannya permanen.
+ */
 export async function GET(request: NextRequest) {
   if (!await requireStaff(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { from, to, limit, error: rangeError } = readHistoryRange(request);
+  if (rangeError) return NextResponse.json({ error: rangeError }, { status: 400 });
+
   const supabase = createAdminClient();
-  const { data, error } = await supabase.from('orders').select('*, table:tables(*), items:order_items(*)').or('is_archived.eq.true,status.eq.CANCELLED').order('created_at', { ascending: false });
+  const isHistory = 'is_archived.eq.true,status.eq.CANCELLED';
+
+  if (new URL(request.url).searchParams.get('count') === '1') {
+    let counter = supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .or(isHistory);
+    if (from) counter = counter.gte('created_at', from);
+    if (to) counter = counter.lt('created_at', to);
+
+    const { count, error } = await counter;
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ count: count ?? 0 });
+  }
+
+  let query = supabase
+    .from('orders')
+    .select('*, table:tables(*), items:order_items(*)')
+    .or(isHistory)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (from) query = query.gte('created_at', from);
+  if (to) query = query.lt('created_at', to);
+
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }

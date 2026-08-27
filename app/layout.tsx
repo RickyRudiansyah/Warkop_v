@@ -4,7 +4,6 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { ThemePresetSync } from "@/components/ui/ThemePresetSync";
 import { createAdminClient } from "@/lib/supabase/server";
 import { DEFAULT_PRESET, presetFromSettingsValue, type ThemePreset } from "@/lib/theme";
 import { Toaster } from "sonner";
@@ -58,7 +57,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     >
       <body className="min-h-full flex flex-col bg-surface-2 font-sans">
         <ThemeProvider>
-          <ThemePresetSync />
           <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[999] focus:px-4 focus:py-2 focus:bg-primary focus:text-[color:var(--color-on-primary)] focus:rounded-lg">Lewati ke konten utama</a>
           <AuthProvider>
             <CartProvider>

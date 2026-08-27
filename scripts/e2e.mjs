@@ -648,6 +648,80 @@ async function main() {
     }
   });
 
+  // ========================================================= beban server
+  section('Beban server');
+
+  await test('ringkasan antrian cetak jauh lebih ringan dari daftarnya', async () => {
+    const counts = await api('GET', '/api/print/jobs?counts=1');
+    eq(counts.status, 200, 'status');
+    ok(typeof counts.body.pending === 'number', 'pending bukan angka');
+    ok(Array.isArray(counts.body.pending_stations), 'pending_stations bukan daftar');
+
+    const list = await api('GET', '/api/print/jobs');
+    eq(list.status, 200, 'status daftar');
+
+    // Inilah alasan mode ini ada: loop cetak memanggilnya tiap 4 detik.
+    ok(
+      counts.raw.length * 10 < list.raw.length,
+      `ringkasan ${counts.raw.length} byte vs daftar ${list.raw.length} byte - '
+      + 'harusnya jauh lebih kecil`,
+    );
+  });
+
+  await test('daftar antrian cetak tidak lagi membawa isi struk', async () => {
+    const res = await api('GET', '/api/print/jobs');
+    for (const job of res.body.jobs) {
+      ok(job.text_body === undefined, 'text_body masih ikut di daftar');
+      ok(job.payload !== undefined, 'payload hilang - dashboard butuh ini');
+    }
+  });
+
+  await test('isi struk tetap bisa diambil satu per satu', async () => {
+    const list = await api('GET', '/api/print/jobs');
+    if (list.body.jobs.length === 0) return; // tidak ada job untuk diperiksa
+    const id = list.body.jobs[0].id;
+    const res = await api('GET', `/api/print/jobs?id=${id}`);
+    eq(res.status, 200, 'status');
+    ok(typeof res.body.job.text_body === 'string', 'text_body tidak ada');
+  });
+
+  await test('riwayat dibatasi jumlahnya, bukan seluruh isi database', async () => {
+    const res = await api('GET', '/api/orders/history?limit=3');
+    eq(res.status, 200, 'status');
+    ok(res.body.length <= 3, `dapat ${res.body.length} order, minta 3`);
+
+    // Tanpa limit pun tidak boleh tak terbatas.
+    const bawaan = await api('GET', '/api/orders/history');
+    ok(bawaan.body.length <= 200, `bawaan ${bawaan.body.length} order, batasnya 200`);
+  });
+
+  await test('riwayat menghormati batas tanggal dari klien', async () => {
+    const now = new Date();
+    const besok = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const lusa = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
+    const res = await api(
+      'GET',
+      `/api/orders/history?from=${encodeURIComponent(besok.toISOString())}&to=${encodeURIComponent(lusa.toISOString())}`,
+    );
+    eq(res.status, 200, 'status');
+    eq(res.body.length, 0, 'order dari masa depan');
+  });
+
+  await test('hitungan riwayat cocok dengan daftarnya', async () => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const q = `from=${encodeURIComponent(from)}`;
+    const count = await api('GET', `/api/orders/history?count=1&${q}`);
+    const list = await api('GET', `/api/orders/history?limit=500&${q}`);
+    eq(count.status, 200, 'status hitungan');
+    eq(count.body.count, list.body.length, 'hitungan vs jumlah baris');
+  });
+
+  await test('tanggal ngawur di riwayat ditolak 400', async () => {
+    const res = await api('GET', '/api/orders/history?from=kemarin-sore');
+    eq(res.status, 400, 'status');
+  });
+
   // ================================================================ pembatalan
   section('Pembatalan');
 

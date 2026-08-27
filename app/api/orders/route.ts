@@ -4,6 +4,7 @@ import { requireStaff } from '@/lib/auth';
 import { enqueueReceipt } from '@/lib/print';
 import { fetchCostPrices } from '@/lib/cost';
 import { autoArchiveIfSettled } from '@/lib/archive';
+import { readHistoryRange } from '@/lib/history-range';
 
 export async function GET(request: NextRequest) {
   if (!await requireStaff(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -13,8 +14,17 @@ export async function GET(request: NextRequest) {
   const mode = searchParams.get('mode');
   let query = supabase.from('orders').select('*, table:tables(*), items:order_items(*)').order('created_at', { ascending: false });
   if (history) {
-    // history: archived orders OR cancelled orders
-    query = query.or('is_archived.eq.true,status.eq.CANCELLED');
+    // history: archived orders OR cancelled orders.
+    //
+    // Dibatasi rentang + jumlah, sama seperti `/api/orders/history`. Tanpa itu
+    // dashboard owner menarik SELURUH riwayat hanya untuk menghitung omzet hari
+    // ini, lalu menyaringnya di browser (lib/history-range.ts).
+    const { from, to, limit, error: rangeError } = readHistoryRange(request);
+    if (rangeError) return NextResponse.json({ error: rangeError }, { status: 400 });
+
+    query = query.or('is_archived.eq.true,status.eq.CANCELLED').limit(limit);
+    if (from) query = query.gte('created_at', from);
+    if (to) query = query.lt('created_at', to);
   } else if (mode === 'qris-paid') {
     // Order QRIS diarsipkan otomatis begitu lunas, jadi ia tidak pernah mampir
     // di board kasir — dan warung kehilangan pandangan atas pesanan yang justru

@@ -31,9 +31,22 @@ export default function OwnerPage() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
+    // Rentangnya dipotong DI SERVER. Dulu halaman ini menarik seluruh riwayat
+    // sejak hari pertama (897 KB pada 636 order, dan terus bertambah ~32 order
+    // sehari) hanya untuk menghitung omzet hari ini, lalu menyaringnya di
+    // browser. Batas harinya dihitung dari jam browser kasir, karena tengah
+    // malam di warung adalah tengah malam WIB - bukan UTC.
+    const now = new Date();
+    const since =
+      timeFilter === 'today' ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      : timeFilter === '7days' ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
+      : null;
+    const qs = '/api/orders?history=1&limit=500'
+      + (since ? '&from=' + encodeURIComponent(since.toISOString()) : '');
+
     Promise.all([
       fetch('/api/menu').then(r => r.json()),
-      fetch('/api/orders?history=1').then(r => r.json()),
+      fetch(qs).then(r => r.json()),
     ]).then(([menu, orders]) => {
       setMenuItems(Array.isArray(menu) ? menu : []);
       setOrders(Array.isArray(orders) ? orders : []);
@@ -43,10 +56,13 @@ export default function OwnerPage() {
       setOrders([]);
       setLoading(false);
     });
-  }, []);
+  }, [timeFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Server sudah memotong rentangnya; penyaringan ini tinggal jaring pengaman
+  // untuk balasan yang menyeberang batas hari (mis. tab dibiarkan terbuka
+  // melewati tengah malam).
   const filteredOrders = orders.filter(o => {
     if (timeFilter === 'today') {
       const today = new Date();

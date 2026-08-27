@@ -30,7 +30,10 @@ export default function PrinterPage() {
   const [jobs, setJobs] = useState<PrintJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Isi struk TIDAK ikut di daftar (lihat catatan di app/api/print/jobs/route.ts).
+  // Ditarik saat tombolnya ditekan, satu job saja.
   const [preview, setPreview] = useState<PrintJob | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const supabase = useMemo(() => createClient(), []);
 
   const fetchJobs = useCallback(async () => {
@@ -51,6 +54,18 @@ export default function PrinterPage() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [supabase, fetchJobs]);
+
+  const openPreview = async (job: PrintJob) => {
+    setPreview(job);
+    setPreviewLoading(true);
+    try {
+      const res = await fetch('/api/print/jobs?id=' + job.id, { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.job) setPreview(data.job as PrintJob);
+      else toast.error(data.error || 'Gagal memuat isi struk');
+    } catch { toast.error('Gagal menghubungi server'); }
+    setPreviewLoading(false);
+  };
 
   const handleRetry = async (id: string) => {
     setBusyId(id);
@@ -116,7 +131,7 @@ export default function PrinterPage() {
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="font-bold text-primary">{formatCurrency(payload.total ?? 0)}</span>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setPreview(job)}>Lihat Struk</Button>
+                    <Button variant="ghost" size="sm" onClick={() => openPreview(job)}>Lihat Struk</Button>
                     {(job.status === 'FAILED' || job.status === 'PRINTED') && (
                       <Button variant="secondary" size="sm" loading={busyId === job.id} disabled={busyId === job.id} onClick={() => handleRetry(job.id)}>
                         Cetak Lagi
@@ -141,7 +156,11 @@ export default function PrinterPage() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setPreview(null)} />
           <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-sm p-6" role="dialog" aria-modal="true" aria-labelledby="preview-title">
             <h3 id="preview-title" className="text-lg font-bold mb-3">Pratinjau Struk</h3>
-            <pre className="text-xs font-mono whitespace-pre overflow-x-auto bg-surface-2 rounded-lg p-3 mb-4">{preview.text_body}</pre>
+            {previewLoading ? (
+              <div className="flex justify-center py-8"><Spinner /></div>
+            ) : (
+              <pre className="text-xs font-mono whitespace-pre overflow-x-auto bg-surface-2 rounded-lg p-3 mb-4">{preview.text_body}</pre>
+            )}
             <Button variant="ghost" className="w-full" onClick={() => setPreview(null)}>Tutup</Button>
           </div>
         </div>

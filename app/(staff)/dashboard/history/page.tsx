@@ -30,8 +30,11 @@ export default function HistoryPage() {
   const [purgeScope, setPurgeScope] = useState<PurgeScope>('day');
   const [purgeAnchor, setPurgeAnchor] = useState(() => new Date());
 
+  // 200 terbaru, bukan seluruh riwayat. Server memang membatasinya sekarang
+  // (lib/history-range.ts); ditulis eksplisit di sini supaya jelas bahwa tabel
+  // ini memang tidak menampilkan semuanya.
   const fetchHistory = useCallback(() => {
-    fetch('/api/orders/history')
+    fetch('/api/orders/history?limit=200')
       .then(r => r.ok ? r.json() : [])
       .then(d => { setOrders(Array.isArray(d) ? d : []); })
       .catch(() => setOrders([]))
@@ -81,18 +84,33 @@ export default function HistoryPage() {
     ).format(purgeAnchor);
   };
 
-  // Dihitung dari daftar yang sudah dimuat, bukan ditanyakan ke server:
-  // penghapusan ini permanen, dan angka "0 order" adalah cara paling cepat
-  // menyadari salah pilih periode.
-  const purgeAffected = (() => {
+  // DITANYAKAN KE SERVER, bukan dihitung dari daftar yang sedang dimuat.
+  //
+  // Dulu dihitung lokal, dan itu benar selama klien memuat seluruh riwayat.
+  // Sejak daftarnya dibatasi 200 terbaru, hitungan lokal akan mengatakan
+  // "0 order" untuk bulan lalu — lalu tombol Hapus mati, atau lebih buruk,
+  // kasir mengira periode itu memang kosong. Penghapusannya permanen; angkanya
+  // harus datang dari sumber yang sama dengan yang akan dihapus.
+  const [purgeAffected, setPurgeAffected] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!purgeOpen) return;
+    let cancelled = false;
+    setPurgeAffected(null);
+
     const range = purgeRange();
-    if (!range) return orders.length;
-    const [from, to] = range;
-    return orders.filter(o => {
-      const at = new Date(o.created_at);
-      return at >= from && at < to;
-    }).length;
-  })();
+    const qs = range
+      ? '?count=1&from=' + encodeURIComponent(range[0].toISOString()) + '&to=' + encodeURIComponent(range[1].toISOString())
+      : '?count=1';
+
+    fetch('/api/orders/history' + qs)
+      .then(r => r.ok ? r.json() : { count: 0 })
+      .then(d => { if (!cancelled) setPurgeAffected(Number(d.count) || 0); })
+      .catch(() => { if (!cancelled) setPurgeAffected(0); });
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purgeOpen, purgeScope, purgeAnchor]);
 
   const handlePurge = async () => {
     setClearing(true);
@@ -104,7 +122,7 @@ export default function HistoryPage() {
       const res = await fetch('/api/orders/history' + qs, { method: 'DELETE' });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.success((data.deleted ?? purgeAffected) + ' order dihapus dari riwayat');
+        toast.success((data.deleted ?? purgeAffected ?? 0) + ' order dihapus dari riwayat');
         setPurgeOpen(false);
         fetchHistory();
       } else {
@@ -228,8 +246,10 @@ export default function HistoryPage() {
             )}
 
             <div className="p-3 rounded-lg border border-danger/35 bg-danger/5 mb-4">
-              <p className={cn('text-sm font-medium', purgeAffected === 0 ? 'text-text-secondary' : 'text-danger')}>
-                {purgeAffected === 0
+              <p className={cn('text-sm font-medium', !purgeAffected ? 'text-text-secondary' : 'text-danger')}>
+                {purgeAffected === null
+                  ? 'Menghitung...'
+                  : purgeAffected === 0
                   ? 'Tidak ada order pada ' + purgeLabel() + '.'
                   : purgeAffected + ' order pada ' + purgeLabel() + ' akan dihapus permanen.'}
               </p>
@@ -237,7 +257,7 @@ export default function HistoryPage() {
 
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" onClick={() => setPurgeOpen(false)} disabled={clearing}>Batal</Button>
-              <Button variant="danger" onClick={handlePurge} disabled={clearing || purgeAffected === 0} loading={clearing}>
+              <Button variant="danger" onClick={handlePurge} disabled={clearing || !purgeAffected} loading={clearing}>
                 Hapus Permanen
               </Button>
             </div>

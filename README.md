@@ -44,6 +44,7 @@
 - [Changelog v3.2](#changelog-v32)
 - [Changelog v3.3](#changelog-v33)
 - [Changelog v3.4](#changelog-v34)
+- [Changelog v3.5](#changelog-v35)
 - [Developer](#developer)
 
 ---
@@ -390,7 +391,7 @@ Untuk fitur "Selesai" kasir (kalau database dibangun sebelum v3.0):
 | GET | `/api/orders` | staff | Board dapur (non-arsip, aktif) |
 | GET | `/api/orders?mode=cashier` | staff | Board kasir (termasuk SERVED sampai diarsip) |
 | GET | `/api/orders?mode=qris-paid&from=` | staff | Order QRIS lunas sejak `from` (ISO ber-offset), hanya-baca |
-| GET | `/api/orders?history=1` · `/api/orders/history` | staff | Arsip + dibatalkan |
+| GET | `/api/orders?history=1` · `/api/orders/history` | staff | Arsip + dibatalkan. `?from=&to=&limit=`, **bawaan 200 terbaru**, maksimum 500 |
 | DELETE | `/api/orders/history` | staff | Hapus history: seluruhnya, atau `?from=&to=` (ISO-8601 ber-offset, `from` inklusif · `to` eksklusif) |
 | DELETE | `/api/orders/reset` | owner | Reset semua order + log |
 | POST | `/api/orders` | Public | Buat order (Cash langsung; QRIS lewat settle) |
@@ -401,6 +402,7 @@ Untuk fitur "Selesai" kasir (kalau database dibangun sebelum v3.0):
 | PATCH | `/api/orders/[id]/mark-paid` | staff | UNPAID→PAID + antrikan struk + arsip otomatis. Body opsional `verified_by` = nama kasir yang bertugas |
 | PATCH | `/api/orders/[id]/payment-method` | staff | Tukar `CASH` ↔ `QRIS`, **hanya selama UNPAID** |
 | PATCH | `/api/orders/[id]/refund` | staff | Refund seluruh sisa (body kosong) atau per item (`items: [{ order_item_id, quantity }]`, opsional `reason`). **Nominal dihitung server** |
+| GET | `/api/orders/history?count=1` | staff | Jumlah order pada rentang, tanpa mengunduhnya (dipakai dialog hapus riwayat) |
 | PATCH | `/api/orders/[id]/archive` | staff | is_archived=true (arsip manual; sejak v3.2 jarang dipakai) |
 | PATCH | `/api/orders/[id]/cancel` | staff | Cancel (tolak jika SERVED/CANCELLED) |
 | PATCH | `/api/orders/[id]/update-eta` | staff | Perpanjang ETA |
@@ -888,6 +890,7 @@ curl http://localhost:3000/api/health
 | v3.2 | Arsip otomatis khusus QRIS, hapus riwayat per periode, kelola karyawan + peran bebas, Take Away, 30 meja, QRIS via Midtrans Snap, struk kasir + dapur, jaring pengaman pembayaran, pengeluaran harian |
 | v3.3 | Refund order & per item (mengurangi omzet hari itu), suite end-to-end test |
 | v3.4 | Foto menu lewat Image Optimization: egress Supabase turun dari 9,8 MB jadi ~32 KB per pelanggan |
+| v3.5 | Audit beban server: ringkasan antrian cetak, riwayat berbatas, Realtime keluar dari halaman pelanggan |
 
 ---
 
@@ -2049,6 +2052,145 @@ build - kegagalan yang salah arah di sini berarti menu tanpa gambar sama sekali.
 | TypeScript errors | 0 |
 | Egress per pelanggan | 9,81 MB -> ~32 KB saat halaman dibuka, 0,30 MB kalau seluruh menu digulir |
 | Breaking changes | Tidak ada. Butuh **deploy ulang**; `remotePatterns` hanya berlaku pada build baru |
+
+---
+
+## Changelog v3.5
+
+### Empat sumber beban yang tidak kelihatan dari kode
+
+Ditemukan saat menelusuri kuota egress Supabase yang nyaris habis (lihat
+[v3.4](#changelog-v34)). Foto menu memang penyebab terbesar yang **sudah**
+terjadi, tapi audit lanjutan menemukan sesuatu yang lebih besar lagi dan belum
+sempat meledak.
+
+#### 1. Loop cetak menarik 89 KB tiap 4 detik untuk menghitung dua angka
+
+`refreshMonitor()` di aplikasi kasir memanggil `/api/print/jobs`, yang dulu
+mengembalikan 50 baris **lengkap dengan `text_body` dan `payload`**. Yang
+dipakai cuma ini:
+
+```dart
+final pending = jobs.where((j) => j.status == pending || j.status == printing).length;
+final failed  = jobs.where((j) => j.status == failed).length;
+```
+
+Dan itu bukan tiap 20 detik seperti dugaan pertama: `pump()` memanggilnya di
+akhir setiap putaran, jadi **tiap 4 detik**. Dengan dua printer bahkan dua kali
+per putaran, karena `_stationsWithPendingJobs()` menarik daftar yang sama lagi
+untuk mencari tahu printer mana yang punya antrian.
+
+| | Per panggilan | Nyala 24 jam |
+|---|---|---|
+| Sebelum, 1 printer | 89 KB | **1,83 GB/hari** |
+| Sebelum, 2 printer | 178 KB | **3,67 GB/hari** |
+| Sesudah | **101 byte** | **2,1 MB/hari** |
+
+Kuota egress Free Plan 5 GB **sebulan**. Satu tablet dengan dua printer
+menghabiskannya dalam 33 jam, tanpa satu pun pelanggan.
+
+Perbaikannya `?counts=1`, yang mengembalikan angka **dan** daftar stasiun yang
+punya antrian dalam satu balasan:
+
+```jsonc
+{ "pending": 0, "printing": 0, "failed": 0, "pending_stations": [], "stations": ["CASHIER"] }
+```
+
+Dua panggilan berat di `pump()` runtuh jadi satu yang ringan, dan loopnya
+pulang lebih awal saat tidak ada yang perlu dicetak - keadaan yang berlaku
+hampir sepanjang hari.
+
+Daftar monitoring biasa juga **tidak lagi membawa `text_body`** (58 KB, turun
+dari 89 KB). Yang butuh isi struk cuma tombol pratinjau, dan itu sekarang punya
+jalurnya sendiri: `?id=<uuid>`, satu job, hanya saat ditekan. Berlaku di
+dashboard web maupun layar Printer di aplikasi.
+
+#### 2. `/api/orders/history` mengembalikan seluruh riwayat sejak hari pertama
+
+Tanpa `LIMIT`, tanpa rentang. Pada 636 order sudah **897 KB**, dan warung ini
+menambah ~32 order sehari - dalam setahun balasannya menembus 16 MB. Tiga
+pemanggil menariknya utuh: tab Riwayat di aplikasi, halaman riwayat web, dan
+**dashboard owner** - yang paling boros, karena ia menarik semuanya lalu
+menyaringnya di browser hanya untuk menghitung omzet hari ini.
+
+Sekarang semua lewat [`lib/history-range.ts`](lib/history-range.ts): `from`,
+`to`, `limit` (bawaan 200, maksimum 500). Aplikasi kasir mengirim rentang yang
+sedang dilihat, jadi "Hari Ini" benar-benar hanya menarik hari ini.
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| Bawaan | 897 KB (dan terus tumbuh) | 314 KB (tetap, 200 terbaru) |
+| "Hari Ini" | 897 KB | **0,6 KB** |
+| Dashboard owner, filter hari ini | 897 KB | 0,6 KB |
+
+**Konsekuensi yang harus ikut diperbaiki:** dialog "Hapus Riwayat" di kedua
+klien dulu menghitung jumlah order terdampak dari daftar yang sedang dimuat.
+Itu benar selama klien memuat seluruh riwayat. Begitu daftarnya dibatasi,
+hitungan lokal akan berkata "0 order" untuk bulan lalu, lalu tombol Hapus mati
+- atau lebih buruk, kasir mengira periode itu memang kosong. Padahal yang
+dihapus tetap semuanya. Karena itu ada `?count=1`, dan kedua dialog sekarang
+menanyakannya ke server.
+
+#### 3. Setiap pelanggan membuka WebSocket untuk memantau tema
+
+`ThemePresetSync` dipasang di `app/layout.tsx` - **root layout**, jadi ikut di
+setiap halaman pelanggan. Tiap orang yang memindai QR membuka satu koneksi
+Realtime ke Supabase untuk memantau satu baris `app_settings` yang berubah
+mungkin dua kali setahun. Kuota koneksi bersamaan Free Plan cuma 200, dan
+warung ini punya 30 meja.
+
+Dipindahkan ke [`app/(staff)/layout.tsx`](app/(staff)/layout.tsx) yang dibuat
+khusus untuk itu. Pelanggan tidak kehilangan apa pun: `data-preset` sudah
+ditanam server saat render, jadi tema yang mereka lihat tetap benar. Yang
+hilang cuma pembaruan langsung tanpa muat ulang, dan itu memang hanya berguna
+untuk layar staff yang dibiarkan terbuka seharian.
+
+#### 4. Satu UPDATE database tiap 4 detik yang tidak menyentuh apa pun
+
+`requeueStaleJobs()` dipanggil di awal **setiap** `/api/print/jobs`, termasuk
+saat antriannya kosong: ~21.600 write query sehari yang 99,9% tidak mengubah
+satu baris pun.
+
+Sekarang ia jalan di tiga tempat, semuanya bersyarat:
+
+- **jalur `claim`**: selalu, tanpa syarat. Di sinilah satu-satunya tempat yang
+  benar-benar membutuhkannya - job `PRINTING` yang ditinggal mati aplikasinya
+  baru bisa dicetak lagi setelah dikembalikan ke `PENDING`, dan yang
+  menunggunya adalah query klaim tepat sesudahnya.
+- **`?counts=1` dan daftar monitoring**: hanya kalau memang ada baris berstatus
+  `PRINTING`. Datanya sudah di tangan, jadi syaratnya gratis.
+
+Tanpa syarat terakhir itu jaring pengamannya akan bocor: kalau requeue hanya
+jalan di jalur klaim, sementara jalur klaim hanya dipanggil ketika ada job
+`PENDING`, maka job yang nyangkut di `PRINTING` tidak akan pernah dibebaskan
+siapa pun.
+
+### Uji
+
+Tujuh uji baru di [`scripts/e2e.mjs`](scripts/e2e.mjs) bagian **Beban server**,
+yang menjaga agar keempatnya tidak diam-diam kembali:
+
+- ringkasan antrian **minimal 10x lebih kecil** daripada daftarnya
+- daftar antrian tidak membawa `text_body`, tapi `payload` tetap ada
+  (dashboard web membutuhkannya untuk nomor order dan total)
+- isi struk tetap bisa diambil lewat `?id=`
+- riwayat menghormati `limit` dan tidak pernah melebihi 200 tanpa parameter
+- riwayat menghormati batas tanggal dari klien
+- `?count=1` cocok dengan jumlah baris yang benar-benar dikembalikan
+- tanggal ngawur ditolak 400
+
+Suite lengkap: **42 lolos, 0 gagal.**
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files created | 2 (`lib/history-range.ts`, `app/(staff)/layout.tsx`) |
+| Files modified | 5 (`app/api/print/jobs/route.ts`, `app/api/orders/history/route.ts`, `app/api/orders/route.ts`, `app/layout.tsx`, `dashboard/printer/page.tsx`, `dashboard/history/page.tsx`, `dashboard/owner/page.tsx`) |
+| TypeScript errors | 0 |
+| E2E | 42/42 |
+| Egress loop cetak | 3,67 GB/hari -> 2,1 MB/hari |
+| Breaking changes | `/api/orders/history` tanpa `limit` kini mengembalikan **200 terbaru**, bukan seluruh riwayat. Klien yang mengandalkan kelengkapannya harus memakai `?count=1` atau mengirim rentang. |
 
 ---
 
