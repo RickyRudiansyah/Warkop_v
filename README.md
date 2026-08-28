@@ -47,6 +47,8 @@
 - [Changelog v3.5](#changelog-v35)
 - [Changelog v3.6](#changelog-v36)
 - [Changelog v3.7](#changelog-v37)
+- [Changelog v3.8](#changelog-v38)
+- [Changelog v3.9](#changelog-v39)
 - [Developer](#developer)
 
 ---
@@ -405,6 +407,7 @@ Untuk fitur "Selesai" kasir (kalau database dibangun sebelum v3.0):
 | PATCH | `/api/orders/[id]/payment-method` | staff | Tukar `CASH` ↔ `QRIS`, **hanya selama UNPAID** |
 | PATCH | `/api/orders/[id]/refund` | staff | Refund seluruh sisa (body kosong) atau per item (`items: [{ order_item_id, quantity }]`, opsional `reason`). **Nominal dihitung server** |
 | GET | `/api/orders/history?count=1` | staff | Jumlah order pada rentang, tanpa mengunduhnya (dipakai dialog hapus riwayat) |
+| GET | `/api/reports/summary?from=&to=` | staff | Rekap terhitung: omzet, refund, jumlah order, batal, top-10 menu, 10 order terbaru. **~2 KB**, menggantikan penarikan order mentah oleh dashboard owner |
 | PATCH | `/api/orders/[id]/archive` | staff | is_archived=true (arsip manual; sejak v3.2 jarang dipakai) |
 | PATCH | `/api/orders/[id]/cancel` | staff | Cancel (tolak jika SERVED/CANCELLED) |
 | PATCH | `/api/orders/[id]/update-eta` | staff | Perpanjang ETA |
@@ -895,6 +898,8 @@ curl http://localhost:3000/api/health
 | v3.5 | Audit beban server: ringkasan antrian cetak, riwayat berbatas, Realtime keluar dari halaman pelanggan |
 | v3.6 | Loop cetak tablet melambat sendiri saat sepi (778rb -> 142rb permintaan/bulan), setelah kuota Vercel benar-benar habis dan situs mati |
 | v3.7 | **Perbaikan:** batas riwayat 200 menyembunyikan 72% catatan warung tanpa pesan apa pun |
+| v3.8 | Filter tanggal tertentu di Laporan, Riwayat Jatah, dan dashboard owner, bukan preset saja |
+| v3.9 | Dashboard owner 775 KB -> 2,3 KB lewat endpoint ringkasan · laporan penjualan satu query, 2,1 dtk -> 0,8 dtk |
 
 ---
 
@@ -2348,6 +2353,187 @@ Suite lengkap: **43 lolos, 0 gagal.**
 | Riwayat dikembalikan | 200 -> **723** (seluruhnya) |
 | "Hari Ini" saat tab dibuka | tetap 0,6 KB |
 | Breaking changes | Tidak ada. Klien lama ikut pulih tanpa perlu diperbarui, karena batasnya bawaan server. |
+
+---
+
+## Changelog v3.8
+
+### Filter per tanggal, bukan preset saja
+
+Permintaan pemilik: *"laporan penjualan bisa filter perhari juga dong, intinya
+semua filter tanggal jangan hari ini, minggu ini atau bulan ini doang tapi bisa
+filter pertanggal."*
+
+Sebelumnya hanya layar **Riwayat** yang punya pemilih tanggal. Tiga tempat lain
+masih preset saja, dan preset tidak bisa menjawab "tanggal 12 kemarin ramai
+tidak?":
+
+| Tempat | Sebelum | Sesudah |
+|---|---|---|
+| Laporan (aplikasi) | Hari ini · 7 · 30 hari | + tanggal tertentu |
+| Riwayat Jatah (aplikasi) | 7 · 30 · 90 hari | + tanggal tertentu |
+| Rekap Penjualan (dashboard owner) | Hari Ini · 7 Hari · Semua | + `<input type="date">` |
+
+Tidak ada endpoint baru. `/api/reports/menu-sales`, `/api/staff-meals`, dan
+`/api/orders?history=1` sudah menerima `from`/`to` sejak awal; yang kurang cuma
+antarmukanya.
+
+### Satu pola, tiga layar
+
+Ketiganya berperilaku sama persis, dan aturannya ditulis supaya layar keempat
+nanti tidak menyimpang:
+
+1. **Tanggal tertentu menimpa preset**, dan presetnya harus terlihat tidak
+   terpilih. Kalau keduanya menyala, layar mengaku menampilkan dua periode
+   sekaligus.
+2. **Menekan preset melepaskan tanggal.** Tanpa itu preset terlihat aktif tapi
+   tidak mengubah apa pun.
+3. **Selalu ada tombol silang saat tanggal aktif.** Tanpa itu tanggal yang
+   terlanjur dipilih tidak bisa dilepas, dan layar terlihat seperti kehabisan
+   data.
+
+Di aplikasi, ketiga chip itu satu widget bersama
+(`DayPickerChip`), bukan tiga salinan. Tiga salinan berarti tiga peluang untuk
+berperilaku berbeda, dan filter tanggal yang berbeda-beda antar layar membuat
+angka yang sebenarnya benar jadi terlihat mencurigakan.
+
+### Satu jebakan zona waktu yang khusus dihindari
+
+Di dashboard owner, `<input type="date">` mengembalikan string `2026-08-12`.
+Menyerahkannya ke `new Date('2026-08-12')` membacanya sebagai **tengah malam
+UTC**, yang di WIB jatuh pukul 07.00 pagi tanggal 12 - jadi omzet dini hari
+sampai jam 7 masuk ke tanggal yang salah. Karena itu stringnya dipecah manual:
+
+```ts
+const picked = day.split('-').map(Number);
+const since = new Date(picked[0], picked[1] - 1, picked[2]);
+```
+
+Aturan yang sama dengan seluruh sistem ini: **batas hari selalu dihitung di
+klien**, karena hanya klien yang tahu zona warungnya.
+
+### Uji
+
+Empat uji baru di bagian **Filter per tanggal** pada `scripts/e2e.mjs`:
+
+- laporan penjualan bisa dibatasi satu tanggal
+- laporan tanggal di masa depan: seluruh menu tetap muncul dengan qty 0, tapi
+  porsi terjual dan omzetnya nol
+- jatah makan bisa dibatasi satu tanggal
+- riwayat satu tanggal hanya berisi order bertanggal itu
+
+Uji kedua sempat gagal, dan yang salah ternyata ekspektasi saya: laporan memang
+**sengaja** mengembalikan seluruh menu dengan `qty_sold: 0`, karena justru
+itulah daftar "kurang laku" yang ingin dilihat owner. Yang harus nol angkanya,
+bukan panjang daftarnya.
+
+Suite lengkap: **47 lolos, 0 gagal.**
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 2 (`dashboard/owner/page.tsx`, `scripts/e2e.mjs`) + 5 di repo aplikasi |
+| Endpoint baru | tidak ada - `from`/`to` sudah didukung sejak awal |
+| TypeScript errors | 0 |
+| E2E | 47/47 |
+| Breaking changes | Tidak ada |
+
+---
+
+## Changelog v3.9
+
+### Dashboard owner: 775 KB jadi 2,3 KB
+
+Halaman ini menampilkan enam angka, satu daftar top-10 menu, dan sepuluh order
+terbaru. Untuk itu ia menarik **seluruh order beserta seluruh itemnya**, lalu
+menghitung semuanya di browser:
+
+```
+/api/orders?history=1&limit=500  ->  775,1 KB, 1.020 ms  (rentang 7 hari)
+```
+
+Sekarang ada [`/api/reports/summary`](app/api/reports/summary/route.ts) yang
+menghitungnya di server dan mengembalikan hasilnya saja:
+
+```
+/api/reports/summary             ->    2,3 KB,   430 ms
+                                    99,7% lebih ringan
+```
+
+Yang penting bukan cuma ukurannya. **Rumus omzet sekarang hidup di satu
+tempat.** Sebelumnya ia ditulis ulang di browser:
+
+```ts
+filteredOrders.filter(o => o.status === 'SERVED')
+              .reduce((sum, o) => sum + o.total_amount - (o.refunded_amount ?? 0), 0)
+```
+
+Aturan yang sama juga ada di `historySummaryProvider` aplikasi kasir. Dua
+salinan berarti dua tempat yang harus diingat setiap kali aturannya berubah,
+dan kalau salah satu tertinggal, dashboard dan tablet menampilkan angka berbeda
+untuk hari yang sama tanpa ada yang tahu mana yang benar. Uji `omzet ringkasan
+memakai rumus yang sama dengan aplikasi kasir` menjaga itu.
+
+Efek samping yang ikut terbetulkan: dashboard dulu memakai `limit=500`,
+sementara warung sudah punya 723 order. Rekap 30 hari **kurang hitung** karena
+223 order tidak ikut terunduh. Endpoint ringkasan tidak punya batas itu, karena
+yang dikirim balik cuma angkanya.
+
+### Laporan penjualan: lima perjalanan jadi satu
+
+`/api/reports/menu-sales` dulu dua tahap: ambil seluruh id order dalam rentang,
+lalu ambil `order_items` bertahap per 200 id karena `.in()` punya batas panjang
+URL. Pada 723 order itu lima perjalanan bolak-balik ke Supabase.
+
+Diganti satu permintaan dengan filter pada tabel induk:
+
+```ts
+.from('order_items')
+.select('..., orders!inner(created_at, payment_status, status)')
+.eq('orders.payment_status', 'PAID')
+.neq('orders.status', 'CANCELLED')
+.gte('orders.created_at', from)
+```
+
+```
+sebelum : 2.182 ms
+sesudah :   791 ms
+```
+
+> **Satu jebakan yang memakan waktu:** string `select` harus ditulis sebagai
+> **satu literal utuh**. Memecahnya dengan `+` membuat inferensi tipe
+> supabase-js menyerah, dan seluruh kolom hasilnya jadi `GenericStringError`.
+> Gejalanya error TypeScript yang menyesatkan di baris-baris pemakaian, bukan
+> di baris `select`-nya.
+
+### Uji
+
+Tiga uji baru di bagian **Ringkasan rekap**:
+
+- ringkasan minimal 20x lebih ringan daripada menarik order mentah
+- omzet, jumlah order, dan jumlah batal cocok persis dengan hitungan dari data
+  mentah
+- `recent` dan `top_menu` tidak pernah lebih dari 10 baris, berapa pun rentangnya
+
+Uji kedua sempat gagal dengan selisih Rp 10,8 juta. Yang salah bukan kodenya,
+tapi **pembandingnya**: uji itu menarik data mentah dengan `limit=500` padahal
+rentangnya berisi 723 order. Jebakan yang sama persis dengan v3.7, kali ini
+tertangkap dalam hitungan menit karena ada yang mengeceknya.
+
+Suite lengkap: **50 lolos, 0 gagal.**
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files created | 1 (`app/api/reports/summary/route.ts`) |
+| Files modified | 3 (`app/api/reports/menu-sales/route.ts`, `dashboard/owner/page.tsx`, `scripts/e2e.mjs`) |
+| TypeScript errors | 0 |
+| E2E | 50/50 |
+| Dashboard owner | 775,1 KB -> 2,3 KB (-99,7%), 1.020 ms -> 430 ms |
+| Laporan 30 hari | 2.182 ms -> 791 ms (-64%) |
+| Breaking changes | Tidak ada. Endpoint lama tetap ada dan tetap dipakai halaman Riwayat. |
 
 ---
 

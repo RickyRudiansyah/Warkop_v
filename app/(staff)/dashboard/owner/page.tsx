@@ -13,6 +13,29 @@ import { toast } from 'sonner';
 
 type TimeFilter = 'today' | '7days' | 'all';
 
+/**
+ * Rekap yang sudah dihitung server (`/api/reports/summary`).
+ *
+ * Dulu halaman ini menarik seluruh order beserta itemnya (775 KB untuk 7 hari)
+ * lalu menghitungnya sendiri di browser. Balasan ini ~2 KB, dan rumus omzetnya
+ * hidup di satu tempat saja — sama dengan yang dipakai aplikasi kasir.
+ */
+interface ReportSummary {
+  revenue: number;
+  refunded: number;
+  orders: number;
+  cancelled: number;
+  avg_order: number;
+  cancel_rate: number;
+  top_menu: { name: string; count: number; revenue: number }[];
+  recent: Order[];
+}
+
+const EMPTY_SUMMARY: ReportSummary = {
+  revenue: 0, refunded: 0, orders: 0, cancelled: 0,
+  avg_order: 0, cancel_rate: 0, top_menu: [], recent: [],
+};
+
 const STATUS_LABELS: Record<string, string> = {
   QUEUED: 'Antri',
   PROCESSING: 'Diproses',
@@ -22,82 +45,71 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function OwnerPage() {
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [summary, setSummary] = useState<ReportSummary>(EMPTY_SUMMARY);
   const [loading, setLoading] = useState(true);
   const [variationMenuId, setVariationMenuId] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
+  // Tanggal tertentu (YYYY-MM-DD). Kalau diisi, ia MENIMPA timeFilter.
+  //
+  // Preset menjawab "hari ini dapat berapa", tapi tidak menjawab "tanggal 12
+  // kemarin ramai tidak?" - dan itu pertanyaan pemilik yang wajar. Pola yang
+  // sama dipakai di layar Riwayat, Laporan, dan Riwayat Jatah aplikasi kasir.
+  const [day, setDay] = useState<string>('');
   const [resetting, setResetting] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; type: 'reset-all' }>({ open: false, type: 'reset-all' });
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    // Rentangnya dipotong DI SERVER. Dulu halaman ini menarik seluruh riwayat
-    // sejak hari pertama (897 KB pada 636 order, dan terus bertambah ~32 order
-    // sehari) hanya untuk menghitung omzet hari ini, lalu menyaringnya di
-    // browser. Batas harinya dihitung dari jam browser kasir, karena tengah
-    // malam di warung adalah tengah malam WIB - bukan UTC.
+
+    // Batas hari dihitung DI SINI, dari jam browser. Tengah malam di warung
+    // adalah tengah malam WIB; kalau server yang memotong, batasnya jatuh
+    // pukul 07.00 pagi, tepat di tengah hari kerja.
+    //
+    // `new Date('2026-08-12')` dibaca sebagai UTC dan meleset sehari di WIB,
+    // jadi stringnya dipecah manual.
     const now = new Date();
-    const since =
-      timeFilter === 'today' ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const picked = day ? day.split('-').map(Number) : null;
+    const since = picked
+      ? new Date(picked[0], picked[1] - 1, picked[2])
+      : timeFilter === 'today' ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
       : timeFilter === '7days' ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
       : null;
-    const qs = '/api/orders?history=1&limit=500'
-      + (since ? '&from=' + encodeURIComponent(since.toISOString()) : '');
+    const until = picked ? new Date(picked[0], picked[1] - 1, picked[2] + 1) : null;
+
+    const qs = '/api/reports/summary'
+      + (since || until ? '?' : '')
+      + [
+          since ? 'from=' + encodeURIComponent(since.toISOString()) : '',
+          until ? 'to=' + encodeURIComponent(until.toISOString()) : '',
+        ].filter(Boolean).join('&');
 
     Promise.all([
       fetch('/api/menu').then(r => r.json()),
       fetch(qs).then(r => r.json()),
-    ]).then(([menu, orders]) => {
+    ]).then(([menu, rekap]) => {
       setMenuItems(Array.isArray(menu) ? menu : []);
-      setOrders(Array.isArray(orders) ? orders : []);
+      setSummary(rekap && typeof rekap.revenue === 'number' ? rekap : EMPTY_SUMMARY);
       setLoading(false);
     }).catch(() => {
       setMenuItems([]);
-      setOrders([]);
+      setSummary(EMPTY_SUMMARY);
       setLoading(false);
     });
-  }, [timeFilter]);
+  }, [timeFilter, day]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Server sudah memotong rentangnya; penyaringan ini tinggal jaring pengaman
-  // untuk balasan yang menyeberang batas hari (mis. tab dibiarkan terbuka
-  // melewati tengah malam).
-  const filteredOrders = orders.filter(o => {
-    if (timeFilter === 'today') {
-      const today = new Date();
-      const orderDate = new Date(o.created_at);
-      return orderDate.toDateString() === today.toDateString();
-    }
-    if (timeFilter === '7days') {
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      return new Date(o.created_at) >= weekAgo;
-    }
-    return true;
-  });
-
-  // Refund dipotong dari omzet tanggal order itu dibuat — keputusan pemilik,
-  // dan harus sama persis dengan angka yang ditampilkan aplikasi kasir.
-  const totalRefunded = filteredOrders.reduce((sum, o) => sum + (o.refunded_amount ?? 0), 0);
-  const totalRevenue = filteredOrders.filter(o => o.status === 'SERVED').reduce((sum, o) => sum + o.total_amount - (o.refunded_amount ?? 0), 0);
-  const totalOrders = filteredOrders.length;
-  const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
-  const cancelCount = filteredOrders.filter(o => o.status === 'CANCELLED').length;
-  const cancelRate = totalOrders > 0 ? Math.round((cancelCount / totalOrders) * 100) : 0;
-
-  const topMenu: { name: string; count: number; revenue: number }[] = [];
-  filteredOrders.filter(o => o.status === 'SERVED').forEach(o => {
-    o.items?.forEach(item => {
-      const existing = topMenu.find(t => t.name === item.menu_item_name);
-      if (existing) {
-        existing.count += item.quantity;
-        existing.revenue += item.subtotal;
-      } else {
-        topMenu.push({ name: item.menu_item_name, count: item.quantity, revenue: item.subtotal });
-      }
-    });
-  });
-  topMenu.sort((a, b) => b.count - a.count);
+  // Semua angka di bawah datang dari server. Tidak ada lagi penyaringan atau
+  // penjumlahan di browser — itulah yang dulu menuntut seluruh order beserta
+  // itemnya ikut diunduh.
+  const totalRefunded = summary.refunded;
+  const totalRevenue = summary.revenue;
+  const totalOrders = summary.orders;
+  const avgOrder = summary.avg_order;
+  const cancelCount = summary.cancelled;
+  const cancelRate = summary.cancel_rate;
+  const topMenu = summary.top_menu;
+  const recentOrders = summary.recent;
 
   const handleResetData = async () => {
     setResetting(true);
@@ -105,7 +117,7 @@ export default function OwnerPage() {
       const res = await fetch('/api/orders/reset', { method: 'DELETE' });
       if (res.ok) {
         toast.success('Semua data berhasil direset');
-        setOrders([]);
+        setSummary(EMPTY_SUMMARY);
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || 'Gagal mereset data');
@@ -171,11 +183,11 @@ export default function OwnerPage() {
 
         <div className="card p-4">
           <h3 className="font-semibold mb-3">Order Terbaru</h3>
-          {filteredOrders.length === 0 ? (
+          {recentOrders.length === 0 ? (
             <p className="text-text-secondary text-sm">Belum ada order</p>
           ) : (
             <div className="space-y-2">
-              {filteredOrders.slice(0, 10).map(order => (
+              {recentOrders.map(order => (
                 <div key={order.id} className="flex items-center justify-between py-2 border-b last:border-0">
                   <div>
                     <span className="font-medium">{tableLabel(order.table)}</span>
@@ -197,10 +209,33 @@ export default function OwnerPage() {
           <h3 className="font-semibold">Rekap Penjualan</h3>
           <div className="flex gap-2">
             {(['today', '7days', 'all'] as TimeFilter[]).map(f => (
-              <button key={f} onClick={() => setTimeFilter(f)} className={'px-3 py-1 rounded-lg text-sm font-medium ' + (timeFilter === f ? 'bg-primary text-[color:var(--color-on-primary)]' : 'bg-surface-3 text-text-secondary')}>
+              <button
+                key={f}
+                // Memilih preset melepaskan tanggal tertentu. Kalau tidak, chip
+                // terlihat aktif tapi tidak mengubah apa pun.
+                onClick={() => { setDay(''); setTimeFilter(f); }}
+                className={'px-3 py-1 rounded-lg text-sm font-medium ' + (!day && timeFilter === f ? 'bg-primary text-[color:var(--color-on-primary)]' : 'bg-surface-3 text-text-secondary')}
+              >
                 {f === 'today' ? 'Hari Ini' : f === '7days' ? '7 Hari' : 'Semua'}
               </button>
             ))}
+            <input
+              type="date"
+              value={day}
+              max={new Date().toLocaleDateString('sv-SE')}
+              onChange={e => setDay(e.target.value)}
+              aria-label="Lihat rekap tanggal tertentu"
+              className={'px-3 py-1 rounded-lg text-sm font-medium border border-border bg-surface ' + (day ? 'text-text font-bold' : 'text-text-secondary')}
+            />
+            {day && (
+              <button
+                onClick={() => setDay('')}
+                aria-label="Lepas tanggal"
+                className="px-2 py-1 rounded-lg text-sm bg-surface-3 text-text-secondary"
+              >
+                &times;
+              </button>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4">

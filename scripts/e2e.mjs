@@ -742,6 +742,115 @@ async function main() {
     eq(res.status, 400, 'status');
   });
 
+  // ==================================================== filter per tanggal
+  section('Filter per tanggal');
+
+  // Semua layar berangka di aplikasi memakai pola yang sama: preset cepat, plus
+  // SATU TANGGAL TERTENTU yang menimpanya. Yang diuji di sini bukan tombolnya,
+  // melainkan janji yang dipegang server: batas `from`/`to` dari klien dihormati
+  // apa adanya, karena tengah malam di warung adalah tengah malam WIB.
+
+  const hariIni = new Date();
+  const awalHari = new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate());
+  const akhirHari = new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() + 1);
+  const iso = (d) => encodeURIComponent(d.toISOString());
+
+  await test('laporan penjualan bisa dibatasi satu tanggal', async () => {
+    const res = await api(
+      'GET',
+      `/api/reports/menu-sales?from=${iso(awalHari)}&to=${iso(akhirHari)}`,
+    );
+    eq(res.status, 200, 'status');
+    ok(res.body !== null, 'balasan kosong');
+  });
+
+  await test('laporan tanggal di masa depan: semua menu nol, bukan kosong', async () => {
+    const besok = new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() + 1);
+    const lusa = new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() + 2);
+    const res = await api('GET', `/api/reports/menu-sales?from=${iso(besok)}&to=${iso(lusa)}`);
+    eq(res.status, 200, 'status');
+
+    // Daftarnya sengaja TETAP berisi seluruh menu dengan qty 0 - itulah yang
+    // dipakai owner untuk melihat "kurang laku". Yang harus nol adalah
+    // angkanya, bukan panjang daftarnya.
+    const items = res.body.items ?? [];
+    ok(items.length > 0, 'daftar menu tidak boleh kosong');
+    const terjual = items.reduce((n, i) => n + i.qty_sold, 0);
+    const omzet = items.reduce((n, i) => n + i.revenue, 0);
+    eq(terjual, 0, 'porsi terjual di masa depan');
+    eq(omzet, 0, 'omzet di masa depan');
+  });
+
+  await test('jatah makan bisa dibatasi satu tanggal', async () => {
+    const hari = awalHari.toISOString().slice(0, 10);
+    const res = await api('GET', `/api/staff-meals?from=${hari}&to=${hari}`);
+    eq(res.status, 200, 'status');
+    ok(Array.isArray(res.body), 'balasan harus berupa daftar');
+  });
+
+  await test('riwayat satu tanggal hanya berisi tanggal itu', async () => {
+    const res = await api(
+      'GET',
+      `/api/orders/history?from=${iso(awalHari)}&to=${iso(akhirHari)}`,
+    );
+    eq(res.status, 200, 'status');
+    for (const o of res.body) {
+      const at = new Date(o.created_at);
+      ok(
+        at >= awalHari && at < akhirHari,
+        `order ${o.id} bertanggal ${o.created_at}, di luar rentang yang diminta`,
+      );
+    }
+  });
+
+  // ============================================== ringkasan rekap owner
+  section('Ringkasan rekap');
+
+  await test('ringkasan owner jauh lebih ringan daripada menarik order mentah', async () => {
+    const q = `from=${iso(new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() - 6))}`;
+    const ringkas = await api('GET', `/api/reports/summary?${q}`);
+    const mentah = await api('GET', `/api/orders?history=1&limit=500&${q}`);
+
+    eq(ringkas.status, 200, 'status');
+    ok(
+      ringkas.raw.length * 20 < mentah.raw.length,
+      `ringkasan ${ringkas.raw.length} byte vs order mentah ${mentah.raw.length} byte`,
+    );
+  });
+
+  await test('omzet ringkasan memakai rumus yang sama dengan aplikasi kasir', async () => {
+    // total_amount - refunded_amount, hanya SERVED, batal tidak ikut.
+    // Kalau ini bergeser, dashboard owner dan tablet menampilkan angka berbeda
+    // untuk hari yang sama - dan tidak ada yang tahu mana yang benar.
+    const q = `from=${iso(new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() - 29))}`;
+    const ringkas = await api('GET', `/api/reports/summary?${q}`);
+    // limit 5000, bukan 500: ringkasan menghitung SELURUH order dalam rentang,
+    // jadi pembandingnya harus lengkap juga. Versi pertama uji ini memakai 500
+    // dan gagal dengan selisih Rp 10,8 juta - bukan karena kodenya salah, tapi
+    // karena pembandingnya sendiri terpotong. Persis jebakan yang sama dengan
+    // batas riwayat 200 (v3.7).
+    const mentah = await api('GET', `/api/orders?history=1&limit=5000&${q}`);
+
+    const harusnya = mentah.body
+      .filter((o) => o.status === 'SERVED')
+      .reduce((n, o) => n + o.total_amount - (o.refunded_amount ?? 0), 0);
+
+    eq(ringkas.body.revenue, harusnya, 'omzet');
+    eq(ringkas.body.orders, mentah.body.length, 'jumlah order');
+    eq(
+      ringkas.body.cancelled,
+      mentah.body.filter((o) => o.status === 'CANCELLED').length,
+      'jumlah batal',
+    );
+  });
+
+  await test('ringkasan hanya mengembalikan 10 order terbaru, berapa pun rentangnya', async () => {
+    const res = await api('GET', '/api/reports/summary');
+    eq(res.status, 200, 'status');
+    ok(res.body.recent.length <= 10, `dapat ${res.body.recent.length} order terbaru`);
+    ok(res.body.top_menu.length <= 10, `dapat ${res.body.top_menu.length} menu teratas`);
+  });
+
   // ================================================================ pembatalan
   section('Pembatalan');
 

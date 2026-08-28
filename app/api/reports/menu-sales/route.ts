@@ -35,46 +35,41 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient();
 
-  let orderQuery = supabase
-    .from('orders')
-    .select('id')
-    .eq('payment_status', 'PAID')
-    .neq('status', 'CANCELLED');
+  // SATU permintaan, difilter lewat tabel induk dengan `orders!inner`.
+  //
+  // Versi sebelumnya dua tahap: ambil seluruh id order dalam rentang, lalu
+  // ambil `order_items` bertahap per 200 id karena `.in()` punya batas panjang
+  // URL. Pada 723 order itu lima perjalanan bolak-balik ke Supabase dan
+  // memakan ~2,1 detik. Filter pada tabel induk melakukannya sekaligus.
+  let itemQuery = supabase
+    .from('order_items')
+    // Ditulis satu baris utuh: potongan string yang disambung `+` membuat
+    // inferensi tipe supabase-js menyerah, dan hasilnya jadi GenericStringError.
+    .select('menu_item_id, menu_item_name, quantity, subtotal, cost_price_snapshot, orders!inner(created_at, payment_status, status)')
+    .eq('orders.payment_status', 'PAID')
+    .neq('orders.status', 'CANCELLED');
 
-  if (from) orderQuery = orderQuery.gte('created_at', from);
-  if (to) orderQuery = orderQuery.lte('created_at', to);
+  if (from) itemQuery = itemQuery.gte('orders.created_at', from);
+  if (to) itemQuery = itemQuery.lte('orders.created_at', to);
 
-  const { data: orders, error: orderError } = await orderQuery;
-  if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 });
+  const { data: rows, error: itemError } = await itemQuery;
+  if (itemError) return NextResponse.json({ error: itemError.message }, { status: 500 });
 
   const totals = new Map<string, Row>();
 
-  if (orders?.length) {
-    // Ambil bertahap: daftar id order bisa panjang dan `.in()` punya batas URL.
-    const ids = orders.map(o => o.id);
-    for (let i = 0; i < ids.length; i += 200) {
-      const { data: items, error } = await supabase
-        .from('order_items')
-        .select('menu_item_id, menu_item_name, quantity, subtotal, cost_price_snapshot')
-        .in('order_id', ids.slice(i, i + 200));
-
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-      for (const it of items ?? []) {
-        // Menu yang sudah dihapus punya menu_item_id null — kelompokkan per nama
-        // supaya penjualannya tidak hilang dari laporan.
-        const key = it.menu_item_id ?? 'nama:' + it.menu_item_name;
-        const row = totals.get(key) ?? {
-          menu_item_id: it.menu_item_id,
-          menu_item_name: it.menu_item_name,
-          qty_sold: 0, revenue: 0, cost: 0, gross_profit: 0,
-        };
-        row.qty_sold += it.quantity ?? 0;
-        row.revenue += it.subtotal ?? 0;
-        row.cost += (it.cost_price_snapshot ?? 0) * (it.quantity ?? 0);
-        totals.set(key, row);
-      }
-    }
+  for (const it of rows ?? []) {
+    // Menu yang sudah dihapus punya menu_item_id null — kelompokkan per nama
+    // supaya penjualannya tidak hilang dari laporan.
+    const key = it.menu_item_id ?? 'nama:' + it.menu_item_name;
+    const row = totals.get(key) ?? {
+      menu_item_id: it.menu_item_id,
+      menu_item_name: it.menu_item_name,
+      qty_sold: 0, revenue: 0, cost: 0, gross_profit: 0,
+    };
+    row.qty_sold += it.quantity ?? 0;
+    row.revenue += it.subtotal ?? 0;
+    row.cost += (it.cost_price_snapshot ?? 0) * (it.quantity ?? 0);
+    totals.set(key, row);
   }
 
   // Menu yang TIDAK pernah terjual tetap dimunculkan dengan qty_sold 0 —
