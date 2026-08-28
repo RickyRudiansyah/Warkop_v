@@ -19,13 +19,21 @@ export interface HistoryRange {
 /**
  * Batas atas jumlah order yang boleh dikembalikan sekali panggil.
  *
- * Ada karena dulu tidak ada: `/api/orders/history` mengembalikan SELURUH
- * riwayat sejak hari pertama, dan pada 636 order sudah 897 KB. Warung ini
- * membuat ~32 order sehari, jadi dalam setahun balasannya menembus 16 MB —
- * ditarik ulang setiap kali tab Riwayat dibuka, oleh tiga pemanggil berbeda.
+ * **Ini jaring pengaman, BUKAN alat penghemat.** Yang menghemat adalah rentang
+ * tanggal: "Hari Ini" berharga 0,6 KB, sementara seluruh riwayat 897 KB.
+ *
+ * Versi pertama batas ini 200, dan itu **salah dan berbahaya**. Pada 723 order,
+ * riwayat terpotong jadi hanya 25 Agustus ke atas: 523 order (72%) lenyap dari
+ * layar tanpa satu pun pesan. Yang melapor bukan sistem, tapi karyawan warung
+ * yang mencari rekap tanggal 7 dan tidak menemukannya. Diam-diam menyembunyikan
+ * catatan uang adalah kegagalan yang jauh lebih mahal daripada balasan besar.
+ *
+ * Karena itu angkanya sekarang longgar, dan pemotongannya **wajib terlihat**:
+ * kalau jumlah baris yang kembali sama dengan `limit`, klien menampilkan
+ * peringatan bahwa masih ada yang lebih lama.
  */
-const MAX_LIMIT = 500;
-const DEFAULT_LIMIT = 200;
+const MAX_LIMIT = 5000;
+const DEFAULT_LIMIT = 1000;
 
 export function readHistoryRange(request: NextRequest): HistoryRange {
   const { searchParams } = new URL(request.url);

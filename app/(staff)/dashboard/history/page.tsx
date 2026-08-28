@@ -20,6 +20,9 @@ const PURGE_SCOPES: { value: PurgeScope; label: string }[] = [
   { value: 'all', label: 'Semua' },
 ];
 
+/// Harus sama dengan DEFAULT_LIMIT di lib/history-range.ts.
+const HISTORY_LIMIT = 1000;
+
 export default function HistoryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,11 +33,11 @@ export default function HistoryPage() {
   const [purgeScope, setPurgeScope] = useState<PurgeScope>('day');
   const [purgeAnchor, setPurgeAnchor] = useState(() => new Date());
 
-  // 200 terbaru, bukan seluruh riwayat. Server memang membatasinya sekarang
-  // (lib/history-range.ts); ditulis eksplisit di sini supaya jelas bahwa tabel
-  // ini memang tidak menampilkan semuanya.
+  // Batasnya longgar dengan sengaja (lib/history-range.ts). Versi pertama 200,
+  // dan itu menyembunyikan 72% riwayat warung tanpa pesan apa pun. Kalau
+  // jumlah baris yang kembali menyentuh batas ini, tabel memberi peringatan.
   const fetchHistory = useCallback(() => {
-    fetch('/api/orders/history?limit=200')
+    fetch('/api/orders/history?limit=' + HISTORY_LIMIT)
       .then(r => r.ok ? r.json() : [])
       .then(d => { setOrders(Array.isArray(d) ? d : []); })
       .catch(() => setOrders([]))
@@ -166,6 +169,13 @@ export default function HistoryPage() {
           </Button>
         )}
       </div>
+      {orders.length >= HISTORY_LIMIT && (
+        <div className="mb-4 rounded-lg border border-warning/40 bg-warning/5 px-4 py-3 text-sm">
+          Baru {HISTORY_LIMIT} order terbaru yang dimuat. Masih ada order yang lebih
+          lama dan belum tampil di tabel ini.
+        </div>
+      )}
+
       {orders.length === 0 ? (
         <EmptyState icon={<History className="w-12 h-12" />} title="Belum ada riwayat" description="Order yang selesai atau dibatalkan akan muncul di sini" />
       ) : (

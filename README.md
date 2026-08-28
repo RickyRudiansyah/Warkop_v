@@ -46,6 +46,7 @@
 - [Changelog v3.4](#changelog-v34)
 - [Changelog v3.5](#changelog-v35)
 - [Changelog v3.6](#changelog-v36)
+- [Changelog v3.7](#changelog-v37)
 - [Developer](#developer)
 
 ---
@@ -893,6 +894,7 @@ curl http://localhost:3000/api/health
 | v3.4 | Foto menu lewat Image Optimization: egress Supabase turun dari 9,8 MB jadi ~32 KB per pelanggan |
 | v3.5 | Audit beban server: ringkasan antrian cetak, riwayat berbatas, Realtime keluar dari halaman pelanggan |
 | v3.6 | Loop cetak tablet melambat sendiri saat sepi (778rb -> 142rb permintaan/bulan), setelah kuota Vercel benar-benar habis dan situs mati |
+| v3.7 | **Perbaikan:** batas riwayat 200 menyembunyikan 72% catatan warung tanpa pesan apa pun |
 
 ---
 
@@ -2267,6 +2269,85 @@ mencetak struk. Kalau nanti perlu, polanya sudah ada di
 | Flutter analyze | bersih (2 info lama) |
 | Permintaan loop cetak | 777.600 -> 142.080 per bulan (-82%) |
 | Breaking changes | Tidak ada. Struk tetap tercetak seketika lewat Realtime; yang melambat hanya jaring pengamannya, paling lama 20 detik. |
+
+---
+
+## Changelog v3.7
+
+### Batas riwayat 200 menyembunyikan 72% catatan warung
+
+Regresi dari [v3.5](#changelog-v35). Saat memberi batas pada
+`/api/orders/history`, angkanya disetel `DEFAULT_LIMIT = 200`. Warung sudah
+punya **723 order**, jadi riwayat terpotong menjadi hanya 25 Agustus ke atas:
+
+```
+total order di riwayat : 723
+order tertua           : 7 Agustus 2026
+order ke-200 terbaru   : 25 Agustus 2026
+-> 523 order (72%) tidak terlihat
+```
+
+Yang melaporkannya karyawan warung yang mencari rekap tanggal 7 dan tidak
+menemukannya, bukan sistem, dan baru berhari-hari kemudian. Ini berlaku untuk
+**semua** klien - aplikasi kasir, halaman riwayat web, dan dashboard owner -
+karena batasnya bawaan server, jadi klien lama yang tidak mengirim `limit` pun
+ikut terpotong.
+
+Tidak ada apa pun di layar yang menandakannya. Rekapnya tetap terlihat rapi.
+
+### Yang diperbaiki
+
+**Batasnya dilonggarkan**: bawaan 200 -> 1.000, maksimum 500 -> 5.000. Seluruh
+723 order kembali muat dalam sekali panggil (979 KB).
+
+Itu tidak membatalkan penghematan v3.5, karena **yang menghemat memang bukan
+batas jumlah melainkan rentang tanggal**. Aplikasi kasir membuka tab Riwayat
+pada "Hari Ini", dan itu tetap berharga 0,6 KB. Batas jumlah cuma jaring
+pengaman terhadap pertumbuhan bertahun-tahun, dan jaring pengaman tidak boleh
+lebih ketat daripada data yang sah.
+
+**Pemotongannya kini terlihat.** Kalau jumlah baris yang kembali menyentuh
+batas, aplikasi memunculkan peringatan kuning di atas bilah rekap dan halaman
+riwayat web memunculkan panel peringatan. Klien tahu dari `data.length ===
+limit`, jadi bentuk balasannya tidak berubah dan klien lama tetap aman.
+
+### Pelajaran yang ditulis di README kedua repo
+
+> Catatan uang tidak boleh hilang tanpa pemberitahuan. Balasan besar itu
+> masalah performa - bisa diukur, bisa diperbaiki. Angka rekap yang diam-diam
+> salah adalah masalah kepercayaan, dan baru ketahuan setelah dipakai mengambil
+> keputusan.
+
+Optimasi v3.4-v3.6 semuanya benar dan terukur. Yang salah di v3.5 bukan
+idenya, tapi memilih angka batas tanpa mencocokkannya dengan berapa banyak data
+yang sebenarnya ada di database.
+
+### Uji
+
+Satu uji baru di `scripts/e2e.mjs`, dan sengaja ditulis keras:
+
+```js
+const count = await api('GET', '/api/orders/history?count=1');
+const all   = await api('GET', '/api/orders/history');
+eq(all.body.length, count.body.count, 'riwayat terpotong: ...');
+```
+
+Seluruh riwayat harus muat dalam sekali panggil bawaan. Kalau warung ini nanti
+melewati 1.000 order, **uji inilah yang gagal duluan** - bukan Vona yang
+mencari rekap dan tidak menemukannya.
+
+Suite lengkap: **43 lolos, 0 gagal.**
+
+### Tech Specs
+
+| Metric | Value |
+|---|---|
+| Files modified | 3 (`lib/history-range.ts`, `dashboard/history/page.tsx`, `scripts/e2e.mjs`) + 4 di repo aplikasi |
+| TypeScript errors | 0 |
+| E2E | 43/43 |
+| Riwayat dikembalikan | 200 -> **723** (seluruhnya) |
+| "Hari Ini" saat tab dibuka | tetap 0,6 KB |
+| Breaking changes | Tidak ada. Klien lama ikut pulih tanpa perlu diperbarui, karena batasnya bawaan server. |
 
 ---
 

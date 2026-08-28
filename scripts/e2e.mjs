@@ -685,14 +685,34 @@ async function main() {
     ok(typeof res.body.job.text_body === 'string', 'text_body tidak ada');
   });
 
-  await test('riwayat dibatasi jumlahnya, bukan seluruh isi database', async () => {
+  await test('riwayat menghormati limit yang diminta', async () => {
     const res = await api('GET', '/api/orders/history?limit=3');
     eq(res.status, 200, 'status');
     ok(res.body.length <= 3, `dapat ${res.body.length} order, minta 3`);
+  });
 
-    // Tanpa limit pun tidak boleh tak terbatas.
-    const bawaan = await api('GET', '/api/orders/history');
-    ok(bawaan.body.length <= 200, `bawaan ${bawaan.body.length} order, batasnya 200`);
+  await test('riwayat TIDAK memotong diam-diam pada pemakaian normal', async () => {
+    // Uji yang paling penting di berkas ini.
+    //
+    // Batas bawaan pernah disetel 200, dan pada 723 order itu menyembunyikan
+    // 523 di antaranya - riwayat warung terpotong jadi hanya dua hari terakhir,
+    // tanpa satu pun pesan di layar. Yang menemukannya karyawan warung, bukan
+    // sistem, dan baru berhari-hari kemudian.
+    //
+    // Jadi: seluruh riwayat harus muat dalam sekali panggil bawaan. Kalau suatu
+    // hari warung ini melewati batasnya, uji inilah yang gagal duluan - bukan
+    // Vona yang mencari rekap dan tidak menemukannya.
+    const count = await api('GET', '/api/orders/history?count=1');
+    eq(count.status, 200, 'status hitungan');
+
+    const all = await api('GET', '/api/orders/history');
+    eq(all.status, 200, 'status daftar');
+    eq(
+      all.body.length,
+      count.body.count,
+      `riwayat terpotong: ${count.body.count} order ada di database, ` +
+        `tapi hanya ${all.body.length} yang dikembalikan tanpa parameter`,
+    );
   });
 
   await test('riwayat menghormati batas tanggal dari klien', async () => {
